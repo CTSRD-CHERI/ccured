@@ -1,0 +1,10 @@
+\@addtocsec{htoc}{1}{0}{\@print{1}\quad{}If you want to use Windows}
+\@addtocsec{htoc}{2}{1}{\@print{1.1}\quad{}Get \t{cygwin}}
+\@addtocsec{htoc}{3}{1}{\@print{1.2}\quad{}Customize \t{ssh}}
+\newlabel{sec-win-ssh}{{1.2}{X}}
+\@addtocsec{htoc}{4}{0}{\@print{2}\quad{}Configure CVS}
+\@addtocsec{htoc}{5}{1}{\@print{2.1}\quad{}\t{.cvsrc}}
+\@addtocsec{htoc}{6}{1}{\@print{2.2}\quad{}\t{.ssh/config}}
+\@addtocsec{htoc}{7}{1}{\@print{2.3}\quad{}Using CVS with \t{ssh}}
+\@addtocsec{htoc}{8}{0}{\@print{3}\quad{}Using CVS}
+\@addtocsec{htoc}{9}{0}{\@print{4}\quad{}Useful Links}

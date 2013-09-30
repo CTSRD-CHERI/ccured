@@ -1,0 +1,13 @@
+\begin{tocenv}
+\tocitem \@locref{htoc1}{\begin{@norefs}\@print{1}\quad{}If you want to use Windows\end{@norefs}}
+\begin{tocenv}
+\tocitem \@locref{htoc2}{\begin{@norefs}\@print{1.1}\quad{}Get \t{cygwin}\end{@norefs}}
+\end{tocenv}
+\tocitem \@locref{htoc3}{\begin{@norefs}\@print{2}\quad{}Get OCaml\end{@norefs}}
+\begin{tocenv}
+\tocitem \@locref{htoc4}{\begin{@norefs}\@print{2.1}\quad{}Debugging Support Ocaml\end{@norefs}}
+\end{tocenv}
+\tocitem \@locref{htoc5}{\begin{@norefs}\@print{3}\quad{}Set the environment variables\end{@norefs}}
+\tocitem \@locref{htoc6}{\begin{@norefs}\@print{4}\quad{}If you need CVS access\end{@norefs}}
+\tocitem \@locref{htoc7}{\begin{@norefs}\@print{5}\quad{}Useful Links\end{@norefs}}
+\end{tocenv}

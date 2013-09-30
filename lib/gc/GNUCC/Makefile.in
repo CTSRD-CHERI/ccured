@@ -1,0 +1,26 @@
+subdir = lib/gc/GNUCC
+srcdir = @srcdir@
+top_builddir = ../../..
+
+CC = @CC@
+
+
+########################################################################
+
+
+all gc.a gctest: tests
+	echo '@@@ make: $(MAKE)'
+	$(MAKE) -f ../Makefile srcdir=$(srcdir)/.. top_srcdir=$(srcdir)/.. CC=$(CC) $@
+
+.PHONY: all gc.a gctest
+
+tests:
+	mkdir tests
+
+clean:
+	$(recurse)
+	if [ -d tests ]; then rmdir tests; fi
+.PHONY: clean
+
+Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+	cd $(top_builddir) && ./config.status $(subdir)/$@

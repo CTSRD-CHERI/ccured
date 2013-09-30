@@ -1,0 +1,1024 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Writing Wrappers
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured007.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured009.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc56">Chapter&nbsp;8</A>&nbsp;&nbsp;Writing Wrappers</H1><A NAME="ch-wrapper"></A>
+C programs require linking with external libraries before they can be run.
+Most often this is just the standard C library but occasionally your program
+might want to use other libraries as well. Often you do not want to
+process the library code with CCured, either because you do not have the
+source code or because it would be inconvenient to do so. There are several
+problems that arise when you link code that was cured with regular code:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Since CCured does not inspect the library code it is possible for your
+program to be unsafe. This can happen even for correctly written libraries if
+the client code passes the wrong arguments. 
+<LI CLASS="li-itemize">Much more seriously, CCured alters the layout of some data structures to
+insert the metadata for the pointers that they contain. This essentially means
+that CCured alters the calling convention for functions whose parameter or
+return types involve pointers. Linking cured code with a regular library
+is a disaster waiting to happen. CCured detects at link time when this is a
+problem but it is up to you to provide a solution, as explained in the rest
+of this chapter.
+</UL>
+Both of the above problems can be solved by interposing small <EM>wrapper</EM>
+functions around calls to the external functions. Such a wrapper function can
+perform the necessary checks on the arguments (thus addressing the first
+problem above) and can also perform some conversions on the arguments and
+result values before and after invoking the external function (thus addressing
+the second problem above). However, to write a wrapper you must understand the
+input-output behavior of the function (i.e., you must read the <FONT COLOR=blue>man</FONT>-page
+entry for that function). When writing wrappers you can use a number of
+built-in functions described in Section&nbsp;<A HREF="#sec-wrapperhelper">8.5</A>.<BR>
+<BR>
+Before we look at how one writes wrapper functions, we'll explain how CCured
+detects the need for a wrapper and how it reports it to you. CCured changes
+the name of all functions that it processes by adding a suffix describing the
+kinds of the pointers involved in the prototype of the function. This process
+is called name mangling and is described in Section&nbsp;<A HREF="#sec-mangling">8.1</A>. For example,
+consider the <FONT COLOR=blue>strchr</FONT> function from the standard library
+(it returns NULL or a pointer
+to the first occurrence of <FONT COLOR=blue>chr</FONT> into the <FONT COLOR=blue>str</FONT> argument):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+char* strchr(char* str, int chr);
+</FONT></PRE>
+Most likely CCured will view code that uses the returned pointer as a 
+manipulating a pointer to a sequence,
+and will require that the result of <FONT COLOR=blue>strchr</FONT> be a <TT>FSEQ</TT> pointer. In the
+cured code you will see the following prototype for <FONT COLOR=blue>strchr</FONT> in that case:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+fseqp_char strchr_fs(char* __SAFE str, int chr);
+</FONT></PRE>
+Note that CCured has added a suffix <FONT COLOR=blue>_fs</FONT> to the name of the function to
+say that its return value is a <TT>FSEQ</TT> pointer. When the code is passed to
+<FONT COLOR=blue>gcc</FONT> to link you will likely see the following error message:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+main.c: undefined reference to `strchr_fs`
+</FONT></PRE>
+This is how you learn that the cured code requires a <FONT COLOR=blue>strchr</FONT> with a
+different calling convention than the one provided by the library. (If CCured
+had left alone both the type and the name of <FONT COLOR=blue>strchr</FONT> the linker would
+not have complained but the program would have behaved incorrectly at
+run-time.). <BR>
+<BR>
+In the next section we describe in detail the name mangling algorithm, even
+though it is probably better to use the browser to inspect the type of the
+undefined mangled functions. <BR>
+<BR>
+<A NAME="toc25"></A>
+<H2 CLASS="section"><A NAME="htoc57">8.1</A>&nbsp;&nbsp;Name Mangling</H2><A NAME="sec-mangling"></A>
+There are two forms of mangling: shallow and deep. Shallow mangling
+differentiates types without descending into structures. It is less verbose
+and is used on all functions and variables defined in the code being cured.
+Deep mangling does consider the types of the structure fields and is used for
+imported (used but not defined) symbols. (The <FONT COLOR=blue>&ndash;shallowMangling</FONT> command
+line option causes all symbols to be mangled using shallow mangling.)<BR>
+<BR>
+The mangling algorithm scans the type of a global and produces a suffix
+that is appended to the name of the global. 
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+The mangling of a scalar type is empty.<BR>
+<BR>
+<LI CLASS="li-itemize">The mangling of a function type consists of the mangling of the result
+ type followed by the mangling of the formal argument types in order.
+ (For <FONT COLOR=blue>vararg</FONT> functions CCured also considers the fields of the
+ descriptor structure as if they were formal arguments in place of the
+ &#8220;<FONT COLOR=blue>...</FONT>&#8221;. See Section&nbsp;<A HREF="ccured009.html#sec-vararg">9.6</A> for details in vararg functions). <BR>
+<BR>
+<LI CLASS="li-itemize">The mangling of a pointer type consists of one letter that encodes the
+kind of pointer, followed by the mangling of the base type, as
+follows: 
+ <UL CLASS="itemize"><LI CLASS="li-itemize">
+ <FONT COLOR=blue>s</FONT> for <TT>SAFE</TT>
+ <LI CLASS="li-itemize"><FONT COLOR=blue>f</FONT> for <TT>FSEQ</TT>
+ <LI CLASS="li-itemize"><FONT COLOR=blue>q</FONT> for <TT>SEQ</TT>
+ <LI CLASS="li-itemize"><FONT COLOR=blue>i</FONT> for <TT>INDEX</TT>
+ <LI CLASS="li-itemize"><FONT COLOR=blue>w</FONT> for <TT>WILD</TT>
+ <LI CLASS="li-itemize"><FONT COLOR=blue>rs</FONT> for <TT>RTTI</TT> (a <TT>SAFE</TT>pointer with RTTI information)
+ <LI CLASS="li-itemize"><FONT COLOR=blue>rf</FONT> for <TT>FSEQR</TT> (an <TT>FSEQ</TT>pointer with RTTI information)
+ <LI CLASS="li-itemize"><FONT COLOR=blue>rs</FONT> for <TT>SEQR</TT> (a <TT>SEQ</TT>pointer with RTTI information)
+ <LI CLASS="li-itemize"><FONT COLOR=blue>v</FONT> for a <FONT COLOR=blue>va_list</FONT> in a vararg function. 
+ <LI CLASS="li-itemize"><FONT COLOR=blue>t</FONT> for a tagged function. If you get a linker error on
+ &#8220;<TT>foo_t</TT>&#8221;, it probably means you are missing the declaration for
+ function &#8220;foo&#8221; (and as a result the inference algorithm made worst-case
+ assumptions about it).
+ </UL><BR>
+<BR>
+<LI CLASS="li-itemize">The mangling of an array is the mangling of the element type, preceded
+by <FONT COLOR=blue>l</FONT> (lowercase L) if the array has a length word.<BR>
+<BR>
+<LI CLASS="li-itemize">The mangling of a structure or union type is empty for shallow mangling.
+For deep mangling it is <FONT COLOR=blue>c</FONT> (for &#8220;composite&#8221;) followed by the mangling
+of field types (only the widest field for a union) followed by a matching
+<FONT COLOR=blue>_</FONT>. As an exception, if the mangling of the field types is empty or
+consisting only of <FONT COLOR=blue>s</FONT> (structure whose fields are scalars or <TT>SAFE</TT>
+pointers to scalars) then the mangling of the structure is empty. Note that
+under deep mangling only the first occurrence of the structure type in a
+global's type is mangled. 
+</UL>
+The mangling computed as above is appended to the global name, following a
+<FONT COLOR=blue>_</FONT> character. As an exception, if the mangling is empty or contains only
+<FONT COLOR=blue>s</FONT> characters, then no mangling occurs (and no <FONT COLOR=blue>_</FONT> is inserted). <BR>
+<BR>
+Here are a few of examples of mangling:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct list {
+ void * __WILD data;
+ struct list * __SAFE next;
+};
+struct hash {
+ int count;
+ struct list * __FSEQ buckets;
+};
+struct list * __FSEQ getBuckets(struct hash * __SAFE);
+// has deep mangling      getBuckets_fcws_scf_
+// has shallow mangling   getBuckets_fs
+
+struct twolists {
+  struct list * __SEQ  one;
+  struct list * __SAFE two;
+};
+struct twolists * __SAFE getTwoLists(void);
+// has deep mangling     getTwoLists_scqcws_s_
+// has shallow mangling  getTwoLists
+
+int main() {
+  printf("Mangling of struct list = %s\n", CCURED_MANGLING_OF(struct list));
+  printf("Mangling of getBuckets = %s\n", CCURED_MANGLING_OF(getBuckets));
+}
+</FONT></PRE>
+Note that types are mangled recursively (you can have nested constructions
+<FONT COLOR=blue>c..._</FONT> but a structure is mangled only once in a global's type. <BR>
+<BR>
+The general rule is that the shallow mangling can be obtained from the deep
+mangling be removing all <FONT COLOR=blue>c..._</FONT> sequences (including nested ones). If what
+remains is a sequence of <FONT COLOR=blue>s</FONT>'s then the shallow mangling is empty.<BR>
+<BR>
+CCured has a facility for inquiring about the mangling of a type or variable
+at run-time, as shown at the end of the above code. You can use the macro
+<FONT COLOR=blue>CCURED_MANGLING_OF</FONT> applied to a type or variable (i.e. anything that can
+be the argument of <FONT COLOR=blue>sizeof</FONT>) to obtain a string literal that encodes the
+mangling. Perhaps the most important use of this is to detect at run-time
+whether a global is compatible with the library or not (its mangling should be
+the empty string). We shall see how this is done later in this chapter. CCured
+also defines the macro <FONT COLOR=blue>CCURED_HAS_EMPTY_MANGLING</FONT> that yields 1 if its
+parameter has empty mangling. This is equivalent to <FONT COLOR=blue>0 == *
+CCURED_MANGLING_OF</FONT> but is a compile-time constant (after curing).<BR>
+<BR>
+<A NAME="toc26"></A>
+<H2 CLASS="section"><A NAME="htoc58">8.2</A>&nbsp;&nbsp;Writing Simple Wrappers</H2>
+Returning to our <FONT COLOR=blue>strchr</FONT> example, what do we do if the linker complains that
+it needs the <FONT COLOR=blue>strchr_fs</FONT> version of the function? The basic idea is that
+we write the function <FONT COLOR=blue>strchr_fs</FONT> that in turn calls <FONT COLOR=blue>strchr</FONT> from the
+library. The problem with this approach is that over time you might have to
+write many versions of <FONT COLOR=blue>strchr</FONT> (such as <FONT COLOR=blue>strchr_qs</FONT>,
+<FONT COLOR=blue>strchr_qq</FONT> and many more). CCured provides a relatively simple mechanism
+by which you write a wrapper specification and it generates all the required
+versions automatically from your specification. Furthermore, the wrapper
+specification looks just like a C function (along with some indication to
+CCured that this is a wrapper):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern char* strchr(char*, int);  // Make sure you have a prototype for the 
+                                  // function you are wrapping
+extern void exit(int);
+
+                                  // Now tell CCured that strchr_wrapper is 
+                                  // a wrapper for strchr
+#pragma ccuredwrapper("strchr_wrapper", of("strchr"))
+char* strchr_wrapper(char* str, int chr) // must match strchr's signature
+{
+  char* result;
+  result = strchr(str, chr);       // Call the underlying function.
+  return __mkptr_string(result);   // result should be 0 or a string
+}
+
+void foo(char* s){
+  char* res = strchr(s, 'q');
+  // Taking the address of a wrapped function is handled, too
+  char * (*p_strchr)(char *, int) = &amp; strchr;
+
+  if(res != (*p_strchr)(s, 'q')) exit(1);
+
+  res ++; // Make sure res is __FSEQ
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex51.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex51.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Notice that we have used the <FONT COLOR=blue>__mkptr_string</FONT> helper function that takes
+in a standard null-terminated C string and produces any required fat pointer
+to it. This is done using a simple trick: we let CCured mangle the helper
+function name as needed and we provide in <FONT COLOR=blue>ccuredlib.c</FONT> all the required
+versions. Since the argument should always be a SAFE pointer the versions that
+we provide are: <FONT COLOR=blue>__mkptr_string_fs</FONT>, <FONT COLOR=blue>__mkptr_string_qs</FONT> and, of
+course, <FONT COLOR=blue>__mkptr_string</FONT>, which is the identity function. These
+functions produce the necessary metadata by looking for the null-termination.
+Call the <FONT COLOR=blue>__mkptr_string</FONT> function only on the result of trusted library
+functions, or else bad things might happen (e.g., because the string
+argument may not actually be null-terminated).<BR>
+<BR>
+Now, if you click the &#8220;Browse&#8221; link for the above code fragment you will
+see several things:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+CCured creates a new instance of <FONT COLOR=blue>strchr_wrapper</FONT> for each call site
+or place where the address of <FONT COLOR=blue>strchr</FONT> is taken, whose names differ in the
+<FONT COLOR=blue>/*xxx*/</FONT> prefix. Each instance has its own body. In other words, all
+wrappers are polymorphic (see Section&nbsp;<A HREF="ccured007.html#sec-poly">7.1</A>) which means that the constraints
+from one call site will not pollute other call-sites.<BR>
+<BR>
+<LI CLASS="li-itemize">CCured replaces all occurrences of <FONT COLOR=blue>strchr</FONT> (either in call sites, or
+where their address is taken with a distinct instance of the
+<FONT COLOR=blue>strchr_wrapper</FONT>). (Note, this means that you should not compare the
+address of such functions.)<BR>
+<BR>
+<LI CLASS="li-itemize">Since <FONT COLOR=blue>res</FONT> is required to be <TT>FSEQ</TT> the return type of the first
+instance of the <FONT COLOR=blue>strchr</FONT> wrapper must also have a <TT>FSEQ</TT> kind. But the
+return type of the second instance is <TT>SAFE</TT>. 
+</UL>
+Now if you look at the CCured output for the above example you will see that
+the code has two instances of the wrapper, one for each calling convention.
+(If you had more calls sites for <FONT COLOR=blue>strchr</FONT> CCured will coalesce all wrappers
+that end up having the same mangling.)<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+ It is very important to write the wrappers such that the actual call to the
+underlying function has arguments and result values that are <TT>SAFE</TT> (i.e.,
+values that use the standard C representation)! This
+means two things:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+You must &#8220;isolate&#8221; the arguments and result values of the actual call
+from the corresponding elements of the wrapper. Otherwise, CCured will flow
+the constraints of the latter straight to the prototype for the underlying
+function, which ends up with a mangled name again. <BR>
+<BR>
+Consider the following (wrong) version of wrapper:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern char* strchr(char*, int); 
+#pragma ccuredwrapper("strchr_wrapper2", of("strchr"))
+char* strchr_wrapper2(char* str, int chr)
+{
+  char* result;
+  result = strchr(str, chr);
+  return result;                   // !! We return the result directly
+}
+
+void foo(char* s){
+  char* res = strchr(s, 'q');
+  res ++; // Force res to be __FSEQ
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex52.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex52.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+You get the following error message from CCured:
+<PRE CLASS="verbatim">
+main.c:10: Error: strchr appears to be external
+  (it has a wrapper), yet it has a mangled name: strchr_fs.
+  Did you forget to use __ptrof and a version of __mkptr?
+ For more information, consult the online documentation on
+  "Writing Wrappers" chapter.
+</PRE>
+ Click the &#8220;Browse&#8221; link for this code to see that <FONT COLOR=blue>strchr</FONT> has a <TT>FSEQ</TT>
+return type and that this happens because of the return instruction in the
+<FONT COLOR=blue>strchr_wrapper</FONT>. The solution is to always &#8220;isolate&#8221; the return values
+using one of the <FONT COLOR=blue>__mkptr</FONT>, <FONT COLOR=blue>__mkptr_size</FONT> and <FONT COLOR=blue>__mkptr_string</FONT>
+(all documented in <A HREF="ccured.h"><TT>ccured.h</TT></A>), as we have done in the first
+wrapper we wrote. <BR>
+<BR>
+But even the supposedly good wrapper has similar problems. The argument
+<FONT COLOR=blue>str</FONT> is passed directly to <FONT COLOR=blue>strchr</FONT>, so it is possible that some
+constraints on that argument from the client program will flow to the
+underlying <FONT COLOR=blue>strchr</FONT>. To prevent this problem you should change the wrapper
+as follows:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern char* strchr(char*, int); 
+#pragma ccuredwrapper("strchr_wrapper3", of("strchr"))
+char* strchr_wrapper3(char* str, int chr)
+{
+  char* result;
+  result = strchr(__ptrof_nocheck(str), chr); // Isolate the argument str 
+  return __mkptr_string(result);
+}
+
+void foo(char* s){
+  char* res = strchr(s, 'q');
+  res ++; // Force res to be __FSEQ
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex53.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex53.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+The <FONT COLOR=blue>__ptrof_nocheck</FONT> function (described in <A HREF="ccured.h"><TT>ccured.h</TT></A>)
+extracts the pointer value from a potentially fat pointer. As its
+name says, it does no checks on that value. We'll describe other variants that
+do some checking later on. <BR>
+<BR>
+<LI CLASS="li-itemize">Another way to flow un-<TT>SAFE</TT> pointers into the call to the underlying
+function is to perform pointer arithmetic or casts in the wrapper code.
+Consider this example of wrapper that does all sorts of bad things:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern char* strchr(char*, int);
+extern int strlen(char *); 
+#pragma ccuredwrapper("strchr_wrapper4", of("strchr"))
+char* strchr_wrapper4(char* str, int chr)
+{
+  char * __SAFE result;
+  char * __SAFE safestr = __ptrof_nocheck(str);
+  result ++; // Make it FSEQ! Bad
+  result = __trusted_add(result, 1); // Do this if you want to add
+
+  result = (int***)result; // Cast, make it WILD! Bad
+  result = (int***)__trusted_cast(result); // Do this if you want to cast
+  
+  result = strchr(safestr, chr);
+  return __mkptr_string(result);
+}
+
+void foo(char* s){
+  char* res = strchr(s, 'q');
+  res ++; // Force res to be __FSEQ
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex54.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex54.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If you need to do pointer arithmetic or casts you must do them behind CCured's
+back (e.g. using __trusted_add or __trusted_cast). No new unsoundness
+is introduced by calling potentially unsafe functions in the
+wrapper, since the wrapper itself must be trusted. See Chapter&nbsp;<A HREF="ccured007.html#ch-nowild">7</A> for
+other methods to work behind CCured's back.
+</UL>
+So far we have addressed the issue of compatibility with the library but it
+is still possible for the client program to call <FONT COLOR=blue>strchr</FONT> with the wrong
+arguments, thus provoking a memory safety violation in the library itself. To
+prevent this we add to the wrapper code that verifies that the input argument
+is a valid string (all the characters up to and including the null-termination
+are in the home area):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern char* strchr(char*, int); 
+#pragma ccuredwrapper("strchr_wrapper5", of("strchr"))
+char* strchr_wrapper5(char* str, int chr)
+{
+  char* result;
+  result = strchr(
+                  __stringof(str), // Check that str is a string
+                  chr              
+                  );
+  return result;                   //Passing the return value directly
+}
+
+void foo(char* s){
+  char* res = strchr(s, 'q');
+  res ++; // Force res to be __FSEQ
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex55.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex55.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+The <FONT COLOR=blue>__stringof</FONT> function first checks that str is a valid string and
+then returns the pointer value (leaving the metadata behind). Alternatively,
+the <FONT COLOR=blue>__ptrof</FONT> function performs bounds checks on <TT>FSEQ</TT> and <TT>SEQ</TT>
+pointers and null checks as well. <BR>
+<BR>
+If you browse the above example you will observe that now the &#8220;s&#8221; argument
+of the <FONT COLOR=blue>foo</FONT> function is not <TT>SAFE</TT> anymore but is <TT>FSEQ</TT>. If you
+investigate you find that this is required by the <FONT COLOR=blue>__string_of</FONT> function
+itself (in order to be able to perform safely the check that there is a
+null-character before the end of the memory area!). <BR>
+<BR>
+There are quite a few helper functions that you can use in the wrapper.
+They are all documented in <A HREF="ccured.h"><TT>ccured.h</TT></A>. <BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+ We have not yet discussed the issue of where to put the wrappers that you
+write. The rule is that the wrapper, along with the #pragma that declares it,
+must appear somewhere in the project (CCured merges all files together so it
+will eventually see it). You should put the pragma next to the wrapper
+function because otherwise the CIL front-end might think that the wrapper is
+not used and will remove it from the code!<BR>
+<BR>
+To ensure that you have the wrapper available whenever you want to use the
+library it is a good idea to put the wrapper in the header file that declares
+the corresponding function (in that case we suggest you use &#8220;__inline
+static&#8221; as declaration specifiers). We also suggest that you put the wrappers
+at the end of such header files to ensure that you have the prototypes for the
+wrapper functions already. We have done just that with the wrappers
+that we wrote for the standard C library. You can find them in files in
+<FONT COLOR=blue>cil/include</FONT> directory. For example the <FONT COLOR=blue>stdio_wrappers.h</FONT> file contains
+the wrappers for the <FONT COLOR=blue>stdio.h</FONT> standard header (We use a patched version of
+<FONT COLOR=blue>stdio.h</FONT> that includes <FONT COLOR=blue>stdio_wrappers</FONT> at the end.) We suggest that you
+look through those files to find more examples of wrappers. <BR>
+<BR>
+<A NAME="toc27"></A>
+<H2 CLASS="section"><A NAME="htoc59">8.3</A>&nbsp;&nbsp;Writing Complex Wrappers</H2>
+For most wrappers the description from the previous section should be enough.
+Some wrappers, however, are more complicated. We discuss in this section some
+of these complications, along with the CCured mechanisms that address them,
+for a function similar to the <FONT COLOR=blue>sendmsg</FONT> function (defined in
+<FONT COLOR=blue>&lt;socket.h&gt;</FONT>). Here are the required declarations, along with a code
+fragment that uses <FONT COLOR=blue>sendmsg</FONT> in such a way that its <FONT COLOR=blue>msg_iov</FONT> field
+becomes FSEQ.:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int sendmsg(int fd, struct msghdr * msg, int flags);
+struct msghdr {
+     void         * msg_name;       /* optional address */
+     int            msg_namelen;    /* size of address */
+     struct iovec * msg_iov;        /* scatter/gather array */
+     int            msg_iovlen;     /* # elements in msg_iov */
+     void         * msg_control;    /* ancillary data, see below */
+     int            msg_controllen; /* ancillary data buffer len */
+     int            msg_flags;      /* flags on received message */
+};
+struct iovec {
+     char*   iov_base;  /* The base address of the fragment */
+     int     iov_len;   /* Length in bytes of the fragment */
+};
+
+int foo(int fd, struct iovec *array, int array_len) {
+    struct msghdr msg = { 0, 0, array, array_len, 0, 0, 0};
+    // Make the msg_iov be FSEQ
+    struct iovec * foo = msg.msg_iov + 1;
+    return sendmsg(fd, &amp;msg, 0);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex56.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex56.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Since our code does arithmetic on the <FONT COLOR=blue>msg_iov</FONT> field, it becomes <TT>FSEQ</TT>
+and the required mangling for <FONT COLOR=blue>sendmsg</FONT> is <FONT COLOR=blue>sendmsg_scsfs</FONT> (all the other
+pointers in the prototype remain <TT>SAFE</TT>). Let us try the wrapper-writing
+method from above (isolate the arguments of <FONT COLOR=blue>sendmsg</FONT>):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int sendmsg(int fd, struct msghdr * msg, int flags);
+struct msghdr {
+     void         * msg_name;       /* optional address */
+     int            msg_namelen;    /* size of address */
+     struct iovec * msg_iov;        /* scatter/gather array */
+     int            msg_iovlen;     /* # elements in msg_iov */
+     void         * msg_control;    /* ancillary data, see below */
+     int            msg_controllen; /* ancillary data buffer len */
+     int            msg_flags;      /* flags on received message */
+};
+struct iovec {
+     char*   iov_base;  /* The base address of the fragment */
+     int     iov_len;   /* Length in bytes of the fragment */
+};
+
+int foo(int fd, struct iovec *array, int array_len) {
+    struct msghdr msg = { 0, 0, array, array_len, 0, 0, 0};
+    // Make the msg_iov be FSEQ
+    struct iovec * foo = msg.msg_iov + 1;
+    return sendmsg(fd, &amp;msg, 0);
+}
+
+#pragma ccuredwrapper("sendmsg_wrapper1", of("sendmsg"))
+__inline static
+int sendmsg_wrapper1(int fd, struct msghdr * msg, int flags) {
+  return sendmsg(fd, __ptrof(msg), flags);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex57.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex57.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+We still get the error:
+<PRE CLASS="verbatim">
+ccuredcode.tmp/ex44.c:1: Error: sendmsg appears to be external
+  (it has a wrapper), yet it has a mangled name: sendmsg_scsfs_.
+  Did you forget to use __ptrof and a version of __mkptr?
+ For more information, consult the online documentation on
+  "Writing Wrappers".
+</PRE>
+ This happens because the wrapper and the true <FONT COLOR=blue>sendmsg</FONT> still share all of
+the pointer nodes in the <FONT COLOR=blue>struct msghdr</FONT> and <FONT COLOR=blue>struct iovec</FONT>. We must have
+two versions of at least <FONT COLOR=blue>struct msghdr</FONT>: one that the client code uses and
+one that the library is using. If you browse the above code and look at the
+prototype for the <FONT COLOR=blue>sendmsg</FONT> function (not the wrapper) you will see that
+CCured has tried to address this issue by creating the structures
+<FONT COLOR=blue>msghdr_COMPAT</FONT> and <FONT COLOR=blue>iovec_COMPAT</FONT> (called <FONT COLOR=blue>_COMPAT</FONT> because they
+are reachable from the prototype of the wrapped function). But that was not
+sufficient in this case: if you browse the code you will see that even the
+<FONT COLOR=blue>msg_iov</FONT> field of the new <FONT COLOR=blue>msghdr_COMPAT</FONT> is <TT>FSEQ</TT>. And you get
+the following error message:
+<PRE CLASS="verbatim">
+Error: The suffix for the compatible version of msghdr_COMPAT is sfs. 
+This means that you have misused this compatible version. Please check your code.
+</PRE>The problem in this case is subtle: because <FONT COLOR=blue>sendmsg</FONT> is declared to take a
+<FONT COLOR=blue>struct msghdr</FONT> argument and the result type of <FONT COLOR=blue>__ptrof</FONT> is <FONT COLOR=blue>void *</FONT>,
+the CIL front-end has inserted a cast <FONT COLOR=blue>(struct msghdr*)</FONT> in the call to
+<FONT COLOR=blue>sendmsg</FONT> in the wrapper. When CCured later decides to change the prototype
+of <FONT COLOR=blue>sendmsg</FONT> it does not change the cast also, which makes it appear that an
+argument of type <FONT COLOR=blue>struct msghdr *</FONT> is assigned to a formal of type <FONT COLOR=blue>struct
+msghdr_COMPAT</FONT>. To prevent this from happening, you must store the result of
+the <FONT COLOR=blue>__ptrof</FONT> function in a local variable, whose type you write:
+<FONT COLOR=blue>struct msghdr __COMPAT *</FONT>. Note that <FONT COLOR=blue>__COMPAT</FONT> is here an attribute
+to the structure name, not part of the name; CCured will do the right thing
+when it creates the compatible version of <FONT COLOR=blue>msghdr</FONT>. So, we try the
+following:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int sendmsg(int fd, struct msghdr * msg, int flags);
+struct msghdr {
+     void         * msg_name;       /* optional address */
+     int            msg_namelen;    /* size of address */
+     struct iovec * msg_iov;        /* scatter/gather array */
+     int            msg_iovlen;     /* # elements in msg_iov */
+     void         * msg_control;    /* ancillary data, see below */
+     int            msg_controllen; /* ancillary data buffer len */
+     int            msg_flags;      /* flags on received message */
+};
+struct iovec {
+     char*   iov_base;  /* The base address of the fragment */
+     int     iov_len;   /* Length in bytes of the fragment */
+};
+
+int foo(int fd, struct iovec *array, int array_len) {
+    struct msghdr msg = { 0, 0, array, array_len, 0, 0, 0};
+    // Make the msg_iov be FSEQ
+    struct iovec * foo = msg.msg_iov + 1;
+    return sendmsg(fd, &amp;msg, 0);
+}
+
+#pragma ccuredwrapper("sendmsg_wrapper2", of("sendmsg"))
+__inline static
+int sendmsg_wrapper2(int fd, struct msghdr * msg, int flags) {
+  struct msghdr __COMPAT *msg1 = __ptrof(msg);
+  return sendmsg(fd, msg1, flags);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex58.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex58.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Using <FONT COLOR=blue>__ptrof</FONT> is not enough, however, since the object still has
+a <TT>FSEQ</TT> field. CCured detects this and changes the compat version
+to have the same <TT>FSEQ</TT> field, so we get the same error as before.
+What we should do instead is to make a copy of the structure pointed to
+by <FONT COLOR=blue>msg</FONT> and copy the fields one by one. There are several ways in which
+CCured can help with that. First, there are some macros that you can use.<BR>
+<BR>
+You can replace the declaration of <FONT COLOR=blue>msg1</FONT> above with:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  __DECL_COMPAT_STACK(msg1, msghdr, msg);
+</FONT></PRE>
+This macro (defined and explained in <A HREF="ccured.h"><TT>ccured.h</TT></A>) first
+reserves some storage for a <FONT COLOR=blue>struct msghdr_COMPAT</FONT> on the stack (hence the
+STACK in the name). Then it declares the <FONT COLOR=blue>msg1</FONT> variable and it copies the
+contents of the <FONT COLOR=blue>struct msghdr</FONT> pointed to by <FONT COLOR=blue>msg</FONT> into the local copy.
+This copying is done only if necessary (the <FONT COLOR=blue>msg</FONT> pointer is not null and
+the structure it points to is not already compatible). Here is the expansion
+of the above macro invocation:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  /* Declare the __deepcopy function that we need */                        
+  void __deepcopy_msghdr_to_compat(struct msghdr __COMPAT * compat, struct msghdr * fat);
+  /* Declare the place where we'll make the copy */                         
+  struct msghdr __COMPAT msg1_area;
+  struct msghdr * msg1__ptrof = __ptrof_nocheck(msg);
+  struct msghdr __COMPAT * msg1 =
+    /* We are done if we have NULL or an already compat struct */
+    (msg1__ptrof &amp;&amp; (! CCURED_HAS_EMPTY_MANGLING(struct msghdr))) ?
+      /* Now do the copying as specified in the argument */
+      (__deepcopy_msghdr_to_compat(&amp; msg1__area, msg1__ptrof), &amp; msg1__area)
+    : /* No copying is needed. Use a trusted_cast to prevent CCured from 
+         connecting the two versions of the structure */
+      (struct msghdr __COMPAT *)__trusted_cast(msg1__ptrof);
+</FONT></PRE>
+Notice that care is taken to avoid copying if not necessary and also to
+prevent CCured from connecting directly the two versions of the struct. <BR>
+<BR>
+There are more macros like <FONT COLOR=blue>__DECL_COMPAT_STACK</FONT>, that allow you to
+allocate the space on the heap instead of the stack, or even to avoid copying.
+We'll discuss these later. Now we look again at the <FONT COLOR=blue>sendmsg</FONT> wrapper in
+which we use the new macro:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int sendmsg(int fd, struct msghdr * msg, int flags);
+struct msghdr {
+     void         * msg_name;       /* optional address */
+     int            msg_namelen;    /* size of address */
+     struct iovec * msg_iov;        /* scatter/gather array */
+     int            msg_iovlen;     /* # elements in msg_iov */
+     void         * msg_control;    /* ancillary data, see below */
+     int            msg_controllen; /* ancillary data buffer len */
+     int            msg_flags;      /* flags on received message */
+};
+struct iovec {
+     char*   iov_base;  /* The base address of the fragment */
+     int     iov_len;   /* Length in bytes of the fragment */
+};
+
+int foo(int fd, struct iovec *array, int array_len) {
+    struct msghdr msg = { 0, 0, array, array_len, 0, 0, 0};
+    // Make the msg_iov be FSEQ
+    struct iovec * foo = msg.msg_iov + 1;
+    return sendmsg(fd, &amp;msg, 0);
+}
+
+#pragma ccuredwrapper("sendmsg_wrapper3", of("sendmsg"))
+__inline static
+int sendmsg_wrapper3(int fd, struct msghdr * msg, int flags) {
+  __DECL_COMPAT_STACK(msg1, msghdr, msg);
+  return sendmsg(fd, msg1, flags);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex59.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex59.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If you browse this code you will see that in addition to the macro expansion
+there is now a definition for the function
+<FONT COLOR=blue>__deepcopy_msghdr_to_compat</FONT>. CCured recognizes this name in a
+prototype (which is added by the <FONT COLOR=blue>__DECL_COMPAT</FONT> macros) and fills in the
+body with code that tries to copy one field at a time from a <FONT COLOR=blue>struct msghdr</FONT>
+to a <FONT COLOR=blue>struct msghdr_COMPAT</FONT>. <BR>
+<BR>
+Here is how CCured fills in the code of deepcopy functions:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+For any fields (except those of array types) that do not contain
+pointers (i.e. a scalar field, or a substructure with no pointers), an
+assignment is generated.
+<LI CLASS="li-itemize">For a pointer field, CCured generates code that detects whether a
+deepcopy is necessary (the pointer is non-null and it points to a structure
+that is not compatible). If a deepcopy is not necessary then an assignment is
+generated (with care to avoid connections between the compatible and
+incompatible structures). If a deepcopy would be necessary, CCured generates
+code that aborts the execution with an error message. 
+<LI CLASS="li-itemize">For an array field, CCured generates a loop that iterates over the
+elements and generates code that copies each element. 
+<LI CLASS="li-itemize">For a structure field, CCured first checks if a corresponding deepcopy
+function has been declared or defined. If so, it produces a call to that
+function. Otherwise it iterates over the fields and produces code to copy the
+fields. 
+<LI CLASS="li-itemize">For other kinds of pointers, CCured fails at compile time.
+</UL>
+For our example, the deepcopy code that CCured generates would do. But such
+code might not be what you need. If the <FONT COLOR=blue>iov_base</FONT> pointer in the <FONT COLOR=blue>iovec</FONT>
+struct becomes non-<TT>SAFE</TT> then the default deepcopy function will abort. In
+that case, you can write the parts of the deepcopy function that you care
+about and let CCured fill in the rest. In the next example we show the full
+wrapper for <FONT COLOR=blue>sendmsg</FONT>, that works even when the embedded <FONT COLOR=blue>struct iovec</FONT> is
+mangled:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int sendmsg(int fd, struct msghdr * msg, int flags);
+struct msghdr {
+     void         * msg_name;       /* optional address */
+     int            msg_namelen;    /* size of address */
+     struct iovec * msg_iov;        /* scatter/gather array */
+     int            msg_iovlen;     /* # elements in msg_iov */
+     void         * msg_control;    /* ancillary data, see below */
+     int            msg_controllen; /* ancillary data buffer len */
+     int            msg_flags;      /* flags on received message */
+};
+struct iovec {
+     char*   iov_base;  /* The base address of the fragment */
+     int     iov_len;   /* Length in bytes of the fragment */
+};
+
+int foo(int fd, struct iovec *array, int array_len) {
+    struct msghdr msg = { 0, 0, array, array_len, 0, 0, 0};
+    // Make the msg_iov be FSEQ
+    struct iovec * foo = msg.msg_iov + 1;
+    return sendmsg(fd, &amp;msg, 0);
+}
+
+extern void* malloc(int);
+extern void  free(void*);
+#pragma ccuredwrapper("sendmsg_wrapper4", of("sendmsg"))
+__inline static
+int sendmsg_wrapper4(int fd, struct msghdr * msg, int flags) {
+    __DECL_COMPAT_STACK(msg1, msghdr, msg);
+    int result = sendmsg(fd, msg1, flags);
+    // We can now free the msg_iov (if it was allocated)
+    if(msg1-&gt;msg_iov != msg-&gt;msg_iov) {
+      free(msg1-&gt;msg_iov);
+    }
+    return result;
+}
+
+
+__inline static
+__DEEPCOPY_TO_COMPAT_PROTO(iovec) {
+  compat-&gt;iov_base = __ptrof_nocheck(fat-&gt;iov_base);
+}
+
+__inline static
+__DEEPCOPY_TO_COMPAT_PROTO(msghdr) {
+  // We leave the msg_name and msg_control to CCured
+  
+  if(CCURED_HAS_EMPTY_MANGLING(* fat-&gt;msg_iov)) {
+    // We do not need to copy the msg_iov array
+    compat-&gt;msg_iov = __ptrof(fat-&gt;msg_iov);
+  } else {
+    int len = fat-&gt;msg_iovlen;
+    int v;
+    compat-&gt;msg_iov = malloc(len * sizeof(compat-&gt;msg_iov[0])); 
+    for (v=0; v&lt;len; v++) {
+      struct iovec __COMPAT *iptr = __trusted_add(compat-&gt;msg_iov, v);
+      __deepcopy_iovec_to_compat(iptr, &amp; fat-&gt;msg_iov[v]);
+    } 
+  }
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex60.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex60.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Notice several important things in the bodies for the deepcopy functions:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+We use special macros to declare the prototype. These macros always
+introduce two formals, one called &#8220;compat&#8221; (of type pointer to compatible
+structure), and one called &#8220;fat&#8221; (of type pointer to regular structure). It
+is a good idea to use these macros, because they ensure that at least the
+prototype is right.<BR>
+<BR>
+<LI CLASS="li-itemize">In the <FONT COLOR=blue>TO_COMPAT</FONT> function we always assign to the fields pointed to
+by the <FONT COLOR=blue>compat</FONT> formal.<BR>
+<BR>
+<LI CLASS="li-itemize">In each function we assign only the fields for which we want to override
+CCured's automatically generated code. CCured scans the body that you wrote
+and looks for assignments of the form <FONT COLOR=blue>compat-&gt;fieldname = ...</FONT>. For all
+such fields that it finds, it assumes that you are taking care of that field
+and does not generate code. Note that you are then responsible for writing the
+code for all elements of that field (if it is a structure or array)! Note also
+that you should not change the value of the <FONT COLOR=blue>compat</FONT> formal and should not
+use some other variable to do the assignment, or else CCured will not notice
+it. <BR>
+<BR>
+<LI CLASS="li-itemize">As in any wrapper, you must be careful to not mix the two versions of
+the structure. Thus you must use <FONT COLOR=blue>__trusted_cast</FONT> and <FONT COLOR=blue>__ptrof</FONT> to do
+assignments between pointers to different versions of structures. Notice also
+that we use <FONT COLOR=blue>__trusted_add</FONT> instead of pointer arithmetic on the
+compatible pointer types.<BR>
+<BR>
+<LI CLASS="li-itemize">You should avoid copying as much as possible (i.e. use the
+<FONT COLOR=blue>CCURED_MANGLING_OF</FONT> macro).<BR>
+<BR>
+<LI CLASS="li-itemize">The code that CCured generates automatically is inserted <EM>before</EM>
+the code that you write. But you should not rely on that!</UL>
+Now we look briefly at the companion method <FONT COLOR=blue>recvmsg</FONT>. Instead of sending a
+message, it receives one. This means that the <FONT COLOR=blue>msg_iov</FONT> data is an output
+value, not an input. We use the following wrapper in this case:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int recvmsg(int fd, struct msghdr * msg, int flags);
+struct msghdr {
+     void         * msg_name;       /* optional address */
+     int            msg_namelen;    /* size of address */
+     struct iovec * msg_iov;        /* scatter/gather array */
+     int            msg_iovlen;     /* # elements in msg_iov */
+     void         * msg_control;    /* ancillary data, see below */
+     int            msg_controllen; /* ancillary data buffer len */
+     int            msg_flags;      /* flags on received message */
+};
+struct iovec {
+     char*   iov_base;  /* The base address of the fragment */
+     int     iov_len;   /* Length in bytes of the fragment */
+};
+
+int foo(int fd, struct iovec *array, int array_len) {
+    struct msghdr msg = { 0, 0, array, array_len, 0, 0, 0};
+    // Make the msg_iov be FSEQ
+    struct iovec * foo = msg.msg_iov + 1;
+    return recvmsg(fd, &amp;msg, 0);
+}
+
+extern void* malloc(int);
+extern void  free(void*);
+
+#pragma ccuredwrapper("recvmsg_wrapper", of("recvmsg"))
+__inline static
+int recvmsg_wrapper(int s, struct msghdr *fat_msg, int flags) {
+  __DECL_COMPAT_STACK(lean_msg, msghdr, fat_msg);
+  int result = recvmsg(s, lean_msg, flags);
+  // Copy the contents of lean_msg into fat_msg
+  __COPYOUT_FROM_COMPAT(lean_msg, msghdr, fat_msg);
+  if(lean_msg-&gt;msg_iov != fat_msg-&gt;msg_iov) {
+    // If we allocated new space for msg_iov, free it now
+    free(lean_msg-&gt;msg_iov);
+  }
+  return result;
+} 
+
+
+__inline static
+__DEEPCOPY_FROM_COMPAT_PROTO(iovec) {
+  // Notice how we use iov_len to construct the metadata for the iov field
+  fat-&gt;iov_base = __mkptr_size(compat-&gt;iov_base, compat-&gt;iov_len);
+}
+
+__inline static
+__DEEPCOPY_FROM_COMPAT_PROTO(msghdr) {
+  fat-&gt;msg_name    = __mkptr_size(compat-&gt;msg_name, compat-&gt;msg_namelen);
+  fat-&gt;msg_control = __mkptr_size(compat-&gt;msg_control, compat-&gt;msg_controllen);
+
+  if(CCURED_HAS_EMPTY_MANGLING(* fat-&gt;msg_iov)) {
+    // We do not need to copy the msg_iov array
+    fat-&gt;msg_iov = __mkptr_size(compat-&gt;msg_iov,
+                                compat-&gt;msg_iovlen * sizeof(fat-&gt;msg_iov[0]));
+  } else {
+    int len = compat-&gt;msg_iovlen;
+    int v;
+    fat-&gt;msg_iov = malloc(len * sizeof(fat-&gt;msg_iov[0])); 
+    for (v=0; v&lt;len; v++) {
+      struct iovec __COMPAT *iptr = __trusted_add(compat-&gt;msg_iov, v);
+      __deepcopy_iovec_from_compat(&amp; fat-&gt;msg_iov[v], iptr);
+    } 
+  }
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex61.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex61.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+For <FONT COLOR=blue>recvmsg</FONT> we use the companion functions that copy <FONT COLOR=blue>_FROM_COMPAT</FONT>.
+We declare the deepcopy functions as before, except that now we must assign to
+the <FONT COLOR=blue>fat</FONT> fields, and we must use the <FONT COLOR=blue>__mkptr</FONT> family of functions to
+construct the metadata. Notice that for the output argument of <FONT COLOR=blue>recvmsg</FONT> we
+copy the data from the stack-allocated <FONT COLOR=blue>lean_msg</FONT> into <FONT COLOR=blue>msg</FONT>. <BR>
+<BR>
+The above macros are written without close attention to memory leaks.
+However, these are just examples that are intended to show you how to write
+wrappers. <BR>
+<BR>
+The CCured library defines the functions
+<FONT COLOR=blue>__deepcopy_stringarray_from_compat</FONT> and
+<FONT COLOR=blue>__deepcopy_stringarray_to_compat</FONT> that operate on nul-terminated
+sequences of pointers to nul-terminated strings (such as <FONT COLOR=blue>argv</FONT> in the
+prototype for <FONT COLOR=blue>main</FONT>). To use these functions you must add:
+<PRE CLASS="verbatim">
+#include "functions/deepcopy_stringarray.h"
+</PRE>
+ <A NAME="toc28"></A>
+<H2 CLASS="section"><A NAME="htoc60">8.4</A>&nbsp;&nbsp;Wrappers for data</H2>
+So far we looked at wrappers for functions. Sometimes the global that needs
+to be wrapper is not a function but a name for a data area. In the standard
+library that is very rare. One example is the <FONT COLOR=blue>environ</FONT> global variable of
+type <FONT COLOR=blue>char **</FONT> that stores a pointer to a null-terminated sequence of
+environment strings (like the sometimes-used third argument of <FONT COLOR=blue>main</FONT>).
+If you access this variable directly you might get an error like this:
+<PRE CLASS="verbatim">
+tcpserver_comb.o: In function `env_get_qf':
+tcpserver_comb.o(.text+0x15d10): undefined reference to `environ_qq'
+</PRE>
+ You cannot write wrappers for data! You MUST replace the access to the data
+variable with a function. There are many ways in which you can write the
+function. If the wrapped global had type <FONT COLOR=blue>char *</FONT> you could just write a
+function:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+// This is for the cast when environ is a pointer to a string
+char* get_environ(void) {
+  return __mkptr_string(environ);
+}
+</FONT></PRE>
+But this would not be enough for our case. In general, both of the pointer
+types in <FONT COLOR=blue>environ</FONT> could be fat, so you must do a deepcopy:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#include "functions/deepcopy_stringarray.h"
+// This is Ok, but allocated too often
+char** get_environ(void) {
+  return __deepcopy_stringarray_from_compat(environ);
+}
+</FONT></PRE>
+If your program accesses the <FONT COLOR=blue>environ</FONT> variable a lot, you do not want to
+make a deepcopy every time. So, you can make one and save it in a variable,
+which you can then access at will. <BR>
+<BR>
+Or, maybe your program accesses <FONT COLOR=blue>environ</FONT> always with an index operation
+<FONT COLOR=blue>environ[i]</FONT>. In that case you can avoid deepcopying altogether by writing a
+function <FONT COLOR=blue>environ_idx</FONT> that takes an integer and returns the <I>i</I><SUP><I>th</I></SUP>
+element in <FONT COLOR=blue>environ</FONT>. I show below the case where it appropriate to trust
+that the index is within the bounds:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern char ** environ;
+char* environ_idx(int i) {
+  char * __SAFE * __SAFE p_environ = __trusted_add(environ, i);
+  // We are going to believe that i is within bounds
+  return __mkptr_string(* p_environ);
+  
+}
+</FONT></PRE>
+<A NAME="toc29"></A>
+<H2 CLASS="section"><A NAME="htoc61">8.5</A>&nbsp;&nbsp;Wrapper Helper Functions</H2><A NAME="sec-wrapperhelper"></A>
+
+<H3 CLASS="subsection"><A NAME="htoc62">8.5.1</A>&nbsp;&nbsp;Helpers for incoming wrapper arguments</H3>
+These functions have two purposes. First, they convert the incoming argument
+(which may be a fat pointer) to a regular C pointer or data to be used in
+run-time checks and for passing to C library functions. Second, these
+functions direct CCured to request some minimal metadata to accompany the
+pointer. For example, on entry to a string library function CCured will want
+to request that the pointer be accompanied by extent, and the target of the
+pointer be a null-terminated string buffer. 
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<TT>__ptrof_nocheck</TT>: Returns the pointer value from a fat pointer. No
+ constraints for type inference. No run-time checking. 
+<LI CLASS="li-itemize"><TT>__ptrof</TT>: Returns the pointer value from a fat pointer. No
+ constraints for type inference. Check that the pointer is in bounds, if the
+ incoming pointer has bounds. 
+<LI CLASS="li-itemize"><TT>__strlen</TT>: Returns the length of the string, not counting the
+ terminating nul. Calls ccured_fail if ptr is null, or out of bounds.
+ Requires that the argument be a string or a null-terminated sequence
+ pointer. 
+<LI CLASS="li-itemize"><TT>__verify_nul</TT>: This is like <TT>__strlen</TT>, but ignores the
+ resulting length. 
+<LI CLASS="li-itemize"><TT>__stringof</TT>: This is like <TT>__verify_nul</TT> followed by
+ <TT>__ptrof</TT>. 
+</UL>
+
+<H3 CLASS="subsection"><A NAME="htoc63">8.5.2</A>&nbsp;&nbsp;Helpers for outgoing wrapper return values</H3>
+These functions allow you to construct fat pointers from regular C pointers.
+These functions do not do any checking. 
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<TT>__mkptr_size</TT>. Takes two arguments, a pointer and a length, and
+ constructs a fat sequence pointer if needed (depending on how the return
+ value is used). 
+<LI CLASS="li-itemize"><TT>__mkptr_string</TT>. Takes an argument that is assumed to be a
+ null-terminated string, and creates a fat pointer if needed. 
+</UL>
+<A NAME="toc30"></A>
+<H2 CLASS="section"><A NAME="htoc64">8.6</A>&nbsp;&nbsp;Final Notes on Wrappers</H2>
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+The documentation for the wrapper helper functions is in
+<A HREF="ccured.h"><TT>ccured.h</TT></A> (which lives in the <FONT COLOR=blue>cil/include</FONT> directory). That file
+is included automatically in all cured files.<BR>
+<BR>
+<LI CLASS="li-itemize">Wrappers are automatically polymorphic. <BR>
+<BR>
+<LI CLASS="li-itemize">Wrapper-replacement is not performed inside a wrapper body!<BR>
+<BR>
+<LI CLASS="li-itemize">At the moment, wrappers do not work well for <TT>WILD</TT> pointers. You can
+still write those wrapper manually but the <FONT COLOR=blue>__mkptr</FONT> functions do not work
+well for those.<BR>
+<BR>
+<LI CLASS="li-itemize">At the moment, wrappers do not work well for variable argument
+functions. However, this is possible in certain cases (see
+<FONT COLOR=blue>stdio_wrappers.h</FONT> for the <FONT COLOR=blue>printf</FONT> wrapper).<BR>
+<BR>
+<LI CLASS="li-itemize">Note that there is no actual requirement that a wrapper call the
+external function that it is intended to replace. If you wish, the wrapper can
+call a different external function, or simply reimplement the entire routine.
+For example, the wrapper for <FONT COLOR=blue>strdup</FONT> that comes with CCured calls
+<FONT COLOR=blue>malloc</FONT> and <FONT COLOR=blue>strcpy</FONT> rather than the Standard Library's <FONT COLOR=blue>strdup</FONT>
+because we wanted to ensure that any strings created could be managed by our
+garbage collector.<BR>
+<BR>
+<LI CLASS="li-itemize">If you write wrappers for generally useful libraries (such as the
+standard library), please give them to us so we can distribute them to other
+interested persons. <BR>
+<BR>
+<LI CLASS="li-itemize">Remember that all of the structure types that are reachable from the
+prototype of the wrapped function are converted to a compatible version, whose
+pointers should be all of <TT>SAFE</TT> kind and whose name is obtained by adding to
+the structure name the <FONT COLOR=blue>_COMPAT</FONT> attribute. <BR>
+<BR>
+<LI CLASS="li-itemize">The <FONT COLOR=blue>__DECL_COMPAT</FONT> macros all work as declarations, not
+ statements. <BR>
+<BR>
+<LI CLASS="li-itemize">The wrappers for <FONT COLOR=blue>sendmsg</FONT> and <FONT COLOR=blue>recvmsg</FONT> are in the file
+<FONT COLOR=blue>include/socket_wrappers.h</FONT>. Take a look also at
+<FONT COLOR=blue>include/netdb_wrappers.h</FONT>. <BR>
+<BR>
+<LI CLASS="li-itemize">When you write wrappers, do not use functions that you are not sure have
+a prototype (this is why we put the wrappers at the end of the include files).
+Otherwise, you will generate warning and unnecessary <TT>WILD</TT>ness in the
+code. If you need to use <FONT COLOR=blue>malloc</FONT>, use <FONT COLOR=blue>wrapperAlloc</FONT> instead (for
+which we guarantee the existence of the prototype). </UL>
+<HR>
+<A HREF="ccured007.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured009.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

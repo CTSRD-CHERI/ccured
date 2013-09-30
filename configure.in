@@ -1,0 +1,246 @@
+# configure.in for CCured           -*- sh -*-
+# Process this file with autoconf to produce a configure script.
+
+# Autoconf runs this through the M4 macroprocessor first; lines
+# starting with "dnl" are comments to M4.  The result is a bash
+# script; any text which isn't an M4/autoconf directive gets
+# copied verbatim to that script.
+
+# also, in general, watch out: the M4 quoting charactes are
+# the square brackets: [ and ].  if you want to pass brackets
+# to something, you can quote the brackets with more brackets.
+# I don't know how to pass a single (unbalanced) bracket ..
+
+# sm: changed this file to use '#' for comments, since that's
+# just as good (since this becomes an 'sh' script)
+
+
+# We must put these AC_SUBST very early, and in this order. See below where we
+# define NEWLINE
+AC_SUBST(NEWLINE)
+
+
+# -------------- usual initial stuff -------------
+# this simply names a file somewhere in the source tree to verify
+# we're in the right directory
+AC_INIT(src/cure.ml)
+
+# sm: require a late-enough autoconf; this is the version number
+# that's on manju, so I assume it's ok
+AC_PREREQ(2.50)
+
+CCURED_VERSION_MAJOR=1
+CCURED_VERSION_MINOR=3
+CCURED_VERSION_REV=5
+CCURED_VERSION=$CCURED_VERSION_MAJOR.$CCURED_VERSION_MINOR.$CCURED_VERSION_REV
+
+# make sure I haven't forgotten to run autoconf
+if test configure -ot configure.in; then
+  AC_MSG_ERROR(configure is older than configure.in; you forgot to run autoconf)
+fi
+
+# check for C compiler; this typically finds gcc; it sets the
+# variable CC to whatever it finds, which then gets substituted
+# for @CC@ in output files; you have to do this even if you don't
+# care about @CC@, because system feature tests later on in
+# the ./configure script will expect $CC to be set right
+AC_PROG_CC
+
+AC_PROG_INSTALL
+
+
+# find system type (using this macro means we must include
+# the files install-sh, config.sub, and config.guess (all from
+# the autoconf distribution) in our source tree!)
+AC_CANONICAL_SYSTEM
+
+
+# ---------------- generic functions -----------------
+# debugging diagnostic; set to 'echo' to debug or 'true' for production
+# (technically you're not supposed to use shell functions in
+# configure scripts, because some-obscure-sh somewhere doesn't
+# support them.. but they're too convenient to not use)
+diagnostic() {
+  #echo "$@"
+  true "$@"
+}
+
+# determine if a binary is in the path
+binaryExists() {
+  # on cygwin, 'which' always returns success, so use 'type' instead
+  if type "$1" >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+
+# -------------- portable configuration ----------------
+# this specifies the root of the source tree; it's just the
+# directory where ./configure runs, except on cygwin, which
+# overrides this below
+CCUREDHOME=`pwd`
+
+
+
+#
+# -------------------- GCC --------------
+#
+
+AC_MSG_CHECKING([for gcc version])
+AC_CHECK_TYPE(__builtin_va_list,
+              HAVE_BUILTIN_VA_LIST=true,
+              HAVE_BUILTIN_VA_LIST=false)
+AC_MSG_CHECKING([if __thread is a keyword])
+AC_COMPILE_IFELSE([int main(int __thread) { return 0; }],
+                  THREAD_IS_KEYWORD=false,
+                  THREAD_IS_KEYWORD=true)
+AC_MSG_RESULT($THREAD_IS_KEYWORD)
+
+# Does gcc add underscores to identifiers to make assembly labels?
+# (I think MSVC always does)
+AC_MSG_CHECKING([if gcc adds underscores to assembly labels.])
+AC_LINK_IFELSE([int main() { __asm__("jmp _main"); }],
+                  UNDERSCORE_NAME=true,
+                  UNDERSCORE_NAME=false)
+AC_MSG_RESULT($UNDERSCORE_NAME)
+
+
+# ----------- some stuff 'autoscan' put here --------------
+# (autoscan is part of the autoconf distribution)
+
+# checks for header files
+AC_HEADER_STDC
+AC_CHECK_HEADERS(stdlib.h strings.h sys/time.h unistd.h wchar.h)
+
+# checks for typedefs, structures, and compiler characteristics
+AC_C_CONST
+AC_C_INLINE
+AC_HEADER_TIME
+
+# checks for library functions; more autoscan stuff
+AC_FUNC_MEMCMP
+AC_CHECK_FUNCS(mkdir select socket __sysv_signal)
+
+
+
+# ----------- platform-specific code -------------
+# $target is typically processor-vendor-os
+case "$target" in
+  # linux
+  *86*linux*|*86*freebsd*|*86*openbsd*|*86*darwin*)
+    AC_MSG_RESULT(configuring for linux/x86)
+
+    ARCHOS=x86_LINUX
+    ;;
+
+  # Mac OS X
+  *powerpc*darwin*)
+    AC_MSG_RESULT(configuring for powerpc/darwin, which we treat like linux/x86)
+
+    ARCHOS=ppc_DARWIN
+    ;;
+
+  # cygwin
+  *86*cygwin*)
+    AC_MSG_RESULT(configuring for Cygwin on win32/x86)
+
+    ARCHOS=x86_WIN32
+
+    # CCUREDHOME=`cygpath -wa "$CCUREDHOME"  | sed -e "s/\\\\\/\\//g"`
+    CC=`which $CC`
+    CC=`cygpath -wa "$CC"  | sed -e "s/\\\\\/\\//g"`
+    ;;
+
+  # Solaris
+  *sparc*solaris*)
+    AC_MSG_RESULT(configuring for SPARC/Solaris)
+
+    ARCHOS=sparc_SOLARIS
+    ;;
+
+  *)
+    AC_MSG_ERROR([
+      Unsupported platform $target -- sorry.
+      ./configure supports these platforms:
+         on x86:     Linux, Win32(with Cygwin), freeBSD, openBSD, and Mac OS X
+         on PowerPC: Mac OS X 
+         on SPARC:   Solaris
+    ])
+    ;;
+esac
+
+# Make the object directory if not already present
+AC_CHECK_FILE(obj/$ARCHOS,, AC_MSG_RESULT(creating obj/$ARCHOS);
+                            mkdir -p obj/$ARCHOS)
+   
+# We will use substitution variables whose definition contains newlines. The
+# problem is that when config.status runs, it wants to break the series of
+# substitution commands for sed into fragments based on line count. We could
+# be unlucky and have config.status break the series of substitution in the
+# middle of a variable that contains newlines. So, we first create a single
+# variable called NEWLINE whose definition is a carriage return. This means
+# that there will be exactly one opportunity for this error to happen (in the
+# definition of NEWLINE). The occurrence of AC_SUBST for NEWLINE must occur
+# after those of the variables that use it! And we want to put all of these
+# very early on, to make sure that they are not around the place when the file
+# bets broken.
+
+NEWLINE="\\
+"
+
+
+AC_CONFIG_SUBDIRS(cil)
+
+# ----------------- finish up -------------------
+# names of the variables that get substituted in files; for example,
+# write @ARCHOS@ somewhere in a written file to get it substituted
+AC_SUBST(ARCHOS)
+AC_SUBST(CCUREDHOME)
+AC_SUBST(CCURED_VERSION_MAJOR)
+AC_SUBST(CCURED_VERSION_MINOR)
+AC_SUBST(CCURED_VERSION_REV)
+AC_SUBST(CCURED_VERSION)
+
+# finish the configure script and generate various files; ./configure
+# will apply variable substitutions to <filename>.in to generate <filename>;
+# I find it useful to mark generated files as read-only so I don't
+# accidentally edit them (and them lose my changes when ./configure
+# runs again); I had originally done the chmod after AC_OUTPUT, but
+# the problem is then the chmod doesn't run inside ./config.status
+
+# MY_AC_CONFIG_FILES(filename)
+# do AC_CONFIG_FILES(filename, chmod a-w filename)
+define([MY_AC_CONFIG_FILES],
+[{
+  if test -f [$1].in; then
+    AC_CONFIG_FILES([$1], chmod a-w [$1])
+  else
+    true
+    #echo "skipping [$1] because it's not in this distribution"
+  fi
+}])
+define([MY_AC_CONFIG_EXE_FILES],
+[{
+  if test -f [$1].in; then
+    AC_CONFIG_FILES([$1], [chmod a-w,a+x $1])
+  else
+    true
+    #echo "skipping [$1] because it's not in this distribution"
+  fi
+}])
+
+MY_AC_CONFIG_FILES(Makefile)
+MY_AC_CONFIG_FILES(lib/gc/GNUCC/Makefile)
+MY_AC_CONFIG_EXE_FILES(bin/ccured.bat)
+
+AC_OUTPUT()
+
+# show the user what the variables have been set to
+cat <<EOF
+
+CCured configuration:
+  source tree root:           CCUREDHOME         $CCUREDHOME
+EOF
+

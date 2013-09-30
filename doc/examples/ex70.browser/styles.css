@@ -1,0 +1,24 @@
+A.wild:link {color: red; text-decoration: none}
+A.wild:active {color: red; text-decoration: underline}
+A.wild:visited {color: red; text-decoration: none}
+
+A.fseq:link, A.FSEQ:link {color: blue; text-decoration: none}
+A.fseq:active {color: blue; text-decoration: underline}
+A.fseq:visited {color: blue; text-decoration: none}
+
+A.seq:link {color: green; text-decoration: none}
+A.seq:active {color: green; text-decoration: underline}
+A.seq:visited {color: green; text-decoration: none}
+
+A.safe:link {color: black; text-decoration: none}
+A.safe:active {color: black; text-decoration: underline}
+A.safe:visited {color: black; text-decoration: none}
+
+A.rtti:link {color: orange; text-decoration: none}
+A.rtti:active {color: orange; text-decoration: underline}
+A.rtti:visited {color: orange; text-decoration: none}
+
+A.other:link {color: magenta; text-decoration: none}
+A.other:active {color: magenta; text-decoration: underline}
+A.other:visited {color: magenta; text-decoration: none}
+

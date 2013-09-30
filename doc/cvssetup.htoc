@@ -1,0 +1,15 @@
+\begin{tocenv}
+\tocitem \@locref{htoc1}{\begin{@norefs}\@print{1}\quad{}If you want to use Windows\end{@norefs}}
+\begin{tocenv}
+\tocitem \@locref{htoc2}{\begin{@norefs}\@print{1.1}\quad{}Get \t{cygwin}\end{@norefs}}
+\tocitem \@locref{htoc3}{\begin{@norefs}\@print{1.2}\quad{}Customize \t{ssh}\end{@norefs}}
+\end{tocenv}
+\tocitem \@locref{htoc4}{\begin{@norefs}\@print{2}\quad{}Configure CVS\end{@norefs}}
+\begin{tocenv}
+\tocitem \@locref{htoc5}{\begin{@norefs}\@print{2.1}\quad{}\t{.cvsrc}\end{@norefs}}
+\tocitem \@locref{htoc6}{\begin{@norefs}\@print{2.2}\quad{}\t{.ssh/config}\end{@norefs}}
+\tocitem \@locref{htoc7}{\begin{@norefs}\@print{2.3}\quad{}Using CVS with \t{ssh}\end{@norefs}}
+\end{tocenv}
+\tocitem \@locref{htoc8}{\begin{@norefs}\@print{3}\quad{}Using CVS\end{@norefs}}
+\tocitem \@locref{htoc9}{\begin{@norefs}\@print{4}\quad{}Useful Links\end{@norefs}}
+\end{tocenv}

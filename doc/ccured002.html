@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Installation
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured001.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="tutorial.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc3">Chapter&nbsp;2</A>&nbsp;&nbsp;Installation</H1><A NAME="ch-start"></A>
+CCured works on Linux and MS Windows (Win95 operation is unreliable but Win98
+and (highly recommended instead) Win2k or WinXP should work). CCured might
+also work on other systems that use <FONT COLOR=blue>gcc</FONT>, but we have not tried it.<BR>
+<BR>
+CCured is somewhat sensitive to the version of the compiler that you are
+using. More precisely, CCured is sensitive to the format of the system include
+files that you are using. When you install CCured it will create slightly
+modified copies of some of the system include files. These copies are created
+based on some patches that we distribute with CCured. If your include files
+are different from those that we used to create the patches then the CCured
+installation might fail. At the moment we have tested CCured with the
+following compilers:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+On Windows, <FONT COLOR=blue>cl</FONT> compiler version 12.00.8168, 13.00.9466, and
+ 13.10.3077. Run <FONT COLOR=blue>cl</FONT> with no arguments to get the compiler version. 
+<LI CLASS="li-itemize">On Windows, using <FONT COLOR=blue>cygwin</FONT> and <FONT COLOR=blue>gcc</FONT> version 2.95.3, and
+ versions 3.0.4 through 3.4.4.
+<LI CLASS="li-itemize">On Linux, using <FONT COLOR=blue>gcc</FONT> version 2.95.3, and versions 3.2 through 3.3.5.
+</UL>
+ Some of the system include files that CCured depends on are really part of
+the standard library. CCured has been tried with the following versions of
+<FONT COLOR=blue>glibc</FONT>: <TT>glibc-2.2.3</TT>, <TT>glibc-2.2.5</TT>, <TT>glibc-2.2.93</TT>, and
+<TT>glibc-2.3.2</TT>. To find out the version of your <TT>glibc</TT> you can run
+<TT>/lib/libc.so.6</TT> on Linux.<BR>
+<BR>
+If you want to use CCured on Windows then you must get a complete
+installation of <FONT COLOR=blue>cygwin</FONT> (make sure you install the development tools such
+as <FONT COLOR=blue>gcc</FONT> and <FONT COLOR=blue>ld</FONT> as well and the <FONT COLOR=blue>perl</FONT> interpreter) and the <B>source-code</B> Ocaml distribution and compile it yourself using the cygwin tools
+(as opposed to getting the Win32 native-code version of Ocaml). You will need
+Ocaml release 3.08 or higher to build CCured. If you have not done this before
+then take a look <A HREF="../ccured/setup.html">here</A>. (Don't need to worry
+about <FONT COLOR=blue>cvs</FONT> and <FONT COLOR=blue>ssh</FONT> unless you will need to use the master CVS
+repository for CCured.)<BR>
+<BR>
+<A NAME="toc2"></A>
+<H2 CLASS="section"><A NAME="htoc4">2.1</A>&nbsp;&nbsp;Get the CCured sources</H2>
+Download the CCured <A HREF="distrib">distribution</A> (latest version is
+<A HREF="distrib/ccured-1.3.5.tar.gz"><TT>distrib/ccured-1.3.5.tar.gz</TT></A>). See the Section&nbsp;<A HREF="changes.html#sec-changes">13</A> for recent changes to the CCured distribution.<BR>
+<BR>
+<A NAME="toc3"></A>
+<H2 CLASS="section"><A NAME="htoc5">2.2</A>&nbsp;&nbsp;Configure and Compile CCured</H2>
+Run the following commands in the top level directory. If you are using
+Windows then at least the <FONT COLOR=blue>configure</FONT> command must be run from within
+<FONT COLOR=blue>bash</FONT>. 
+<PRE CLASS="verbatim">
+./configure
+make
+make quicktest (optional)
+cd test
+make testrun/hello INFERBOX=infer
+</PRE>
+ The <FONT COLOR=blue>configure</FONT> script tries to find appropriate defaults for your system.
+You can control its actions by passing the following arguments:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<FONT COLOR=blue>CC=foo</FONT> Specifies the path for the <FONT COLOR=blue>gcc</FONT> executable. By default
+whichever version is in the PATH is used.
+</UL>
+The last line in the above sequence of commands will apply CCured (and then
+run the result) on the file <FONT COLOR=blue>test/small1/hello.c</FONT>. (See the
+<FONT COLOR=blue>test/Makefile</FONT> for the sequence of commands.)<BR>
+<BR>
+It is possible that you get a configuration error saying that certain patterns
+did not match. This means that your standard include files are different than
+those that we have prepared the distribution for. (See the above discussion.)
+Your recourse in this case is either to install one of the versions of the
+compiler that we tested CCured for or to extend the patch files so that they
+match your includes. It is not hard, and it is explained in the
+<A HREF="../cil/patcher.html">patcher</A> documentation.<BR>
+<BR>
+After running <FONT COLOR=blue>make</FONT> you have built a few executables (in the <FONT COLOR=blue>obj</FONT>
+directory) and have configured the <FONT COLOR=blue>bin/ccured</FONT> Perl script. If you want to
+move this script to another directory (e.g. to <FONT COLOR=blue>/usr/local/bin</FONT>) make sure
+to copy the <FONT COLOR=blue>CilConfig.pm</FONT> file to the same directory. <BR>
+<BR>
+Now you can continue with a tutorial (Chapter&nbsp;<A HREF="tutorial.html#ch-tutorial">3</A>), or you can jump
+ahead and find out how to run CCured (Chapter&nbsp;<A HREF="ccured004.html#ch-invoke">4</A>).<BR>
+<BR>
+<A NAME="toc4"></A>
+<H2 CLASS="section"><A NAME="htoc6">2.3</A>&nbsp;&nbsp;Test CCured</H2>
+Once you have built CCured you can run 
+<PRE CLASS="verbatim">
+make quicktest
+</PRE>
+This will run a few small examples.
+<BR>
+<BR>
+<HR>
+<A HREF="ccured001.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="tutorial.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

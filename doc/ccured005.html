@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+CCured Type Inference
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured004.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured006.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc28">Chapter&nbsp;5</A>&nbsp;&nbsp;CCured Type Inference</H1><A NAME="ch-typeinference"></A>
+If you do not pass pass the <FONT COLOR=blue>&ndash;nocure</FONT> argument to <FONT COLOR=blue>ccured</FONT>, CCured
+will automatically infer pointer kinds (see Section&nbsp;<A HREF="tutorial.html#sec-typeannot">3.1</A>) for the
+pointer types in your program. In a nutshell, this is done by creating a graph
+with one node for every pointer type in the program. If the program contains a
+cast or assignment from one type to another, the graph contains an edge
+between the corresponding nodes.<BR>
+<BR>
+Once the graph has been created, the inferencer will examine every node and
+edge in the graph. If the edge represents a cast that is not captured by
+our notion of physical subtyping (i.e., a cast that we cannot statically
+verify to be valid) we mark the involved nodes (and thus the pointers in
+the program they are associated with) as <TT>WILD</TT>. Since <TT>WILD</TT>pointers may
+only point to other <TT>WILD</TT>areas, any node connected to a <TT>WILD</TT>node must
+also be <TT>WILD</TT>. <BR>
+<BR>
+The inferencer then checks the remaining nodes to see if the types they
+represent are involved in pointer arithmetic. A node that is only
+incremented can be made <TT>FSEQ</TT>while a node that is subject to general
+arithmetic must be <TT>SEQ</TT>. All remaining nodes (i.e., those that adhere to
+our notion of physical subtyping and have no other constraints) become <TT>SAFE</TT>. <BR>
+<BR>
+The actual inferencer includes support for a number of specialty pointer
+types, like the run-time type information pointer (<TT>RTTI</TT>), but the basic idea
+remains as described above. The end result of the inferencer is the graph,
+which serves as a mapping from types in the program to pointer kinds. The
+module that inserts run-time checks into the program uses this information to
+determine which checks to put where.<BR>
+<BR>
+In the process of adding run-time checks to make the program type- and
+memory-safe, CCured introduces new types, changes old types and changes
+function prototypes. In each of these cases a new name is introduced to
+eliminate confusion and to prevent the resulting program from linking
+improperly. <BR>
+<BR>
+<A NAME="toc16"></A>
+<H2 CLASS="section"><A NAME="htoc29">5.1</A>&nbsp;&nbsp;Using the pointer browser</H2><A NAME="sec-browser"></A>
+To inspect the results of the inference you should use the pointer browser.
+Every time you run CCured it will produce a directory called <FONT COLOR=blue>foo.browser</FONT>
+(where <FONT COLOR=blue>foo</FONT> is the name of the executable you are creating).
+Alternatively, you can use the <FONT COLOR=blue>&ndash;browserdir</FONT> option to CCured to specify in
+which directory it should place the browser. 
+That
+directory contains HTML files and Javascript programs that you can use to find
+the reasoning that CCured has used during pointer kind inference. To start the
+browser, point your web browser (Mozilla or IE; Netscape was broken beyond
+belief when we checked last in September 2002) to the file
+<FONT COLOR=blue>foo.browser/index.html</FONT> and get going.<BR>
+<BR>
+The browser will show you the preprocessed and merged file with annotations
+about the pointer kinds. The file that you will see also has the result
+of processing the polymorphism directives (see Section&nbsp;<A HREF="ccured007.html#sec-poly">7.1</A>) and the wrappers
+(see Chapter&nbsp;<A HREF="ccured008.html#ch-wrapper">8</A>). <BR>
+<BR>
+The documentation for the pointer browser is at <A HREF="browser_help.html"><TT>browser_help.html</TT></A>.<BR>
+<BR>
+There is an alternative lower-level way to inspect the result of the
+inference, which is described in Appendix&nbsp;<A HREF="ccured014.html#ch-graph">A</A>.<BR>
+<BR>
+<HR>
+<A HREF="ccured004.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured006.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

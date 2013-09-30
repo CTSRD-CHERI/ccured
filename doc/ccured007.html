@@ -1,0 +1,877 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+How to Eliminate WILD Pointers
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured006.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured008.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc48">Chapter&nbsp;7</A>&nbsp;&nbsp;How to Eliminate WILD Pointers</H1><A NAME="ch-nowild"></A>
+As explained in the tutorial, you can use the <TT>WILD</TT> pointer types to do
+most of the things that you can do with pointers in C. And, in fact, CCured's
+inferencer will turn some of your pointers into <TT>WILD</TT> pointers if you use
+them in unusual ways. <BR>
+<BR>
+<TT>WILD</TT> pointers are bad. Every time you access them you have to also access
+the tags. And what makes them really annoying is that they spread very
+quickly. Even a few bad casts in your program can lead to a contamination of
+30% of the pointers with <TT>WILD</TT>ness. And that means that you'll have to
+write lots of wrappers, and hard ones. (In fact, the support that we provide
+for writing wrappers does not work in all cases in the presence of <TT>WILD</TT>
+pointers.) <BR>
+<BR>
+So, we recommend that you take a look at the warnings and messages that
+CCured gives and try to address the bad casts. In this chapter, we describe
+a few tricks that you can use to change the code, and a few features that
+CCured has to help you do that. <BR>
+<BR>
+First, a few notes:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Do not use functions without prototypes. They will be <TT>WILD</TT> along with
+their arguments and result values.<BR>
+<BR>
+<LI CLASS="li-itemize">Fill in the full type of functions and pointers. In C it is technically
+sufficient to leave the argument part of a function type empty, and this
+allows to call the function with whatever arguments you feel like. CCured will
+accept that but will make the function <TT>WILD</TT>!<BR>
+<BR>
+<LI CLASS="li-itemize">If your program has custom memory allocators (generally wrappers around
+<FONT COLOR=blue>malloc</FONT> and friend), you must declare them (Section&nbsp;<A HREF="#sec-malloc">7.2</A>).<BR>
+<BR>
+<LI CLASS="li-itemize">If you have functions that use pointers polymorphically, make sure those
+pointer types are <FONT COLOR=blue>void *</FONT> (not <FONT COLOR=blue>char *</FONT> as it was common before ANSI C). 
+</UL>
+When it notices bad casts, CCured will print something like this:
+<PRE CLASS="verbatim">
+** 1: Bad cast at cdb_make.c:36 (char  *510 -&gt;struct cdb_hplist  *1376)
+** 2: Bad cast at pathexec_env.c:42 (char  *510 -&gt;char */* __NODE(2537)  */ *2538)
+** 3: Bad cast at pathexec_env.c:67 (char */* __NODE(2537)  */ *2538 -&gt;char  *2553)
+** 4: Bad cast at sig.c:12 (void (int  ) *2695 -&gt;void () *2694)
+** 5: Bad cast at sig_catch.c:9 (void () *673 -&gt;void (int  ) *2711)
+ptrkinds: Graph contains 4383 nodes
+ptrkinds:   SAFE - 3142 ( 72%)
+ptrkinds:   SEQ - 15 (  0%)
+ptrkinds:   FSEQ - 127 (  3%)
+ptrkinds:   WILD - 1099 ( 25%)
+535 pointers are void*
+5 bad casts of which 0 involved void* and 2 involved function pointers
+1 (20%) of the bad casts are downcasts
+0 incompatible equivalence classes
+</PRE>
+ This means that there are 5 bad casts (which contaminate 25% of your
+pointers). There are no incompatible equivalence classes in this case. <BR>
+<BR>
+You can either go directly at the line numbers in which the bad casts are
+reported, or you can use the browser (Section&nbsp;<A HREF="ccured005.html#sec-browser">5.1</A>).<BR>
+<BR>
+Bad cast number 4 and 5 in the example above are clear indications that there
+are some incomplete function types in your program. Go and add the argument
+types. <BR>
+<BR>
+The other bad casts are due to an undeclared memory allocator. After we fix
+ those we rerun and we get:
+<PRE CLASS="verbatim">
+ptrkinds: Graph contains 4575 nodes
+ptrkinds:   SAFE - 3324 ( 73%)
+ptrkinds:   SEQ - 41 (  1%)
+ptrkinds:   FSEQ - 150 (  3%)
+ptrkinds:   WILD - 1060 ( 23%)
+579 pointers are void*
+0 bad casts of which 0 involved void* and 0 involved function pointers
+No bad casts, so no downcasts
+2 incompatible types flow into node void  *518
+  Type char */* __NODE(2549)  */ *2550 at pathexec_env.c:67
+  Type char  *102 at dns_transmit.c:63
+2 incompatible equivalence classes
+</PRE>
+ Notice that we have more pointers in the program. This is due to the
+allocator, which is now polymorphic and is duplicated several times. But we
+also have incompatible equivalence classes. This is because there is a <FONT COLOR=blue>void
+*</FONT> pointer that is used with several incompatible types (in this case <FONT COLOR=blue>char
+*</FONT> and <FONT COLOR=blue>char **</FONT>). See Section&nbsp;<A HREF="#sec-poly">7.1</A> for more details on this. <BR>
+<BR>
+<A NAME="toc21"></A>
+<H2 CLASS="section"><A NAME="htoc49">7.1</A>&nbsp;&nbsp;Polymorphism</H2><A NAME="sec-poly"></A>
+Polymorphism is the ability a program fragment to operate on data of
+different types. This is a useful thing to be able to do and since C does not
+have special support for it, each programmer implements polymorphism by
+extensive use of casting. But not all casts are equal. Consider for example a
+function that just returns its argument:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int identity_bad(int x) { return x; }
+</FONT></PRE>
+This function can be used with any type that fits in an integer, provided the
+appropriate casts from the type to <FONT COLOR=blue>int</FONT> and back are inserted. But as we
+have already discussed in Section&nbsp;<A HREF="ccured009.html#sec-castint">9.4</A> this won't work in CCured because
+the pointers you get out are not usable. <BR>
+<BR>
+A better way to do this is as follows:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+void* identity(void* x) { return x; }
+</FONT></PRE>
+It is a common paradigm in C to use <FONT COLOR=blue>void*</FONT> for a &#8220;pointer to I don't know
+what&#8221; type. CCured supports this view directly by considering each use of
+<FONT COLOR=blue>void *</FONT> in the program as an occurrence of an unknown type. The CCured
+inferencer will try to find a replacement type that makes sense in that
+context. For example, in the following code fragment CCured will think of both
+occurrences of <FONT COLOR=blue>void *</FONT> as actually being <FONT COLOR=blue>int * *</FONT>.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+void* identity(void* x) { return x; }
+
+int main() {
+    int * * p = 0;
+    int * * res = identity(p);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex31.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex31.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+This model works for even very complicated code, such as the following
+fragment that
+defines a function <FONT COLOR=blue>apply</FONT> which applies a function pointer to some
+arguments (see in the output that all pointers are inferred <TT>SAFE</TT>):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+// Applies a function to an argument
+void * apply(void* (*f)(void*), void *arg) {
+   return f(arg);
+}
+
+// A simple dereference function
+int * deref(int * * addr) {
+    return *addr;
+} 
+
+int  main() {
+     int * x = 0;
+     int * res = apply(deref, &amp; x);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex32.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex32.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+In the above example there are four occurrences of <FONT COLOR=blue>void *</FONT> in the
+definition of <FONT COLOR=blue>apply</FONT>. Based on the actual usage of <FONT COLOR=blue>apply</FONT> the first two
+are mapped to <FONT COLOR=blue>int *</FONT> and the latter two are mapped to <FONT COLOR=blue>int * *</FONT>.<BR>
+<BR>
+This very flexible scheme breaks down when you have inconsistent usage of a
+<FONT COLOR=blue>void *</FONT> type, such as in the following code:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+void* identity(void* x) { return x; }
+
+int main() {
+    int * p = 0;
+    int * * res_pp = identity(&amp; p);
+    int * res_p    = identity(p);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex33.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex33.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+In the above code the <FONT COLOR=blue>identity</FONT> function is used both with <FONT COLOR=blue>int *</FONT> and
+<FONT COLOR=blue>int **</FONT> argument. Since CCured cannot find any single non-<TT>WILD</TT> type that
+is compatible with all contexts in which the <FONT COLOR=blue>void *</FONT> is used, it is going
+to infer that the type of the <FONT COLOR=blue>void *</FONT> argument is <TT>WILD</TT>. And since the
+argument is assigned to the result (implicitly due to the <FONT COLOR=blue>return</FONT>
+statement) the result type is also <TT>WILD</TT>. (You can use the browser to see
+all the different incompatible types that &#8220;flow&#8221; into a <FONT COLOR=blue>void *</FONT>). It
+seems that we need a way to tell CCured to treat the two invocations
+separately.<BR>
+<BR>
+CCured has a crude but effective mechanism for doing just that. First, you
+have to tell CCured that a function is polymorphic:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma ccuredpoly("identity")
+</FONT></PRE>
+(you can list multiple names in one <FONT COLOR=blue>ccuredpoly</FONT> pragma. The pragma can
+ appear anywhere in your program.).<BR>
+<BR>
+If you tell CCured that a function is polymorphic it will take the following
+steps:
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+For each call site of the function, CCured will create a copy of the
+function and it will assign it the name <FONT COLOR=blue>/*15*/identity</FONT>, where the number
+15 is a running counter to ensure that the names are different. 
+<LI CLASS="li-enumerate">Then it will perform the usual inference in which case each copy of the
+<FONT COLOR=blue>identity</FONT> function is used only once. 
+<LI CLASS="li-enumerate">Finally, for each combination of pointer kinds in the
+various flavors of <FONT COLOR=blue>identity</FONT> CCured will keep one copy and erase all the
+others. 
+</OL>
+Consider as an example the code from above, in which all pointers are now
+<TT>SAFE</TT>. The output contains calls to <FONT COLOR=blue>/*1*/identity</FONT> and <FONT COLOR=blue>/*2*/identity</FONT>
+but since they both have the same pointer kinds for the arguments and results,
+only the body of <FONT COLOR=blue>/*1*/identity</FONT> is kept:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma ccuredpoly("identity")
+void* identity(void* x) { return x; }
+
+int main() {
+    int * p = 0;
+    int * * res_pp = identity(&amp; p);
+    int * res_p    = identity(p);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex34.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex34.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If the copies of the polymorphic function do not all have the same pointer
+kind then multiple definitions are kept, as in the code below where we have
+both a <TT>SAFE</TT> and a <TT>WILD</TT> copy of the <FONT COLOR=blue>identity</FONT> function:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma ccuredpoly("identity")
+void* identity(void* x) { return x; }
+
+int main() {
+    int * __WILD p = 0;
+    int * * res_pp = identity(&amp; p);
+    int * res_p    = identity(p);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex35.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex35.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+
+<H5 CLASS="paragraph">Polymorphic types</H5> 
+A similar mechanism is also available for types. You can add in the arguments
+of the <FONT COLOR=blue>ccuredpoly</FONT> pragma strings like <FONT COLOR=blue>"struct list"</FONT> to say that a copy of
+<FONT COLOR=blue>struct list</FONT> must be created for each occurrence in the program. The
+inference will then find out which of the copies have to be compatible and at
+the very end will keep only one copy for each kind. Note however that this
+form of polymorphism does not have any run-time cost because only types are
+duplicated. It will however slow down the CCured type inference. <BR>
+<BR>
+Note: If the polymorphism directives do not seem to take any effect, pass the
+ <TT>-verbose</TT> to ccured to see how it parses them.<BR>
+<BR>
+For example, here is how you would write polymorphic list length:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma ccuredpoly("length", "struct list")
+struct list {
+   void *car;
+   struct list *cdr;
+};
+
+int length(struct list *l) {
+  for(int i = 0; l; i ++, l=l-&gt;cdr) ;
+}
+
+int main() {
+    struct list list_of_int = { 5, 0 };
+    struct list list_of_wild_ptr = { (int * __WILD)5, 0 };
+    struct list wild_list = { 5 , (struct list * __WILD)0 };
+
+    int l1 = length(&amp; list_of_int);
+    int l2 = length(&amp; list_of_wild_ptr);
+    int l3 = length(&amp; wild_list);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex36.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex36.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+You can see in the browser information that the references to <TT>struct list</TT>
+have been replaced with separate names such as <TT>struct /*45*/list</TT>. <BR>
+<BR>
+In the case of recursive structures (whose name is refered directly or
+indirectly in the name of the fields), the fields use the same version of the
+structure as the structure itself. <BR>
+<BR>
+CCured has polymorphism for types and for functions because those are the
+entities that can be copied legally in C. <EM>There is no similar
+polymorphism for data variables, nor should there be.</EM>. <BR>
+<BR>
+If you have a type name for a polymorphic structure, then CCured will replace
+ all occurrences of the type name with a reference to the structure itself,
+ meaning that each use of the type name gets its own independent copy. <BR>
+<BR>
+<A NAME="toc22"></A>
+<H2 CLASS="section"><A NAME="htoc50">7.2</A>&nbsp;&nbsp;User-defined memory allocators</H2><A NAME="sec-malloc"></A>
+If your program has a user-defined memory allocator that is used to allocate
+data of different types then its return type will be <TT>WILD</TT> and so will be
+all of the pointers you store with the allocated area. Declaring such a
+function to be polymorphic will likely not help because the function is
+probably using a global data structure (the allocation buffer) that is shared
+by all polymorphic copies of the function.<BR>
+<BR>
+CCured allows you to declare a function to be a user-defined memory allocator
+using one of the following pragmas:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma ccuredalloc("myfunc", &lt;zerospec&gt;, &lt;sizespec&gt;)
+&lt;zerospec&gt; ::= zero | nozero
+&lt;sizespec&gt; ::= sizein(k) | sizemul(k1, k2)
+</FONT></PRE>
+The <FONT COLOR=blue>zero</FONT> argument means that the allocator zeroes the allocated area.
+Otherwise CCured will zero it itself, if it contains pointers. The
+<FONT COLOR=blue>sizein(k)</FONT> argument means that the allocator is being passed the size (in
+bytes) of the area to be allocated in argument number <I>k</I> (counting starts at
+1). The <FONT COLOR=blue>sizemul(k1, k2)</FONT> argument means that the allocator allocates a
+number of bytes equal to the product of the arguments number <I>k</I>1 and <I>k</I>2.<BR>
+<BR>
+For example the following are the pragmas for the standard library allocators
+<FONT COLOR=blue>malloc</FONT> and <FONT COLOR=blue>calloc</FONT>:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+void* malloc(unsigned int size);
+#pragma ccuredalloc("malloc", nozero, sizein(1))
+void* calloc(unsigned int nr_elems, unsigned int size);
+#pragma ccuredalloc("calloc", zero, sizemul(1, 2))
+</FONT></PRE>
+A memory allocator should have return type <FONT COLOR=blue>void *</FONT>. In the pre-ANSI C days 
+allocators were written with the type <FONT COLOR=blue>char *</FONT>. Once you declare a function
+to be allocator, its return type will be changed to <FONT COLOR=blue>unsigned long</FONT>. At all
+call sites CCured will examine what kind of data is being allocated and will
+construct the metadata for it. <BR>
+<BR>
+Note that declaring a function an allocator has the effect of also making it
+polymorphic. This means that CCured will create as many copies of your
+allocators as you have allocation sites. (After curing only copies with
+distinct calling convention will be kept, however.)<BR>
+<BR>
+Note that when you declare a custom-memory allocator as such, CCured will
+trust that you are not going to re-use the memory area that you return. This
+means that you can use this feature to write unsafe programs in CCured. The
+following program will succeed in trying to dereference the address 5!
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma curealloc("myalloc", sizein(1), zero)
+int data[8];
+void* myalloc(int sz) {
+  return data;
+}
+int main() {
+ int ** p = (int **)myalloc(8);
+ data[1] = 5; 
+ return *p[1]; // Will dereference 5 !!!
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex37.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex37.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Most often the custom-memory allocators are just wrappers around the system
+<TT>malloc</TT>. In that case there is no danger of unsoundness. <BR>
+<BR>
+Note also that CCured relies on the fact that the result of the custom-memory
+allocators is assigned to a variable of the right type. It is from the
+type of the destination of the allocator, or from the type cast with which the
+allocators is used, that CCured knows what kind of metadata to create. <BR>
+<BR>
+<A NAME="toc23"></A>
+<H2 CLASS="section"><A NAME="htoc51">7.3</A>&nbsp;&nbsp;Pointers with Run-Time Type Information</H2><A NAME="sec-rtti"></A>
+There are many C programs in which <FONT COLOR=blue>void *</FONT> pointers are used
+non-parametrically. An example is a global variable (of type <FONT COLOR=blue>void *</FONT>) that
+is used to store values of different types at different times. Consider for
+example the following code, where CCured is forced to infer that the <FONT COLOR=blue>g</FONT>
+pointer has kind <TT>WILD</TT> because the <FONT COLOR=blue>struct foo</FONT> and <FONT COLOR=blue>struct bar</FONT> are
+incompatible:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct foo { 
+  int f1;
+} gfoo;
+
+struct bar {
+  int * f1;
+  int f2;
+} gbar;
+
+void * g;
+
+int main() {
+  int acc = 0;
+  g = (void *)&amp;gfoo; 
+  acc += ((struct foo *)g)-&gt;f1;
+  g = (void *)&amp;gbar; 
+  acc += ((struct bar *)g)-&gt;f2;
+  return acc;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex38.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex38.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+In this example <FONT COLOR=blue>g</FONT> is used polymorphically but not in a way that could be
+handled through our support of polymorphism. (This form of polymorphism is
+called non-parametric polymorphism.) CCured will consider the casts on <FONT COLOR=blue>g</FONT>
+as bad and will mark those pointers <TT>WILD</TT>. <BR>
+<BR>
+CCured contains special support for handling such cases, by tagging the
+polymorphic values with information about their actual type. To enable this
+behavior you must use the <TT>RTTI</TT> pointer kind qualifier on the polymorphic
+pointer. Consider again the example from before but with a <FONT COLOR=blue>RTTI</FONT>
+annotation:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct foo { 
+  int f1;
+} gfoo;
+
+struct bar {
+  int * f1;
+  int f2;
+} gbar;
+
+void * __RTTI g;
+
+int main() {
+  int acc = 0;
+  g = (void *)&amp;gfoo; 
+  acc += ((struct foo *)g)-&gt;f1;
+  g = (void *)&amp;gbar; 
+  acc += ((struct bar *)g)-&gt;f2;
+  return acc;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex39.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex39.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If you use the browser, you will see that there are no more bad casts and no
+<TT>WILD</TT> pointers in this example. If you also look at the CCured output for
+the above example you will see that instead the <FONT COLOR=blue>g</FONT> variable is now
+represented using two words, one to store its value and another to store the
+actual type of the pointer it contains. This type is created when <FONT COLOR=blue>g</FONT> is
+assigned to and is checked when <FONT COLOR=blue>g</FONT> is used. <BR>
+<BR>
+CCured can work with run-time type information only for certain pointer
+types. We call such types as <EM>extensible</EM> and for each type we also
+construct a name. Specifically, the extensible types are:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<FONT COLOR=blue>void</FONT>, named <FONT COLOR=blue>"void"</FONT>
+<LI CLASS="li-itemize">A structure or union type, in which case the name is the letter <FONT COLOR=blue>"S"</FONT>
+followed by the name of the structure or union type. Equivalently it can be a
+<FONT COLOR=blue>typedef</FONT> name for a structure or union type. 
+<LI CLASS="li-itemize">A <FONT COLOR=blue>typedef</FONT> (that <EM>does not</EM> refer to a structure or union type),
+in which case the name is the letter <FONT COLOR=blue>"T"</FONT> followed by the type name.
+However, since CCured eagerly unrolls typedefs, you  bf should give the
+<FONT COLOR=blue>__NOUNROLL</FONT> attribute:
+<PRE CLASS="verbatim">
+typedef int * MY_TYPE_NAME __NOUNROLL;
+</PRE></UL>
+<TT>RTTI</TT> pointers can be created on by casting from a scalar or a <TT>SAFE</TT> pointer to an
+extensible type and can be cast only to scalars and a <TT>SAFE</TT> pointer to an extensible
+type. In the example above, <FONT COLOR=blue>struct boo</FONT> and <FONT COLOR=blue>struct bar</FONT> are extensible
+pointers and we can cast pointers to these structs to <FONT COLOR=blue>void * RTTI</FONT> and
+back. <BR>
+<BR>
+CCured also supports the <TT>RTTI</TT> pointer kind on pointers whose base type is
+different from <FONT COLOR=blue>void</FONT>. Consider the following example: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct foo {
+   int *f1;
+   int  f2;    
+} gfoo;
+
+struct bar {
+   int *f3;
+   int  f4;
+   int  f5;
+} gbar;
+
+#pragma ccured_extends("Sbar", "Sfoo")
+
+struct foo * __RTTI g;
+
+int main() {
+  int acc = 0;
+  g = (struct foo *)&amp;gfoo; 
+  acc += g-&gt;f2;
+  g = (struct foo *)&amp;gbar; 
+  acc += g-&gt;f2;
+  acc += ((struct bar *)g)-&gt;f5;
+  gfoo.f1 ++; // To make foo.f1 and bar.f3 both FSEQ pointers
+  return acc;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex40.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex40.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Notice that the <TT>RTTI</TT> pointer kind is used with the base kind <FONT COLOR=blue>struct
+foo</FONT>. An <TT>RTTI</TT> pointer is strictly more powerful than a <TT>SAFE</TT> pointer of
+the same base type. This means that <FONT COLOR=blue>g</FONT> in the code above can be used to
+access the field <FONT COLOR=blue>f1</FONT> and <FONT COLOR=blue>f2</FONT> without any overhead. This is because
+CCured enforces the requirement that an <TT>RTTI</TT> pointer of base type
+<FONT COLOR=blue>T</FONT> contains only pointer values whose base type <EM>extends</EM> <FONT COLOR=blue>T</FONT>. The
+extension relationship is a subset of the physical subtyping relationship: we
+say that type <FONT COLOR=blue>T</FONT> <EM>extends</EM> type <FONT COLOR=blue>Q</FONT> if:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Both <FONT COLOR=blue>T</FONT> and <FONT COLOR=blue>Q</FONT> are extensible, and
+<LI CLASS="li-itemize">Either <FONT COLOR=blue>T</FONT> and <FONT COLOR=blue>Q</FONT> are the same type, or
+<LI CLASS="li-itemize"><FONT COLOR=blue>Q</FONT> is <FONT COLOR=blue>void</FONT>, or
+<LI CLASS="li-itemize">There exists a pragma <FONT COLOR=blue>ccured_extends(T, T')</FONT> and <FONT COLOR=blue>T'</FONT> <EM>extends</EM>
+<FONT COLOR=blue>Q</FONT>. In this case CCured verifies that it is safe to cast a pointer to <FONT COLOR=blue>T</FONT>
+to a pointer to <FONT COLOR=blue>T'</FONT>, using the usual physical subtyping relationships. 
+</UL>
+The <FONT COLOR=blue>ccured_extends</FONT> pragmas use extensible type names to declare a
+extension hierarchy (similar to a single-inheritance class hierarchy) in which
+<FONT COLOR=blue>void</FONT> is the top. Note that only extensible types can appear in the
+hierarchy and an extensible type can appear at most once on the left-side of a
+<FONT COLOR=blue>ccured_extends</FONT> pragma. An <TT>RTTI</TT> pointer can contain values that are
+pointers to some extensible base type that extends that of the <TT>RTTI</TT> pointer
+itself.<BR>
+<BR>
+The <TT>RTTI</TT> pointer kind can be applied only to base types that are either
+<FONT COLOR=blue>void</FONT> or non-leaf in the extension hierarchy.<BR>
+<BR>
+For example, in the following code
+<PRE CLASS="verbatim">
+struct foo { int x; }
+struct bar { int y; int z; }
+typedef int MY_INT __NOUNROLL;
+#pragma ccured_extends("Sbar", "Sfoo")
+#pragma ccured_extends("Sfoo", "TMY_INT")
+</PRE>
+ we can use the <TT>RTTI</TT> pointer kind for <FONT COLOR=blue>struct foo *</FONT> and <FONT COLOR=blue>MY_INT *</FONT>
+but not for <FONT COLOR=blue>struct bar</FONT>. Notice that in all declared extension
+relationships physical subtyping is respected. <BR>
+<BR>
+The inferencer will spread the <TT>RTTI</TT> pointer kind backwards through
+assignments but only on pointers that can be <TT>RTTI</TT>. If you want to cut short
+the propagation of the <TT>RTTI</TT> pointer king you can use the <TT>SAFE</TT> pointer
+kind. <BR>
+<BR>
+To summarize, <TT>RTTI</TT> pointers can be used with the following constraints:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+The <TT>RTTI</TT> pointer kind is never inferred by the CCured inferencer. You
+must specify it on some pointers and then the inferencer will propagate it. <BR>
+<BR>
+<LI CLASS="li-itemize">The <TT>RTTI</TT> pointer kind is not able to carry bounds information. Thus
+you cannot use it on pointers that are involved in pointer arithmetic. <BR>
+<BR>
+<LI CLASS="li-itemize">Only pointers to extensible types can be cast to and from <FONT COLOR=blue>RTTI</FONT>
+pointer types. Additionally, you may cast scalars into <FONT COLOR=blue>RTTI</FONT> pointers. <BR>
+<BR>
+<LI CLASS="li-itemize">You must use <FONT COLOR=blue>ccured_extends</FONT> pragmas to declare the extension
+hierarchy. <BR>
+<BR>
+<LI CLASS="li-itemize"><FONT COLOR=blue>void*</FONT> polymorphism is turned off for the __RTTI types.
+</UL>
+Interestingly enough the <TT>RTTI</TT> pointer kind can be used to implement in a
+type-safe way virtual method dispatch, as shown in the example below:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+typedef struct parent {
+  void * __RTTI * vtbl; // virtual table, with various types of functions
+  int  *f1;             // some field
+} Parent;
+
+#pragma ccured_extends("Schild", "Sparent")
+
+typedef struct child {
+  void * __RTTI * vtbl;
+  int  *f2;
+  int   f3;
+} Child;
+
+// virtual method foo for class P
+// notice that the self parameter is an RTTI. It must 
+// be of base type void to ensure that foo_P and foo_C have the 
+// same type
+int* foo_P(void * __RTTI self_rtti, Parent *x) {
+  Parent * self = (Parent *)self_rtti; // downcast
+  return self-&gt;f1;
+}
+
+// virtual method bar for class P
+int * bar_P(void * __RTTI self_rtti) {
+  Parent * self = (Parent *)self_rtti;
+  return self-&gt;f1;
+}
+
+int* foo_C(void * __RTTI self_rtti, Parent *x) {
+  Child * self = (Child *)self_rtti;
+  return self-&gt;f2 + self-&gt;f3;
+}
+
+// Name the types of the virtual methods, to make them extensible
+typedef int * FOO_METHOD(void *, Parent *) __NOUNROLL;
+typedef int * BAR_METHOD(void *) __NOUNROLL;
+
+// Now the virtual tables
+void * vtbl_P[] = { (void*) (FOO_METHOD *)foo_P,
+                    (void*) (BAR_METHOD *)bar_P };
+
+
+// child inherits bar_P
+void * vtbl_C[] = { (void*) (FOO_METHOD *)foo_C,
+                    (void*) (BAR_METHOD *)bar_P };
+
+
+int array[8];
+
+// Now the constructors
+void ctor_P(Parent * p) {  p-&gt;vtbl = vtbl_P; p-&gt;f1 = array; }
+
+void ctor_C(Child * c) {  c-&gt;vtbl = vtbl_C;  c-&gt;f2 = array;  c-&gt;f3 = 5; }
+
+int main() {
+  Parent p;
+  Child c;
+  Parent * pp = &amp;p, * pc = &amp;c;
+  Child  * pc1;
+      
+  // Construct
+  ctor_P(&amp;p); ctor_C(&amp;c);
+
+  // Now try a downcast
+  pc1 = (Child * __RTTI)pc;
+  // Now invoke some virtual methods
+  {
+    FOO_METHOD *pfoo = (FOO_METHOD *) pp-&gt;vtbl[0];
+    pfoo((void *)pp, pc);
+    pfoo = (FOO_METHOD *) pc-&gt;vtbl[0];
+    pfoo1((void *)pc, pp);  
+   }
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex41.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex41.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Notice the use of the <FONT COLOR=blue>__NOUNROLL</FONT> typedefs for the function types. <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc52">7.3.1</A>&nbsp;&nbsp;Implementation Details</H3>
+CCured collects all extensible types in your program (either those declared
+using the <FONT COLOR=blue>ccured_extends</FONT> pragma or those that are used in casts to and
+from <TT>RTTI</TT> pointers) and constructs the extension hierarchy. An encoding of
+this hierarchy is dumped in the resulting code in the array <FONT COLOR=blue>RTTI_ARRAY</FONT>.
+Each entry in the array corresponds to an extensible type and it contains the
+difference between the entry corresponding to the parent of the extensible
+entry and the index of th current entry. The root of the extension hierarchy
+is always at index 0 and that entry contains 0. The function
+<FONT COLOR=blue>CHECK_RTTICAST</FONT> is used to walk this encoding to verify a cast from a
+<TT>RTTI</TT> pointer into a <TT>SAFE</TT> pointer or another <TT>RTTI</TT> pointer. <BR>
+<BR>
+<A NAME="toc24"></A>
+<H2 CLASS="section"><A NAME="htoc53">7.4</A>&nbsp;&nbsp;Specifying Trusted Code</H2><A NAME="sec-trusted"></A>
+In this section we describe a few mechanisms that you can use to override
+CCured's reasoning. These are powerful mechanisms but you can use them to
+write unsafe code. <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc54">7.4.1</A>&nbsp;&nbsp;Trusted casts</H3>
+Occasionally there are casts in your program that are judged as bad, yet you
+know that they are sound and it is too inconvenient to change the program to
+expose the soundness to CCured. In that case, you can use the
+<FONT COLOR=blue>__trusted_cast</FONT> built-in function. In the following example we know that
+the <FONT COLOR=blue>boxedint</FONT> type can encode an integer (if odd) or a pointer to a
+<FONT COLOR=blue>boxedint</FONT> if even. We could use <TT>RTTI</TT> pointers to encode this safely in
+CCured. Or, we can use a trusted cast:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+typedef int boxedint; // If even, then a pointer to a boxedint
+int unroll(boxedint x) {
+  if(x &amp; 1) return x;
+  return unroll(* (int*)__trusted_cast(x));
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex42.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex42.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+CCured will not complain if the argument and result type of
+<FONT COLOR=blue>__trusted_cast</FONT> are incompatible. However, it will ensure the following:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+A <FONT COLOR=blue>__trusted_cast</FONT> acts as a cast from the point of view of
+ propagating the <TT>SEQ</TT> and <TT>FSEQ</TT> requirement. This means that both the
+ argument and the result type will have the same kind. 
+</UL>
+For example, in the following example, the variable <FONT COLOR=blue>q</FONT> and the field
+<FONT COLOR=blue>f1</FONT> in <FONT COLOR=blue>struct foo</FONT> are made <TT>FSEQ</TT>. The <TT>FSEQ</TT> constraint propagates
+back through <FONT COLOR=blue>__trusted_cast</FONT> to <FONT COLOR=blue>p</FONT>.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct foo {
+   int   * f1;
+   int     f2;
+};
+struct bar {
+   int   * f1; // This is FSEQ !
+   int   * f2;
+};
+int main(struct bar * p) {
+    struct foo * q = __trusted_cast(p);
+    p-&gt;f1 ++;        // Make foo.f1 FSEQ
+    return q[1].f2; // Make q FSEQ
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex43.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex43.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If you look carefully at the above examples you will see one of the potential
+dangers of using <FONT COLOR=blue>__trusted_cast</FONT>: you are on your own to ensure that the
+argument type and the result type match. In the above example, this is not
+true because the field <FONT COLOR=blue>f1</FONT> in <FONT COLOR=blue>struct bar</FONT> is <TT>SAFE</TT> while the field
+<FONT COLOR=blue>f1</FONT> in <FONT COLOR=blue>struct foo</FONT> is <TT>FSEQ</TT>!<BR>
+<BR>
+If you want to prevent a pointer arithmetic operation from generating
+sequence pointers, you can use the <FONT COLOR=blue>__trusted_add</FONT> function:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int foo(int *p) {
+    int * q = __trusted_add(p, 4);
+    return *q;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex44.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex44.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+You can use a <FONT COLOR=blue>__trusted_cast</FONT> to cast an integer into a pointer. This
+works as expected if the type of the resulting pointer is <TT>SAFE</TT> (as in the
+example with <FONT COLOR=blue>boxedint</FONT> earlier in this section). But if it is <TT>FSEQ</TT> or
+<TT>SEQ</TT> then you will get exactly the same effect as if the
+<FONT COLOR=blue>__trusted_cast</FONT> was not there: you will obtain a pointer with null
+metadata and thus unusable for memory dereference.<BR>
+<BR>
+A better way to cast an integer (or a <TT>SAFE</TT> pointer into a <TT>SEQ</TT> or
+<TT>FSEQ</TT> one) is to use the <FONT COLOR=blue>__mkptr</FONT> built-in function. This function
+takes as a second argument some other pointer whose metadata is used in
+constructing the result: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int g[8];
+int main() {
+  int * __SAFE pg = &amp; g[2];
+  int * __SEQ sg = __mkptr(pg, g); // We know that the home area of pg and g
+                                   // are the same
+  int pg1 = (int) &amp; g[3];
+  int * __SEQ sg1 = __mkptr(pg1, g);
+  return sg[1] + sg1[1];
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex45.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex45.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Another useful built-in function is <FONT COLOR=blue>__mkptr_size</FONT>. It allows you to
+specify the size of the home area in which a pointer lives:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int g[8];
+int main() {
+  int * __SAFE pg = &amp; g[2];
+  // We know that there is are at least 2 more integers after pg
+  int * __SEQ sg = __mkptr_size(pg, 2 * sizeof(int)); 
+                                   // are the same
+  return sg[1];
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex46.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex46.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+There are other built-in functions that you can use to achieve various things
+behind CCured's back. Those are mostly intended for use in wrappers for the
+library functions (which you have to trust anyway). These are described in
+Chapter&nbsp;<A HREF="ccured008.html#ch-wrapper">8</A> and declared in <A HREF="ccured.h"><TT>ccured.h</TT></A>. <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc55">7.4.2</A>&nbsp;&nbsp;Turning off curing</H3>
+You can turn the curing off for a fragment of a source file, for a function,
+or for a block statement. <BR>
+<BR>
+You can use the <TT>cure</TT> pragma to turn curing off for a fragment of a source
+file (in CCured pragmas can only appear at global scope and therefore you
+cannot use this mechanism to turn curing off for part of the definition of a
+global function):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * g; // This is a pointer to several integers
+         // but we do not want to make it SEQ
+#pragma ccured(off)
+int foo() {
+   return g[2]; // CCured won't see this and will leave g SAFE
+                // But also CCured won't check this code
+}
+#pragma ccured(on)
+</FONT></PRE>
+<a target="_blank" href="examples/ex47.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex47.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Alternatively, you can add the <TT>nocure</TT> attribute to a function to tell
+CCured to not cure this function:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * g; // This is a pointer to several integers
+         // but we do not want to make it SEQ
+
+// We must put the attribute in a prototype
+int foo(void) __NOCURE;
+int foo(void) {
+   return g[2]; // CCured won't see this and will leave g SAFE
+                // But also CCured won't check this code
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex48.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex48.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+At a finer-grained level, you can use the <TT>__NOCUREBLOCK</TT> attribute with
+a block statement:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * g; // This is a pointer to several integers
+         // but we do not want to make it SEQ
+
+int foo(void) { 
+   int res;
+   { __NOCUREBLOCK
+     res = g[2]; // CCured won't see this and will leave g SAFE
+   }
+   return res; 
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex49.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex49.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+In all of these cases, the CCured inferencer does not even look at the
+non-cured portions of the code. However, CCured will at least change the
+non-cured code to access the fat pointers properly. For example, in the
+following example the global <FONT COLOR=blue>g</FONT> is a sequence pointer. While CCured will
+not complain about the unsafe cast to <FONT COLOR=blue>int **</FONT>, it will make sure that at
+least the proper component of <FONT COLOR=blue>g</FONT> is used:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * g; // This will be FSEQ
+
+int ** foo(void) { 
+   int res = g[2]; // Make g FSEQ
+   { __NOCUREBLOCK
+     return (int **)g; // But not WILD
+   }
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex50.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex50.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Finally, to avoid curing a whole source file (say <TT>trusted_foo.c</TT>), you can
+use the <TT>&ndash;leavealone=trusted</TT> argument to CCured. All source files whose
+names start with the given &#8220;leave alone&#8221; prefix, are not merged and are not
+scanned by CCured at all. Instead they are compiled with <TT>gcc</TT> and linked in
+the final executable. <BR>
+<BR>
+<HR>
+<A HREF="ccured006.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured008.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

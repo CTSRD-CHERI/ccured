@@ -1,0 +1,424 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Old Tutorials
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured015.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured017.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc96">Appendix&nbsp;C</A>&nbsp;&nbsp;Old Tutorials</H1> 
+<A NAME="toc47"></A>
+<H2 CLASS="section"><A NAME="htoc97">C.1</A>&nbsp;&nbsp;ftpd</H2>
+<B>Note: this section was written on 6/29/01. CCured has changed since
+ then.</B>.<BR>
+<BR>
+Once you download the sources for a new package, you can run the translator
+on it. To create a Makefile target for a package you typically add to
+cil/Makefile a target that just invokes make on the package's own Makefile
+with the CC variable bound to &#8220;ccured &ndash;merge&#8221;. I'll use the 6/29/01 version
+of ftpd as my example.<BR>
+<BR>
+First we try to run it without our tool involved:
+<PRE CLASS="verbatim">
+  % make ftpd-clean
+  % cd test/ftpd/ftpd
+  % make
+</PRE>This succeeds, generating an 'ftpd' binary. In the case of 'ftpd', 
+running it is slightly complicated:
+<PRE CLASS="verbatim">
+  % ./ftpd -D -d -p 3333
+  (then in another window)
+  % telnet localhost 3333
+  Trying 127.0.0.1...
+  Connected to localhost.
+  Escape character is '^]'.
+  220 madrone.cs.berkeley.edu FTP server (Version 6.5/OpenBSD, linux port 0.3.2) ready.
+  (etc)
+</PRE>This is (to our way of measuring) success.<BR>
+<BR>
+Now we try it in 'cil' mode:
+<PRE CLASS="verbatim">
+  % cd cil
+  % make ftpd-clean
+  % make ftpd
+</PRE>At the moment, this also works, producing another 'ftpd' binary. We test
+it the same way, and rejoice at its success.<BR>
+<BR>
+Finally, we dare to try it in 'box' mode, meaning the instrumentation
+module will be used:
+<PRE CLASS="verbatim">
+  % make ftpd-clean
+  % make ftpd INFERBOX=4
+</PRE>After crunching for a while, it reports this error (you have to scroll
+back a bit to see the right one):
+<PRE CLASS="verbatim">
+  ./ls_all.c:1338: Bug: Calling non-wild ioctl with too many args
+</PRE>
+This is an error from the 'box' module, complaining about what it
+perceives to be a type error. If we investigate the named source
+line, we see
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  if(ioctl(1, 0x5413, &amp; win) == 0 &amp;&amp; win.ws_col &gt; 0)
+</FONT></PRE>
+confirming that 'ioctl' is involved. Since the <TT>*_all.c</TT> files are the
+output of our tool, and do not themselves <TT>#include</TT> any files, we can
+simply search in this file for ioctl's declaration. We do so, and see
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  extern int ioctl(int __fd , unsigned long int __request , ...) ;
+</FONT></PRE>
+Hmmm... looks like it was declared to accept any number (&gt;=2) of args, so
+this looks like a bug in the 'box' module; it should accept this code,
+but it does not.<BR>
+<BR>
+The next step is to write a tiny C program which calls ioctl (see
+test/small2/ioctl.c), and verify it fails the same way
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  % make scott/ioctl INFERBOX=4
+  [...]
+  ioctl.c:9: Bug: Calling non-wild ioctl with too many args
+  [...]
+</FONT></PRE>
+Yep, same problem. Now we report this to George, since typically he's
+much faster at identifying the problem, since he wrote the 'box' module.<BR>
+<BR>
+In the meantime (waiting for George to magically fix the problem), we
+could temporarily comment-out the call so we can proceed to find other
+bugs. Or, perhaps we change the ioctl call to instead call a wrapper
+function (wrappers are defined in lib/ccuredlib.c, which gets linked into
+the translated program).<BR>
+<BR>
+Eventually (see "make go INFERBOX=4") we'll get an executable. If it
+runs correctly, celebration is in order. If not, it will usually fail
+because of a failed runtime check (this one is from a test vector for
+which go fails);
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  % make go INFERBOX=4
+  % cd test/spec/099.go/src
+  % ./go 5 4
+  [...]
+  array bug: index is 5980 (vs 5980)
+  Failure: Ubound
+  Abort
+</FONT></PRE>
+Tracking down the source of such failures is the most time-consuming
+part of pushing a program through. Sometimes it's a bug in the
+translator, in which case ideally a test case can be isolated for easy
+diagnosis.<BR>
+<BR>
+Sometimes (more and more often) it's a bug in the original program (go
+had 10 array bounds violation bugs at last count). In this case you
+have to change the original code to fix the bug; this may be easy or
+hard. If it's hard, try just surrounding the offending statement with
+an explicit bounds check in an 'if' statement, so the program skips
+the bad statements (that is what I did to cause all of the "array bug"
+outputs in the "5 4" case above).<BR>
+<BR>
+<A NAME="toc48"></A>
+<H2 CLASS="section"><A NAME="htoc98">C.2</A>&nbsp;&nbsp;Writing Wrappers Manually</H2><A NAME="sec-manualwrappers"></A>
+To interface with external code, you are usually better off using the automatic
+wrapper system described in Chapter&nbsp;<A HREF="ccured008.html#ch-wrapper">8</A>. However if that isn't possible,
+you'll need to write a wrapper directly in C:
+<DL CLASS="description" COMPACT=compact><DT CLASS="dt-description">
+<B>Step 1:</B><DD CLASS="dd-description"> 
+ Consult the name-mangling algorithm documented Section&nbsp;<A HREF="ccured008.html#sec-mangling">8.1</A>
+ and <TT>ccuredlib.c</TT> to decode the required types of the parameters. <BR>
+<BR>
+<DT CLASS="dt-description"><B>Step 2:</B><DD CLASS="dd-description">
+ Determine the semantics of the function being wrapped (e.g.,
+ if it's a unix libc call, consult its man page). In particular,
+ find out how memory passed via pointers is accessed (read and
+ written).<BR>
+<BR>
+<DT CLASS="dt-description"><B>Step 3:</B><DD CLASS="dd-description">
+ Write the wrapper, and make calls to the verification
+ and query functions in the section in <TT>ccuredlib.c</TT> titled 
+ &#8220;general-purpose&#8221;. If the function manipulates wild pointers, 
+ be sure to update tags; conversely, if no wild pointers are 
+ involved, there are no tags to worry about.
+</DL>
+Good examples to consult (in <TT>ccuredlib.c</TT>) include <TT>read_w</TT>,
+<TT>fgets_ffw</TT>, <TT>stat_ww</TT>, <TT>strcat_www</TT>, <TT>memmove_www</TT>.<BR>
+<BR>
+<A NAME="toc49"></A>
+<H2 CLASS="section"><A NAME="htoc99">C.3</A>&nbsp;&nbsp;Apache Modules</H2>
+<EM>This section applies to CCured as of July 2002</EM><BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc100">C.3.1</A>&nbsp;&nbsp;Introduction</H3>
+This writing assumes Apache 1.3.19 and an x86/Linux system. Apache is an
+open source web server that has the ability to dynamically load third-party
+modules. Modules can examine and alter HTTP requests and also examine and
+alter the webserver replies. For example, a compression module might
+examine the HTTP request to see if it contains the &#8220;Accept-Encoding:
+gzip&#8221; tag. If it does it might alter the HTTP reply, replacing the text of
+the webpage body with a compressed version of that text. Modules can be
+configured (via a file called <TT>httpd.conf</TT>) so that their behavior is
+limited to a certain location or directory. <BR>
+<BR>
+Apache modules share the same address space as the Apache webserver: no
+software fault isolation is present. As a result, if the module crashes it
+brings down that webserver (although apache is usually configured to
+immediately spawn a new webserver thread to replace the fallen one). More
+distressingly, a module with a security violation (for example, a
+format-string bug) can allow remote users to gain shell access to the
+webserver machine (one version of <TT>mod_php3</TT> features such a
+vulnerability: CCured prevents that vulnerability). <BR>
+<BR>
+Apache modules are typically single files with a fairly standard naming
+convention: <TT>mod_foo.c</TT> is the <TT>foo</TT> module, where <TT>foo</TT>
+ranges over fairly descriptive keywords like <TT>gzip</TT>, <TT>random</TT>, <TT>urlcount</TT>, <TT>auth</TT> or <TT>layout</TT>. <TT>mod_foo.c</TT> almost invariable
+contains a global data structure of type <TT>module</TT> with the C name <TT>foo_module</TT>. This data structure is a table of function pointers and entry
+points. Once <TT>mod_foo.c</TT> has been compiled to the shared object <TT>mod_foo.so</TT>, Apache will dynamically load it and call the function
+pointers listed in the <TT>foo_module</TT> structure at the appropriate time
+(e.g., when a new request comes in). <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc101">C.3.2</A>&nbsp;&nbsp;Curing Apache Modules</H3>
+Most Apache modules are of a relatively modest size and curing them is no
+great chore. However, some annotation work must be done. Since the cured
+module must interact with the non-cured Apache webserver, objects that are
+passed between them must not change size. As a result, <TT>WILD</TT> and other
+fat pointers cannot be introduced into such objects. Annotations must be
+added to convince CCured that the module can be made safe without such
+run-time checks. <BR>
+<BR>
+Imagine that you are trying to cure <TT>mod_urlcount.c</TT>. Take out your
+favorite text editor and open up the file. Near the top you should find a
+configuration record structure. Each module defines a separate
+configuration record structure with a separate (non-exported) name. For
+example, <TT>mod_urlcount</TT> has:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+typedef struct urlcount_config_rec {
+    int         urlcount_default;
+    CounterType urlcount_type;
+    int         urlcount_auto_add;
+    char       *urlcount_file;
+} urlcount_config_rec;
+</FONT></PRE>
+Each module also contains functions that create, manipulate and merge such
+configuration structures. This is the mechanism through which Apache modules
+maintain global state. Each time Apache calls one of the function pointers
+exported by the module, it passes along a way to get to the appropriate
+configuration record. Since Apache does not know how the config structure
+will be defined, it uses <TT>void</TT> pointers to describe the type. CCured
+comes with a set of macros that instantiate those <TT>void *</TT>s on a
+per-module basis. Add the line:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+NEW_MODULE_TYPE(urlcount, urlcount_config_rec)  // this is a macro
+</FONT></PRE>
+where the first parameter is the module suffix name and the second is the
+type name of the configuration record. This macro declares a type named
+<TT>module_urlcount</TT>. As mentioned earlier, each module exports a module
+structure (full of function pointers). We must redeclare the module to take
+advantage of the instantiated types. Change:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+module urlcount_module; // full of "void *"s
+</FONT></PRE>
+to
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+module_urlcount urlcount_module; // uses "url_config_rec *", not "void *"
+</FONT></PRE>
+Now scroll down a bit and look for the word keyword <TT>void</TT>. Apache
+modules often feature unnecessary casts to void. For example, <TT>mod_headers</TT> contains this function:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+static void *merge_headers_config(pool *p, void *basev, void *overridesv)
+{
+    headers_conf *a = (headers_conf *) ap_pcalloc(p, sizeof(headers_conf));
+    headers_conf *base = (headers_conf *) basev, 
+        *overrides = (headers_conf *) overridesv;
+    a-&gt;headers = ap_append_arrays(p, base-&gt;headers, overrides-&gt;headers);
+    return a;
+}
+</FONT></PRE>
+Every <TT>void</TT> in this function really stands for <TT>headrs_conf</TT> (the
+<TT>mod_headers</TT> version of <TT>urlcount_config_rec</TT>). Change it so
+that the <TT>void</TT> types are no longer present: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+static headers_conf *
+    merge_headers_config(pool *p, headers_conf *basev, headers_conf *overridesv)
+{
+    headers_conf *a = (headers_conf *) ap_pcalloc(p, sizeof(headers_conf));
+    headers_conf *base = (headers_conf *) basev, 
+        *overrides = (headers_conf *) overridesv;
+    a-&gt;headers = ap_append_arrays(p, base-&gt;headers, overrides-&gt;headers);
+    return a;
+}
+</FONT></PRE>
+Repeat this process with all configuration functions that contain <TT>void</TT>. Now search for <TT>ap_get_module_config</TT>. It is a macro that
+contains a (safe) cast to and from <TT>void *</TT> &ndash; it allows modules to
+extract their configuration record from the global server state. For
+example, <TT>mod_headers</TT> contains:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+headers_conf *serverconf =
+    (headers_conf *) ap_get_module_config(s-&gt;module_config, &amp;headers_module);
+</FONT></PRE>
+Change this to:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+    headers_conf * serverconf;
+    { __NOBOXBLOCK
+    serverconf = ap_get_module_config(s-&gt;module_config, &amp;headers_module);
+    } 
+</FONT></PRE>
+The <TT>__NOBOXBLOCK</TT> block keyword tells CCured to leave the block
+alone: we are asserting that it is already safe. Modify every instance of
+<TT>ap_get_module_config</TT> and <TT>ap_get_perdir_module_config</TT>
+the same way. <BR>
+<BR>
+Now look for a datatype with the suffix <TT>entry</TT>. For example, <TT>mod_headers</TT> features:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+typedef struct {
+    hdr_actions action;
+    char *header;
+    char *value;
+} header_entry;
+</FONT></PRE>
+This marks a use of Apache's polymorphic (via <TT>void *</TT>) array routines. 
+Insert the following macro declaration to tell CCured about this array
+type:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+NEW_TABLE_TYPE(header_entry, header_entry)      // macro
+</FONT></PRE>
+This macro declares a new type, <TT>array_header_FOO</TT> (where <TT>FOO</TT>
+is the first argument) that is a specialized version of the Apache-provided
+type <TT>array_header</TT>. Other data structure (for example, the
+configuration record structure) will contain <TT>array_header</TT>s. We
+change them to use this new datatype. Change all declarations like:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+typedef struct {
+    array_header *headers;
+} headers_conf;
+</FONT></PRE>
+into:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+typedef struct {
+    array_header_header_entry *headers;
+} headers_conf;
+</FONT></PRE>
+Now search for every call to <TT>ap_make_array</TT>, <TT>ap_append_arrays</TT>, <TT>ap_push_array</TT> and append <TT>FOO</TT> (in our
+running example, <TT>header_entry</TT>) to the name of each called function.
+For example, change: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+new = (header_entry *) ap_push_array(dirconf-&gt;headers);
+</FONT></PRE>
+into:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+new = (header_entry *) ap_push_array_header_entry(dirconf-&gt;headers);
+</FONT></PRE>
+Finally, surround all global table declarations with <TT>#pragma</TT>s that
+tell CCured to leave them alone (because Apache must read them). Often
+there are three such global tables per module. One is an array of <TT>struct const command_rec</TT>s, one is an array of <TT>struct const
+handler_rec</TT>s, and the last is a <TT>module</TT>. Surround them all with <TT>#pragma</TT>s as follows:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+static const handler_rec mod_gzip_handlers[] =
+{
+    {"mod_gzip_handler", mod_gzip_handler},
+    {CGI_MAGIC_TYPE,     mod_gzip_handler},
+    {"cgi-script",       mod_gzip_handler},
+    {"*",                mod_gzip_handler},
+    {NULL}
+};
+</FONT></PRE>
+becomes:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma box(off)
+static const handler_rec mod_gzip_handlers[] =
+{
+    {"mod_gzip_handler", mod_gzip_handler},
+    {CGI_MAGIC_TYPE,     mod_gzip_handler},
+    {"cgi-script",       mod_gzip_handler},
+    {"*",                mod_gzip_handler},
+    {NULL}
+};
+#pragma box(on)
+</FONT></PRE>
+Finally, change the declaration of the global module to use the new
+specialized type we created earlier. For example, change:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+module MODULE_VAR_EXPORT urlcount_module = {
+</FONT></PRE>
+into:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+module_urlcount MODULE_VAR_EXPORT urlcount_module = {
+</FONT></PRE>
+Voilà. <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc102">C.3.3</A>&nbsp;&nbsp;Linking Apache Modules</H3>
+Suppose you have just finished making the source modifications to <TT>mod_foo.c</TT>. Now you want to test it on Apache. Use CCured to compile it to
+<TT>mod_foo.o</TT>. Make sure that there are no <TT>WILD</TT> pointers and that 
+the sizes of types involved in the apache-module interface did not change. 
+Now you must link it:
+<PRE CLASS="verbatim">
+    $ gcc -shared -o mod_foo.so mod_foo.o
+    $ cp mod_foo.so /path/to/apache/bin/
+</PRE>
+Now go to your Apache binary directory and edit <TT>httpd.conf</TT>. Go to the
+<TT>LoadModule</TT> section and add something appropriate according to the
+documentation for your module. For example, <TT>mod_usertrack</TT> can be
+configured by adding:
+<PRE CLASS="verbatim">
+LoadModule usertrack_module bin/mod_usertrack.so
+CookieTracking On
+CookieExpires "1 days"
+</PRE>
+Now try to start Apache:
+<PRE CLASS="verbatim">
+    $ ./apachectl stop
+    $ ./apachectl start
+    ./apachectl start: httpd started
+</PRE>
+If you see the &#8220;<TT>httpd started</TT>&#8221; message, it worked. If there were
+messages about undefined symbols, you probably have to write a few
+wrappers. For example, you might see:
+<PRE CLASS="verbatim">
+    ./httpd: undefined symbol strdup_ff: mod_foo cannot be loaded
+</PRE>
+In this case you must write a wrapper for <TT>strdup</TT> that uses <TT>FSEQ</TT>
+pointers. Suppose you write it in <TT>wrapper_foo.c</TT> and compile that to
+<TT>wrapper_foo.o</TT>. Now go back to the linking step: 
+<PRE CLASS="verbatim">
+    $ gcc -shared -o mod_foo.so mod_foo.o wrapper_foo.o
+    $ cp mod_foo.so /path/to/apache/bin/
+</PRE>
+And try to start Apache again. Eventually this process converges (you can
+skip ahead by using a utility like <TT>nm</TT> to list all of the undefined
+symbols in <TT>mod_foo.so</TT> if you like) and your Apache module will be up
+and running.<BR>
+<BR>
+If for some reasons your Apache module crashes at run-time, consider using
+the underlying CIL <TT>&ndash;logcalls</TT> mechanism to track down the error
+(Apache modules do not treat well with normal debuggers). Make sure that
+the debugging comments are directed to <TT>syslog(3)</TT> rather than <TT>printf(3)</TT> or somesuch. <BR>
+<BR>
+As daunting as it may seem, it actually takes less than 30 minutes to Cure
+an Apache module of average size and get it up and running. Some of that
+time is spend reading the module's documentation so that it can be loaded
+and tested correctly. Good luck!<BR>
+<BR>
+<HR>
+<A HREF="ccured015.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured017.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

@@ -1,0 +1,322 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Inference Results
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="changes.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured015.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc91">Appendix&nbsp;A</A>&nbsp;&nbsp;Inference Results</H1><A NAME="ch-graph"></A>
+The correspondence between the source code and the annotated graph can
+be found in the <FONT COLOR=blue>infer.c</FONT> file. You may need to pass <FONT COLOR=blue>&ndash;emitinfer</FONT> to
+<FONT COLOR=blue>ccured</FONT> to see this file. For a base file named <FONT COLOR=blue>FOO.c</FONT>, the graph
+will be shown in <FONT COLOR=blue>FOOinfer.c</FONT>. This file represents the state of the tool
+after pointer kind inference but before run-time checks have been inserted
+and before names have been mangled. The <FONT COLOR=blue>infer.c</FONT> file consists of two
+sections: the annotated source code and the inference graph. <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc92">A.0.1</A>&nbsp;&nbsp;Annotated Source</H3><A NAME="sec-graphannot"></A>
+The annotated source code is just the original source code with the special
+syntax <FONT COLOR=blue>__NODE(n)</FONT> associated with every pointer type in the program.
+There are two main places where the <FONT COLOR=blue>__NODE</FONT> attribute can appear:
+immediately following a pointer-type constructor <FONT COLOR=blue>*</FONT> or immediately
+following the name of a variable. In the former case the attribute specifies
+the node associated with the pointer-type while in the latter
+case the attribute specifies the node associated with the address-of the
+variable. <BR>
+<BR>
+For example, the line:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  int * __NODE(3) ptr __NODE(4);
+  int * __NODE(6) * __NODE(7) matrix __NODE(8);
+</FONT></PRE>
+indicates that node 3 in the graph is associated with the pointer variable
+<FONT COLOR=blue>ptr</FONT> and node 4 is associated with the address of <FONT COLOR=blue>ptr</FONT>. Node 7 is
+associated with the top-level pointer in the variable <FONT COLOR=blue>matrix</FONT>, while node 6
+is associated with the inner pointer (e.g., node 6 is associated with the type
+of the expression <FONT COLOR=blue>matrix[0]</FONT>). <FONT COLOR=blue>__NODE(n)</FONT> is a type qualifier (like
+<FONT COLOR=blue>const</FONT> or <FONT COLOR=blue>restrict</FONT>) that modifies the pointer type constructor just to
+its left.<BR>
+<BR>
+Consider the following simple test case:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  int main() { 
+    int * ptr;
+    int base;
+    ptr = &amp;base;
+    ptr ++; 
+  } 
+</FONT></PRE>
+If we run it through CCured's inferencer we will see:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  int main() {
+    int * __NODE(90) ptr __NODE(91);
+    int base __NODE(92); 
+    ptr = &amp; base;
+    ptr = ptr + 1;
+  } 
+</FONT></PRE>
+Node 90 is associated with <FONT COLOR=blue>ptr</FONT>. The additional nodes to the right are
+associated with the addresses of variables. Node 91 is associated with
+<FONT COLOR=blue>&amp;ptr</FONT> and node 92 is associated with <FONT COLOR=blue>&amp;base</FONT>. Since there is an
+assignment between <FONT COLOR=blue>ptr</FONT> and <FONT COLOR=blue>&amp;base</FONT>, we expect to see an edge between
+nodes 90 and 92 in the graph. The graph itself can be found at the end of
+the C code near a line like:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  /* Now the solved graph (solver) */
+</FONT></PRE>
+
+<H3 CLASS="subsection"><A NAME="htoc93">A.0.2</A>&nbsp;&nbsp;Inference Graphs </H3><A NAME="sec-graphformat"></A>
+In order to see the whole graph, you must pass the argument
+<TT>&ndash;emitGraphDetailLevel=3</TT> to Ccured. The graph at the end of
+<TT>FILEinfer.c</TT> is represented as a printout of every node. Each node
+description has the following form:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  ID : Location (flags) (node this type points to)
+   K=Kind/Reason  T=(base type of this node)
+   S=(successor edges)
+   P=(predecessor edges)
+</FONT></PRE>
+So the entry for node 90 (from the example in Section&nbsp;<A HREF="#sec-graphannot">A.0.1</A>) might
+look like:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  90 : Local(./simple.i.main.ptr).1 (stack,posarith,) ()
+   K=FSEQ/from_flag T=int
+   S=
+   P=92:Cast
+</FONT></PRE>
+The node number is 90, the location field says that this node represents a
+local variable named <FONT COLOR=blue>ptr</FONT> inside the <FONT COLOR=blue>main</FONT> function of the file
+<FONT COLOR=blue>simple.i</FONT>. The location of a node is a unique name for the pointer type.
+Locations use a hierarchical naming scheme is composed of a <EM>place</EM>
+followed by a period and an <EM>index</EM> within the place. The following places
+are used:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<TT>Glob(var)</TT> - this is associated with the global variable <FONT COLOR=blue>var</FONT>
+<LI CLASS="li-itemize"><TT>Static(file.var)</TT> - this is associated with the file-scope variable
+<FONT COLOR=blue>var</FONT> from file <TT>file</TT>.
+<LI CLASS="li-itemize"><TT>Local(file.func.var)</TT> - this is associated with the local variable
+<FONT COLOR=blue>var</FONT> occurring in function <FONT COLOR=blue>func</FONT> from file <TT>file</TT>.
+
+<LI CLASS="li-itemize"><TT>Field(fieldname)</TT> - this is associated with a field in a structured
+type. 
+<LI CLASS="li-itemize"><TT>Anon(nr)</TT> - this is associated with an occurrence of a pointer-type
+constructor in a cast or in the <FONT COLOR=blue>sizeof</FONT> expression.
+</UL>
+Since each place can contain many occurrences of a pointer-type constructor
+(e.g. in a declaration <FONT COLOR=blue>int * * x</FONT>) we use indices to differentiate between
+such occurrences. For a variable place (<TT>Glob</TT>, <TT>Static</TT>, <TT>Local</TT>), the
+index 0 is always associated with the node corresponding to the address of the
+variable. Then we traverse the type of the variable in depth-first order (for
+functions we start with the result and then continue with the arguments) and
+we assign indices starting at 1. For <TT>Field</TT> and <TT>Anon</TT> we do a similar
+traversal. <BR>
+<BR>
+The flags field is a list of the following values:<BR>
+<BR>
+ 
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
+<TR><TD ALIGN=left NOWRAP><B>Flag</B></TD>
+<TD ALIGN=left NOWRAP><B>Meaning</B></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>stack</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer may contain a stack address</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>escape</TT></TD>
+<TD ALIGN=left NOWRAP>this value may be assigned through a pointer 
+ and escape to the heap</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>upd</TT></TD>
+<TD ALIGN=left NOWRAP>a write may be performed through this pointer</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>posarith</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer may be subject to positive 
+ pointer arithmetic</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>arith</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer may be subject to arbitrary 
+ pointer arithmetic</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>null</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer may become <TT>NULL</TT></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>int</TT></TD>
+<TD ALIGN=left NOWRAP>an int may be cast into this pointer</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>noproto</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer is associated with a function 
+ that is missing a prototype</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>interf</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer is associated with a function 
+ that is part of an interface</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>sized</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer may point into a sized array</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>reach_s</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer may flow into a string</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>reach_q</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer may flow into a <TT>SEQ</TT>pointer</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>reach_i</TT></TD>
+<TD ALIGN=left NOWRAP>this pointer may flow into an <TT>INDEX</TT>pointer</TD>
+</TR></TABLE>
+ <BR>
+In our example, node 90 has the <TT>posarith</TT> flag because it represents
+<TT>ptr</TT> and <TT>ptr++</TT> appears in the code. Node 90 has the <TT>stack</TT> flag
+because <TT>&amp;base</TT> is a stack address and the assignment <TT>ptr = &amp;base</TT>
+occurs in the code.<BR>
+<BR>
+Continuing our example, the text <TT>K=FSEQ/from_flag</TT> tells us that node
+the pointer type associated with 90 is <TT>FSEQ</TT>because of one of the flags
+(in this case, the <TT>posarith</TT> flag). That is, the type inference has made
+node 90 a forward sequence pointer (one that carries its upper bound with
+it) because positive pointer arithmetic is performed on it (so we will need
+a run-time check to make sure that it stays in bounds). <BR>
+<BR>
+The text <TT>T=int</TT> tells us the base type of node 90, that is, node 90 is
+associated with a pointer to an <TT>int</TT>. <BR>
+<BR>
+The <TT>S=</TT> and <TT>P=</TT> lists show successors and predecessors of this node.
+In our example, the text <TT>P=92:Cast</TT> means that node 90 has a predecessor
+edge of type <TT>Cast</TT> from node 92 (the node for <TT>&amp;base</TT>). That is,
+information from node 92 flows into node 90. This is the graph's way of
+representing the assignment statement <TT>ptr = &amp;base</TT>. There are various
+sorts of edges in the graph: <BR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
+<TR><TD ALIGN=left NOWRAP><B>Edge Name</B></TD>
+<TD ALIGN=left NOWRAP><B>Meaning</B></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>Cast</TT></TD>
+<TD ALIGN=left NOWRAP>the value of pred may flow into succ</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>Compat</TT></TD>
+<TD ALIGN=left NOWRAP>pred and succ must have equal types</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>Safe</TT></TD>
+<TD ALIGN=left NOWRAP>if pred is <TT>WILD</TT>, succ must be <TT>WILD</TT>as well</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP>&nbsp;</TD>
+<TD ALIGN=left NOWRAP>(usually links structures and their fields)</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>Null</TT></TD>
+<TD ALIGN=left NOWRAP>a <TT>NULL</TT> flows in the direction of the edge</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>Index</TT></TD>
+<TD ALIGN=left NOWRAP>if pred is <TT>INDEX</TT>, succ must be <TT>INDEX</TT>as well</TD>
+</TR></TABLE><BR>
+Of these, <TT>Cast</TT>, <TT>Compat</TT> and <TT>Safe</TT> are the most common. <TT>Cast</TT>
+represents casts and assignments, <TT>Safe</TT> links up fields and structures
+so that they have consistent pointer kinds and <TT>Compat</TT> ensures equality
+between underlying pointers. As an example, in the code:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+        int * __NODE(1) * __NODE(2) a;
+        int * __NODE(3) * __NODE(4) b;
+        a = b; 
+</FONT></PRE>
+We would see a <TT>Cast</TT> edge from 4 to 2 and a <TT>Compat</TT> edge between 1
+and 3. The <TT>Compat</TT> edge ensures that nodes 1 and 3 will end up with the
+same pointer kind. <BR>
+<BR>
+<A NAME="toc46"></A>
+<H2 CLASS="section"><A NAME="htoc94">A.1</A>&nbsp;&nbsp;Type Names</H2><A NAME="sec-tnames"></A>
+CCured will also rename types that are expanded to contain extra
+information used by the run-time checks that ensure safety. For example, a
+<TT>SEQ</TT>pointer needs to carry information about its bounds. This information
+is stored adjacent to the main pointer, but as a result a <TT>SEQ</TT>pointer is
+larger than a normal C pointer. Thus a structure that contains a <TT>SEQ</TT>pointer will be larger than an otherwise-identical structure that contains
+a normal C pointer (or a <TT>SAFE</TT>pointer). In addition, the offsets of any
+structure fields that come after the <TT>SEQ</TT>pointer will be different. To
+mark these differences and indicate new types, CCured will change the names
+of types and structure. CCured does this by prepending strings to the
+structure or type name. <BR>
+<TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1>
+<TR><TD ALIGN=left NOWRAP><B>Pointer Kind</B></TD>
+<TD ALIGN=left NOWRAP><B>Type Prefix</B></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>WILD</TT></TD>
+<TD ALIGN=left NOWRAP><TT>wildp_</TT></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>INDEX</TT></TD>
+<TD ALIGN=left NOWRAP><TT>indexp_</TT></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>SEQ</TT></TD>
+<TD ALIGN=left NOWRAP><TT>seq_</TT></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>SEQN</TT></TD>
+<TD ALIGN=left NOWRAP><TT>seq_</TT></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>FSEQ</TT></TD>
+<TD ALIGN=left NOWRAP><TT>fseqp_</TT></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>FSEQN</TT></TD>
+<TD ALIGN=left NOWRAP><TT>fseqp_</TT></TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>SAFE</TT></TD>
+<TD ALIGN=left NOWRAP>No associated prefix</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>RWSTRING</TT></TD>
+<TD ALIGN=left NOWRAP>No associated prefix</TD>
+</TR>
+<TR><TD ALIGN=left NOWRAP><TT>ROSTRING</TT></TD>
+<TD ALIGN=left NOWRAP>No associated prefix</TD>
+</TR></TABLE><BR>
+For example, given a program of the form:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  Foo * ptr;
+  ptr++;
+</FONT></PRE>
+CCured will probably infer that <TT>ptr</TT> should be an <TT>FSEQ</TT>pointer. The
+resulting cured code will have the following form: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  typedef struct {        /* type made by CCured */
+    Foo * __FSEQ _p;      /* actual pointer */ 
+    void * _e;            /* end of the allocated region: upper bound */
+  } fseqp_Foo;            /* FSEQ pointer to an int */ 
+
+  fseqp_Foo ptr;
+  // code for "ptr++;"
+</FONT></PRE>
+If the original code were: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  Foo ** ptr;
+  ptr++;                /* forces ptr to be FSEQ */
+  ptr[0]--;             /* forces *ptr to be SEQ */ 
+</FONT></PRE>
+We would expect the final type of <TT>ptr</TT> in the cured code to be
+<TT>fseqp_seq_Foo</TT>, because <TT>ptr</TT> will have the type &#8220;(forward sequence
+pointer) to (sequence pointer) to Foo.&#8221; Note that <TT>fseqp_seq_Foo</TT> is
+not merely a name mangled form of <TT>Foo</TT>, since both the definition of
+<TT>Foo</TT> and the definition of <TT>fseqp_seq_Foo</TT> will exist in the final
+cured program. <BR>
+<BR>
+<HR>
+<A HREF="changes.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured015.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

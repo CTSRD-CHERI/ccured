@@ -1,0 +1,8 @@
+\@addtocsec{htoc}{1}{0}{\@print{1}\quad{}If you want to use Windows}
+\@addtocsec{htoc}{2}{1}{\@print{1.1}\quad{}Get \t{cygwin}}
+\@addtocsec{htoc}{3}{0}{\@print{2}\quad{}Get OCaml}
+\newlabel{sec-ocaml}{{2}{X}}
+\@addtocsec{htoc}{4}{1}{\@print{2.1}\quad{}Debugging Support Ocaml}
+\@addtocsec{htoc}{5}{0}{\@print{3}\quad{}Set the environment variables}
+\@addtocsec{htoc}{6}{0}{\@print{4}\quad{}If you need CVS access}
+\@addtocsec{htoc}{7}{0}{\@print{5}\quad{}Useful Links}

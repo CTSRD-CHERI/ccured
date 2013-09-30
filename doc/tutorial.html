@@ -1,0 +1,1249 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+CCured Tutorial
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured002.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured004.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc7">Chapter&nbsp;3</A>&nbsp;&nbsp;CCured Tutorial</H1><A NAME="ch-tutorial"></A> <BR>
+<BR>
+CCured is an extension of the C programming language that distinguishes among
+various kinds of pointers depending on their usage. The purpose of this
+distinction is to be able to prevent improper usage of pointers and thus to
+guarantee that your programs do not access memory areas they shouldn't access.
+You can continue to write C programs but CCured will change them slightly so
+that they are type safe. In this chapter we explain in what situations will
+your program be changed and in which way. <BR>
+<BR>
+CCured leaves unchanged code that does not use pointers or arrays. Actually,
+CCured is implemented on top of the C Intermediate Language (CIL)
+infrastructure, which means that C programs are first translated into a subset
+of the C language that has simple semantic rules. The following are some of
+the transformations that are performed:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+C expressions and statements are separated into expressions (no
+side-effect and no control-flow), instructions (assignments and function
+calls, with one side-effect and no control-flow) and statements (the
+control-flow constructs). This means that CIL serializes the side-effects and
+the control-flow. 
+<LI CLASS="li-itemize">All type and structure declarations are moved to the beginning of the
+file. 
+<LI CLASS="li-itemize">The scope of variables is resolved and local variables are renamed
+accordingly. All local variables are moved to function-scope and are declared
+at the beginning of the function body. The initialization for such variables
+is done using explicit assignment instructions.
+<LI CLASS="li-itemize">Anonymous structures and unions are given unique names. 
+<LI CLASS="li-itemize">All implicit casts and conversion are expressed as explicit casts.
+<LI CLASS="li-itemize">All GNU CC extensions are compiled into regular C code. 
+</UL>
+For a complete description of the CIL infrastructure see
+<A HREF="../cil/index.html">the CIL documentation</A>.<BR>
+<BR>
+<A NAME="toc5"></A>
+<H2 CLASS="section"><A NAME="htoc8">3.1</A>&nbsp;&nbsp;CCured Attributes</H2><A NAME="sec-typeannot"></A>
+The most significant difference between C and CCured is that CCured pays
+close attention to how pointers are manipulated and it classifies pointers
+into various kinds according to what you do with them. We'll discuss the
+various kinds starting in the next section but before that we need to
+introduce an important notation that you can use to communicate to CCured
+which pointer kinds you want for your pointers. The same notation is then used
+by CCured to explain in the transformed program what pointer kind if inferred
+for each pointer. <BR>
+<BR>
+CCured uses type attributes to express the kind of pointers. Type attributes
+exist in a limited form in ANSI C (i.e. the <FONT COLOR=blue>volatile</FONT>, <FONT COLOR=blue>const</FONT> and
+<FONT COLOR=blue>restrict</FONT> type qualifiers) and in a richer form in the GCC dialect of C.
+CCured, just like GCC, allows any attributes to be specified for types, names
+of variables, functions or fields, and for structure or union declarations.
+Unlike GCC, CCured has precise rules for how attributes are interpreted in a
+declaration (instead GCC relies on knowing the semantics of the attribute in
+order to associate it with the proper element of a declaration). The rule of
+thumb is that the attribute of a pointer type is written immediately <B>following</B> the <FONT COLOR=blue>*</FONT> pointer-type constructor and the attribute of a name is
+written immediately before the semicolon or the <FONT COLOR=blue>=</FONT> sign that terminates the
+declaration of the name. CCured uses pointer-kinds such as <TT>SAFE</TT>,
+<TT>SEQ</TT> and <TT>WILD</TT> and the corresponding attribute are formed by adding two
+leading underscores. For example, in the following declaration:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * __WILD * __SEQ x __SAFE; 
+</FONT></PRE>
+the type of <FONT COLOR=blue>x</FONT> is declared to be a <TT>SEQ</TT>uence pointer to a <TT>WILD</TT>
+pointer (just like pointer-types in C, attributes are read from
+right-to-left). The <FONT COLOR=blue>__<TT>SAFE</TT></FONT> attribute in this case applies to the name
+<FONT COLOR=blue>x</FONT>, which in the context of CCured means that whenever we take the address
+of the variable <FONT COLOR=blue>x</FONT> we are going to obtain a <TT>SAFE</TT> pointer. The type of
+such a pointer would be <FONT COLOR=blue>int * __WILD * __SEQ * __SAFE</FONT> (read as a
+<TT>SAFE</TT> pointer to a <TT>SEQ</TT> pointer to a <TT>WILD</TT> pointer to an integer.).<BR>
+<BR>
+(The complete attribute-parsing rules for CIL are described in the
+<A HREF="../cil/attributes.html">CIL manual</A>.)<BR>
+<BR>
+CCured is designed to work on regular C programs (i.e. without pointer-kind
+attributes). One of the main features of CCured is that it will analyze your
+pointer usage and will find for all pointers in your program what is the best
+pointer-kind that can be ascribed to that pointer. However, you can also place
+pointer-kind annotations and force CCured to use certain pointer kinds. <BR>
+<BR>
+<A NAME="toc6"></A>
+<H2 CLASS="section"><A NAME="htoc9">3.2</A>&nbsp;&nbsp;<TT>SAFE</TT> pointers</H2>
+The main action in CCured concerns pointers and arrays. Pointers in C can be
+assigned to l-values, dereferenced, subject to pointer arithmetic and cast to
+other pointer or non-pointer types. In contrast, pointers in a typical
+type-safe language (e.g. Java, Basic, ML) cannot be subject to arithmetic or
+(arbitrary) casts. CCured allows all the pointer operations that C allows but
+gives preferential treatment to pointers that are not subject to arithmetic or
+to casts. CCured refers to such pointers as <TT>SAFE</TT> pointers.<BR>
+<BR>
+Consider for example this small code-fragment that computes the length of a
+linked list:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct list { 
+   void * car; 
+   struct list * cdr; 
+};
+
+int length(struct list * l) {
+  int i = 0;
+  while(l) {
+    l = l-&gt;cdr; 
+    i ++;
+  }
+  return i;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex1.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex1.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+The only pointers used in this code fragment are pointers to list cells and
+they are not subject to arithmetic or to casts. In fact, this code fragment
+can be transcribed literally into Java or C#. You can see in the cured code
+that CCured has inferred that these pointers are indeed <TT>SAFE</TT>. <BR>
+<BR>
+
+<H5 CLASS="paragraph">Properties of <TT>SAFE</TT> pointers</H5>
+ The <TT>SAFE</TT> pointers are the best kind of pointers, meaning that they incur
+the least amount of run-time cost. Here is a list of the properties of
+<TT>SAFE</TT> pointers:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Cannot be subject to pointer arithmetic (adding or subtracting an
+integer from it).
+<LI CLASS="li-itemize">Cannot be cast (except subject to stringent rules which we'll discuss
+below). Note that assignment, passing actual arguments and returning are
+implicit casts. 
+<LI CLASS="li-itemize">Can be set to a compile-time constant equal to 0 but not to any other
+integer expression.
+<LI CLASS="li-itemize">Can be cast to an integer and can be subtracted from another pointer.
+This is useful for comparisons.
+<LI CLASS="li-itemize"><TT>SAFE</TT> pointers are represented using the standard C representation
+on one word. 
+<LI CLASS="li-itemize">Every time a <TT>SAFE</TT> pointer is dereferenced, a null check is inserted
+before the dereference. 
+</UL>
+All of these restrictions are such that the following invariant holds for all
+<TT>SAFE</TT> pointers:
+<DIV CLASS="center"><B>A <TT>SAFE</TT> pointer to type <FONT COLOR=blue>T</FONT> is either 0 or else it points to a valid area
+of memory containing an object of type <FONT COLOR=blue>T</FONT>. Furthermore, all other pointers
+to the same area are also <TT>SAFE</TT> and agree on the type <FONT COLOR=blue>T</FONT> of the stored
+object. 
+</B></DIV><BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc10">3.2.1</A>&nbsp;&nbsp;Safe Casts</H3>
+Casting a pointer to an integer is always allowed. CCured does actually allow
+certain other casts on <TT>SAFE</TT> pointers. For example it is safe to cast a
+pointer to a structure containing two integers into a pointer to integers. In
+general it is safe to cast a pointer to a long structure into a pointer to a
+short structure as long as the two structures agree on the types of the
+elements in the overlapping portion. CCured is actually quite liberal about
+these rules and will think of nested combinations of structures and arrays as
+one big structure with non-structure and non-array fields. This feature is
+called <EM>physical subtyping</EM>. For example, in the code shown below, all of
+the four casts implicit in the assignments are safe and CCured will infer that
+all pointers involved are <TT>SAFE</TT>.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct large {
+  struct small {
+      int * f1;
+      int * f2; 
+  } a;
+  int * f3;
+} x;
+
+struct small * s1 = &amp; x;
+int *        * s2 = &amp; x;
+struct { int *a1, *a2, *a3; } * s3 = &amp; x;
+struct { int *a1, *a2[2];   } * s4 = &amp; x;
+</FONT></PRE>
+<a target="_blank" href="examples/ex2.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex2.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Notice that all of the <FONT COLOR=blue>s1</FONT>, <FONT COLOR=blue>s2</FONT>, <FONT COLOR=blue>s3</FONT> and <FONT COLOR=blue>s4</FONT> are aliases for the
+address of <FONT COLOR=blue>x</FONT> but they agree on the type of the object pointed to.<BR>
+<BR>
+Following are two examples of casts that are not allowed (for <TT>SAFE</TT>
+ pointers; you can see that CCured infers the <TT>WILD</TT> kind for the pointers
+ involved):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int y1;
+int * * x1 = &amp; y1; // Cast an int * to a int * *  
+int y2;
+struct { int * a1, a2; } * x2 = &amp;y2;
+</FONT></PRE>
+<a target="_blank" href="examples/ex3.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex3.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If the first cast were allowed then by writing to <FONT COLOR=blue>y1</FONT> an arbitrary
+integer we would be invalidating the assumption that <FONT COLOR=blue>x1</FONT> points to a
+pointer value. The second cast is similar. <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc11">3.2.2</A>&nbsp;&nbsp;Union types</H3><A NAME="sec-union"></A>
+Further complications arise in the case of union types. A pointer to union
+type can be <TT>SAFE</TT> if it obeys all of the restrictions mentioned above and
+also for all two fields of the union type, they agree on the types of the
+elements in the overlap. For example, in the code below the type of <FONT COLOR=blue>x</FONT> can
+be a <TT>SAFE</TT> pointer.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+union { 
+    int *f1;
+    int *f2[2];
+    struct { int *a1, *a2, *a3; } f3;
+} * x;
+
+int* foo() { return x-&gt;f1; } //use x so it is analyzed.
+</FONT></PRE>
+<a target="_blank" href="examples/ex4.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex4.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+But in the following code the type of <FONT COLOR=blue>x</FONT> cannot possibly be <TT>SAFE</TT>
+because the type of the field <FONT COLOR=blue>f3.a2</FONT> does not match the type of the
+overlapping field
+<FONT COLOR=blue>f2[1]</FONT> and thus <FONT COLOR=blue>x-&gt;f3.a2</FONT> could be used to write an arbitrary integer
+that can later be interpreted as a pointer using the expression <FONT COLOR=blue>x-&gt;f2[1]</FONT>.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+union { 
+    int *f1;
+    int *f2[2];
+    struct { int *a1, a2, *a3; } f3;
+} * x;
+
+int* foo() { return x-&gt;f1; } //use x so it is analyzed.
+</FONT></PRE>
+<a target="_blank" href="examples/ex5.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex5.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If your program uses a union with incompatible fields you can still obtain
+<TT>SAFE</TT> pointers if you rewrite the <FONT COLOR=blue>union</FONT> to be a <FONT COLOR=blue>struct</FONT>. This will
+waste some space but in some cases (in which the program requires the type to
+have a given size) it might break the semantics of the program.<BR>
+<BR>
+Or, you can use tagged unions (Section&nbsp;<A HREF="ccured009.html#sec-taggedunion">9.7</A>) in which CCured will
+insert run-time checks to ensure that you are not trying to read a pointer for
+a field of a union when you wrote a scalar (or an incompatible pointer) using
+another field.<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc12">3.2.3</A>&nbsp;&nbsp;<TT>SAFE</TT> Function Pointers</H3>
+There is nothing special about function pointers. They can be safe provided
+that they are not cast to incompatible pointer types. A function pointer type
+is compatible only with another function pointer type with the same number and
+type of arguments and the same result type. <BR>
+<BR>
+A common problem with function pointers (and functions) in CCured is if your
+program uses external function without prototypes. This makes CCured think
+that the function is taking no arguments and returning an integer and every
+time you use it in a different way CCured behaves as if you are casting the
+function pointer (denoted implicitly by the function's name) to the type
+needed in the cast. CCured will print warnings about using functions without
+prototype and we recommend that you fix those problems and try CCured again.
+For a discussion of what happens when you do not use your function pointer in
+a clean way you should read to the end of this tutorial chapter and then read
+Section&nbsp;<A HREF="ccured009.html#sec-funptr">9.1</A>. <BR>
+<BR>
+<A NAME="toc7"></A>
+<H2 CLASS="section"><A NAME="htoc13">3.3</A>&nbsp;&nbsp;Checks for <TT>SAFE</TT> Pointers</H2>
+As we mentioned above, every time a <TT>SAFE</TT> pointer is dereferenced it must be
+checked whether it is null or not. We know from the invariant for <TT>SAFE</TT>
+pointers that non-null pointers can be dereferenced and we can count that the
+value read through them has the type given by the pointer type. <BR>
+<BR>
+A null check appears in the output of CCured as a call to the function
+<FONT COLOR=blue>CHECK_NULL</FONT>. This and other run-time checking functions used by CCured
+have a name that starts with the prefix <FONT COLOR=blue>CHECK_</FONT> and are declared in the
+file <A HREF="ccuredcheck.h"><TT>ccuredcheck.h</TT></A>. You will see in that file that most of these
+functions are declared inline. <BR>
+<BR>
+Checking for null pointers is necessary not just when reading or writing
+through them but also when they are used to compute the address of a subobject
+of the object they point to. For example, in the following code CCured will
+add a run-time check that <FONT COLOR=blue>s</FONT> is not null before computing the value of
+<FONT COLOR=blue>x</FONT>. Then again there will be a check that <FONT COLOR=blue>x</FONT> is not null before
+dereferencing it.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct str  {
+   int a, b;
+};
+
+int getaddr(struct str * s) { 
+   int * x = &amp; (s-&gt;b);
+   return *x;        
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex6.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex6.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+The first check in the code above is necessary to enforce the invariant that
+<TT>SAFE</TT> pointers are either 0 or else valid pointers. Without that check the
+value of <FONT COLOR=blue>x</FONT> would be 4 (on most machines) which would break the invariant
+and would defeat the second null-check thus letting you dereference an invalid
+pointer. <BR>
+<BR>
+At this point you are starting to see some of the subtleties in the design of
+CCured. To ensure that we got everything right we have formalized the type
+system of CCured and we proved (for a subset of CCured) that the set of
+run-time checks and invariants achieve memory safety. In fact, in the first
+implementation of CCured we had forgotten about the first null check in the
+above example and the need for it was revealed while trying to prove that
+CCured is sound. To read our formalization and see the soundness proofs take a
+look at our paper <A HREF="popl02.pdf">&#8220;CCured: Type-Safe Retrofitting of
+Legacy Code&#8221;</A>.<BR>
+<BR>
+CCured includes a simple optimizer that tries to eliminate redundant
+checks and checks that cannot possibly fail (such as checking that the address
+of a global variable is non-null). Currently the optimizer is fairly naive.
+For example, it does not know that since <FONT COLOR=blue>s</FONT> is a non-null <TT>SAFE</TT> pointer
+to <FONT COLOR=blue>struct str</FONT> then <FONT COLOR=blue>&amp;(s-&gt;b)</FONT> is guaranteed to be non-null as well, thus
+the second check is not really necessary. <BR>
+<BR>
+Speaking of too many checks, some of the more experienced C programmers
+will have noticed that our run-time checks prevent a common idiom for computing
+the offset of fields in structures. The typical code for doing that is shown
+below (as is defined as the macro <FONT COLOR=blue>offsetof</FONT> in many C libraries):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct str  {
+   int a, b;
+};
+
+int get_offset_of_b() {
+  return (int) &amp;(((struct str*)0)-&gt;b);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex7.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex7.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+CCured recognizes in this specific case that you are casting the result of
+the <FONT COLOR=blue>&amp;</FONT> operator to an integer, so it avoids the run-time check. <BR>
+<BR>
+<A NAME="toc8"></A>
+<H2 CLASS="section"><A NAME="htoc14">3.4</A>&nbsp;&nbsp;Checks for Returning Pointers</H2>
+<B><EM>Note: Checks for returning stack pointers have been disabled
+ in the current version.</EM></B> This was done because recent versions of
+ gcc perform more aggressive inlining that results in false positives
+ for our return-pointer checks. For more information, contact the
+ CCured developers.<BR>
+<BR>
+One of the unsafe features of C is that the address of a local variable can
+be returned from a function and later be used in a context in which the
+storage for the local variable has been reused. Many C compilers try to give
+warnings when they notice this happening but it is way to easy to fool them.
+For example, in the code example below the function <FONT COLOR=blue>bar</FONT> does return the
+address of its <FONT COLOR=blue>local</FONT> variable and this is going to be missed by most
+compilers.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int *foo(int *in) { // in is a stack address
+   *in = 5;
+   return in;     
+}
+int* bar() {
+  int local = 0;
+  return foo(&amp;local);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex8.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex8.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Each function that returns a pointer value will have one call to
+<FONT COLOR=blue>CHECK_RETURNPTR</FONT> that will verify that the pointer value is not in the
+stack frame of the function that is returning. Note that the pointer value can
+be 0, or can be a pointer to a heap area or to a cooler stack frame (a
+caller stack frame). <BR>
+<BR>
+There is one complication with the return checks. There is no portable way to
+implement the check that a pointer is in the frame of the returning function.
+Currently CCured checks that the pointer value is not in the 1Mbyte range
+that starts at the current address of the frame pointer going towards lower
+addresses. However, getting the address of the frame pointer is somewhat
+unreliable in the context of heavy optimizations. The method that seems to
+work best is to introduce a volatile local variable whose address is then the
+address of the stack frame. Since the address of the variable is taken and the
+variable appears first in the local declarations, it appears that both GCC and
+MSVC will allocate such a variable at the highest address in the frame. <BR>
+<BR>
+Note that we have observed the <FONT COLOR=blue>CHECK_RETURNPTR</FONT> check to lead to spurious
+failures in the case when the function returning a pointer is inlined into its
+caller. For example, the code example from above the check for the return of
+<FONT COLOR=blue>foo</FONT> should succeed and the one for the return of <FONT COLOR=blue>bar</FONT> should fail. If
+<FONT COLOR=blue>foo</FONT> is inlined into <FONT COLOR=blue>bar</FONT> then <FONT COLOR=blue>foo</FONT>'s check will see that <FONT COLOR=blue>in</FONT> is
+in the current stack frame and will generate a run-time error. This is not an
+ideal situation and we are looking for a better solution.<BR>
+<BR>
+<A NAME="toc9"></A>
+<H2 CLASS="section"><A NAME="htoc15">3.5</A>&nbsp;&nbsp;Checks for Writing Pointers</H2><A NAME="sec-storeptr"></A>
+Another possible unsoundness with addresses of local variables is when the
+address of a local variable is written to a global or to the heap. In that
+case the pointer value might be used later at a time when the underlying
+storage is being reused by another activation frame. <BR>
+<BR>
+For example, in the following code fragment, both of the assignments are
+checked using the <FONT COLOR=blue>CHECK_STOREPTR</FONT> run-time function. The first one is
+checked because we are obviously writing to a global variable. The second one
+is checked because we are writing through a pointer and thus we cannot know
+for sure whether we are writing to the heap or to the stack. 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int *g;
+void foo(int * *x) {
+  g = *x; // Check this
+ 
+  *x = g; // Check this  
+}        
+</FONT></PRE>
+<a target="_blank" href="examples/ex9.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex9.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+The <FONT COLOR=blue>CHECK_STOREPTR</FONT> is passed both the address we are writing to and the
+pointer that is being written. This function will in fact allow writing of
+stack pointers into cooler stack locations (deeper into the stack). The
+function will also allow the writing of null pointers anywhere. As a special
+feature, CCured will allow the writing of stack pointers that are in the stack
+frame of <TT>main</TT> or at higher addresses. This is useful because the
+command-line arguments and the environment strings are allocated on the stack
+of the program before <TT>main</TT> is called. <BR>
+<BR>
+In rare occasions, we have encountered programs that do want to write the
+address of locals variables into global variables. CCured provides an
+easy-to-use mechanism for dealing with those situations. If you add the
+attribute <FONT COLOR=blue>__HEAPIFY</FONT> to the name of a local variable, the CCured will
+move that variable to the heap using dynamic memory allocation. In fact, just
+one allocation is made for all <FONT COLOR=blue>__HEAPIFY</FONT> local variables in a stack
+frame. Take a look at what happens in the following code fragment (do not be
+fooled by the call to <FONT COLOR=blue>free</FONT>; in CCured that is only a hint to the built-in
+garbage collector): 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int *g;
+void foo() {
+  int local __HEAPIFY = 5;
+  g = &amp;local;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex10.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex10.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+ <A NAME="toc10"></A>
+<H2 CLASS="section"><A NAME="htoc16">3.6</A>&nbsp;&nbsp;<TT>SEQ</TT>uence Pointers</H2>
+So far we have discussed pointers for which we disallow most casts and
+pointer arithmetic. In this section we will discuss another family of CCured
+pointers that can be used in pointer arithmetic operations. We call these
+<EM>sequence</EM> pointers and they come in two flavors: those that can only be
+advanced through pointer arithmetic (called forward-sequence pointers or
+<TT>FSEQ</TT>) and the regular sequence pointer that can be moved both forward and
+backward (we use the kind <TT>SEQ</TT>for these pointers). The cost that the
+programmer pays for using these more capable pointers is that each dereference
+will be accompanied by a bounds check. <BR>
+<BR>
+Consider the following code fragment. The pointer <FONT COLOR=blue>x</FONT> cannot be <TT>SAFE</TT>
+because it is involved in pointer arithmetic. Since we are adding a
+non-constant value CCured cannot be certain that the pointer is only advancing
+so it will assign the more general <TT>SEQ</TT> kind to it. 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * arith(int * x, int delta) {
+   return x + delta;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex11.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex11.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc17">3.6.1</A>&nbsp;&nbsp;Representation</H3>
+By looking at the CCured output for the above code you will notice several
+changes in the code. First, the type of the <FONT COLOR=blue>x</FONT> parameter and the name of
+the function have changed as follows:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct seq_int {
+   int *  __SEQ  _p ;
+   struct meta_seq_int {
+      void *_b ;
+      void *_e ;
+   } _ms ;
+};
+typedef struct seq_int seq_int;
+
+int * arith_sq(seq_int p, int delta);
+</FONT></PRE>
+We see that CCured has created the type <FONT COLOR=blue>seq_int</FONT> (sequence pointer to an
+integer). This type has two components, the regular pointer value (field
+<FONT COLOR=blue>_p</FONT>) and a metadata component (the field <FONT COLOR=blue>_ms</FONT>). <EM>Metadata</EM> is the
+CCured terminology for additional information that CCured is carrying with the
+pointers in order to be able to check their usage. All multi-word pointers in
+CCured are represented as a structure with two elements: a field <TT>_p</TT> that
+stores the value of the pointer and the field <TT>_ms</TT> that stores the
+metadata for the pointer. <BR>
+<BR>
+In the case of a <TT>SEQ</TT> pointer the metadata consists of two pointers, one
+that stores the beginning of the memory area in which a pointer was created
+(stored in field <FONT COLOR=blue>_b</FONT>), and the end of that memory area (in field <FONT COLOR=blue>_e</FONT>).
+Such a memory area is also called a <EM>home area</EM> for a pointer. The
+meta-data of the home area are generated by CCured for a pointer obtained by
+allocation or by taking the address of a variable, and is passed along in an
+assignment. Thus, a <TT>SEQ</TT> pointer carries with it the beginning and the end
+of the home area from which it originates and these values will be used to
+perform the necessary bounds checking.<BR>
+<BR>
+<DIV CLASS="center">
+<IMG SRC="ccuredpp001.png">
+</DIV><BR>
+<BR>
+The structures denoting fat pointers are named by adding a prefix
+corresponding to the kind of fat pointer to a canonical name of the type. For
+the general rules for naming types, see Section&nbsp;<A HREF="ccured014.html#sec-tnames">A.1</A>.<BR>
+<BR>
+Notice also that the name of the <FONT COLOR=blue>arith</FONT> function has changed. CCured
+mangles the names of globals whose type has changed. We do this to ensure that
+you are not going to be linking your CCured code with a library that, for
+example, calls the <FONT COLOR=blue>arith</FONT> function with a regular pointer argument. The
+mangling is always in the form of a suffix separated from the main name by an
+underscore. The suffix is constructed as a sequence of letters, each one
+signifying a certain kind of pointer (<FONT COLOR=blue>q</FONT> stands for <TT>SEQ</TT>). The order of
+the letters corresponds to the order in which the pointer type is encountered
+in a depth-first in-order traversal of the structure of the global's type
+(for functions we scan the result type first and then the arguments in order;
+however, we do not scan structures and unions). For the general rules on
+global name mangling, see Section&nbsp;<A HREF="ccured008.html#sec-mangling">8.1</A>.<BR>
+<BR>
+Sequence pointers have an additional capability: they can be set to any
+integer value, not just to 0 as in the case of <TT>SAFE</TT> pointers. We allow this
+because the sequence pointers have the additional fields that can be encoded to
+identify an integer disguised as a pointer. In particular both the <FONT COLOR=blue>_b</FONT> and
+the <FONT COLOR=blue>_e</FONT> fields of a <TT>SEQ</TT> pointer are null in the case when the pointer
+is actually an integer. The example below uses this capability of sequence
+pointers. Notice that null pointers (those in which all three fields are 0)
+are just a special case in which a <TT>SEQ</TT> pointer is actually an integer. 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * __SEQ getSeq() {
+    return 5;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex12.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex12.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc18">3.6.2</A>&nbsp;&nbsp;Invariants for SEQ pointers</H3>
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Cannot be cast (except subject to stringent rules which we'll discuss
+below). Note that assignment, passing actual arguments and returning are
+implicit casts. 
+<LI CLASS="li-itemize">Can be subject to pointer arithmetic (adding or subtracting an
+integer from it).
+<LI CLASS="li-itemize">Can be set to any integer value.
+<LI CLASS="li-itemize">Can be cast to an integer and can be subtracted from another pointer.
+This is useful for comparisons.
+<LI CLASS="li-itemize"><TT>SEQ</TT> pointers are represented using three words. 
+<LI CLASS="li-itemize">Every time a <TT>SEQ</TT> pointer is dereferenced, both a check that the
+pointer is not null or a disguised integer and a bounds check are inserted.
+</UL>
+When sequence pointers are assigned, passed as arguments or as return values,
+written or read from memory they carry their metadata unchanged. Same happens
+when they are subject to casts or to pointer arithmetic. (Pointer arithmetic
+affects only the <FONT COLOR=blue>_p</FONT> component of the sequence pointer but not the home
+area.) There are two operations in which <TT>SEQ</TT> pointers &#8220;are born&#8221;: by
+using the name of a global or local array (possibly embedded inside other
+structures or arrays) or by dynamic memory allocation. It is at that time that
+the metadata for the <TT>SEQ</TT> pointers is computed and initialized, in the case
+of an array based on the array length. and in the case of memory allocation
+based on the allocated size. Take a look at the code CCured generates to
+initialize the metadata for the <FONT COLOR=blue>r1</FONT> and <FONT COLOR=blue>r2</FONT> pointers in the code below,
+both for the case of the memory allocation and for using the name of an array.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern void* malloc(unsigned int);
+int foo(int x) {
+  int *p, *r1, *r2;
+  int a[8];
+
+  r1 = (int*)malloc(16);
+  r2 = a;
+  p = r1; 
+  p = r2;
+  return *(p + x); // Force p to be SEQ
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex13.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex13.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Whenever a pointer is subject to pointer arithmetic CCured will force that
+pointer to be <TT>SEQ</TT>. This means that the pointer should come accompanied by
+appropriate metadata. Thus the CCured inferencer will propagate the request
+for the metadata <B>backwards</B> through the data flow, across function calls
+and returns, to all the places where the pointer might be produced. For
+example in the previous example <FONT COLOR=blue>p</FONT> is subject to pointer arithmetic so it
+must be <TT>SEQ</TT>. But since <FONT COLOR=blue>p</FONT> is assigned from <FONT COLOR=blue>r1</FONT> and <FONT COLOR=blue>r2</FONT>, they too
+must be <TT>SEQ</TT>. Finally the request reaches the name of the array <FONT COLOR=blue>a</FONT> (in
+which case the metadata for a <TT>SEQ</TT> pointer is computed based on the length of
+<FONT COLOR=blue>a</FONT>) and also the <FONT COLOR=blue>malloc</FONT> (in which case the metadata is computed based
+on the allocated length). <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc19">3.6.3</A>&nbsp;&nbsp;Run-time checks for SEQ pointers</H3><A NAME="sec-checkseq"></A>
+One of the design decisions for <TT>SEQ</TT> pointers was whether to check that the
+pointer remains within bounds after each arithmetic operation, or to allow
+pointer to go temporarily out of bounds and do the check when you use the
+pointer. We chose to check the dereferences because the C standard actually
+allows pointers to point outside their home area. <BR>
+<BR>
+Sometimes a pointer is subject to arithmetic and then assigned to a pointer
+that is used only for reading and writing. The latter pointer will be inferred
+to be <TT>SAFE</TT> and the <TT>SEQ</TT> pointer will be converted to a <TT>SAFE</TT> pointer.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int foo(int x) {
+  int *p, *safe;
+  p += x; // p is SEQ
+  safe = p; // safe is SAFE
+  return *safe;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex14.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex14.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+To convert a <TT>SEQ</TT> pointer to <TT>SAFE</TT> we must check that it is in
+within the bounds of the home area or is null. Note that even though a <TT>SEQ</TT>
+pointer might contain arbitrary integers, a <TT>SAFE</TT> pointer can only contain
+the integer 0. In the above code you can observe a run-time call to
+<FONT COLOR=blue>CHECK_xxx</FONT> that performs the bounds checking. The same check is used when
+reading or writing through a <TT>SEQ</TT> pointer, as in the example below. 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int addAll(int * p, int len, int stride) {
+    int sum = 0, i;
+    for(; len &gt;= 0; len -= stride, p += stride) {
+       sum += *p;
+    }
+    return sum;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex15.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex15.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Just like for <TT>SAFE</TT> pointers we must check the pointer validity when taking
+the address of a field of an object pointed to by a <TT>SEQ</TT> pointer:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct elem {
+   int f1, f2;
+   int nested[8];
+};
+
+int foo(struct elem *array, int len) {
+  int * pnested, * pnestedseq;
+  array += len; // Make array a SEQ
+  pnested = &amp; array-&gt;f2; // A bounds check here
+  pnestedseq = &amp; array-&gt;nested[2]; // A bounds check here
+  pnestedseq += len; // pnestedseq is a SEQ
+}   
+</FONT></PRE>
+<a target="_blank" href="examples/ex16.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex16.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+In the example above <FONT COLOR=blue>array</FONT> is a <TT>SEQ</TT> pointer pointing to elements of
+type <FONT COLOR=blue>struct elem</FONT>. As long as we only do pointer arithmetic on <FONT COLOR=blue>array</FONT> no
+bounds checking is necessary. However, when we take the address of the field
+<FONT COLOR=blue>f2</FONT> we will obtain a <TT>SAFE</TT> pointer and thus we must be sure that
+<FONT COLOR=blue>array</FONT>is within the bounds of its home area. Another interesting situation
+occurs on the next line in the above example where we obtain a <TT>SEQ</TT> pointer
+with a home included within the home of <FONT COLOR=blue>array</FONT>. The home of <FONT COLOR=blue>pnestedseq</FONT>
+is the <FONT COLOR=blue>nested</FONT> array within the <FONT COLOR=blue>struct elem</FONT> element pointed to by
+<FONT COLOR=blue>array</FONT>. But again we must know that <FONT COLOR=blue>array</FONT> is within bounds. <BR>
+<BR>
+Just like for <TT>SAFE</TT> pointers we must check for stack addresses when a
+<TT>SEQ</TT> pointer is written through a pointer or returned from a function. But
+in this case the check is more subtle. To see why consider the following
+program fragment:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+// return a fat pointer to my own local, but using arithmetic
+// to hide the fact that it's mine
+int * sneaky()
+{
+  int local[2];
+  int *x = local;
+  x += 200;            // push x (apparently) above my frame
+  return x;
+}
+int main() {
+  int *plocal = sneaky();
+  return *(plocal - 200); // Back into its (vanished) home
+  
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex17.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex17.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If we were to check that the <FONT COLOR=blue>_p</FONT> field is not a local stack address we
+would fail to notice the unsoundness in the above example. For this reason the
+stack checks are performed using the <FONT COLOR=blue>_b</FONT> pointer. Another to do so is that
+if the <FONT COLOR=blue>_b</FONT> pointer is null then we are returning an integer disguised as a
+pointer and we should not care whether it is equal to a stack address (since
+such a pointer cannot ever be dereferenced). <BR>
+<BR>
+The bounds checks in CCured are more involved that in languages like Java
+where all of the elements have the same size. It turns out that we can write
+faster checks if we maintain the invariant that each <TT>FSEQ</TT> or <TT>SEQ</TT> pointer
+points to an area that contains a whole number of elements of the given type.
+Consider the following code fragment:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+char buffer[17]; 
+int main() {
+  long * __FSEQ p = buffer; // This will fail
+  return p[2];
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex18.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex18.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+This will fail with an alignment check because there is no room for a whole
+number of <FONT COLOR=blue>long</FONT> elements in <FONT COLOR=blue>buffer</FONT>.
+<PRE CLASS="verbatim">
+Failure ALIGNSEQ at ./foo.c:3: main(): Creating an unaligned sequence
+</PRE>
+ In general, this check can appear as part of a cast from a sequence pointer
+to a sequence pointer of a wider base type. However, the above program is
+perfectly fine. We can do several things:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Ignore this run-time error (see Section&nbsp;<A HREF="ccured004.html#sec-errorhandle">4.2</A>)
+<LI CLASS="li-itemize">Tell CCured to allow partial elements in sequences and to use slightly
+more expensive run-time checks. You must pass the
+<FONT COLOR=blue>&ndash;allowPartialElementsInSeuqnece</FONT> to CCured to achieve this (see
+Chapter&nbsp;<A HREF="ccured004.html#ch-invoke">4</A>). 
+<LI CLASS="li-itemize">Change the code to align the sequence. You can use the build-in function
+<TT>__align_seq</TT> to &#8220;chop&#8221; the accessible area of a sequence pointer have
+a length that is multiple of a certain size. You must use this function
+<EM>before</EM> you cast the sequence pointer:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+char buffer[17]; 
+int main() {
+  // This will make p appear to point toexactly 6 longs
+  long * __FSEQ p = __align_seq(buffer, sizeof(*p)); 
+  return p[2];
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex19.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex19.cured.c">CCured output</A>
+for this code fragment</UL>
+
+<H3 CLASS="subsection"><A NAME="htoc20">3.6.4</A>&nbsp;&nbsp;Casts allowed for <TT>SEQ</TT> pointers</H3>. 
+It is always possible to cast
+a <TT>SEQ</TT> pointer to a <TT>SAFE</TT> pointer with the same underlying type. A
+bounds-check is performed in that case. It is also possible to cast a <TT>SAFE</TT>
+pointer to a <TT>SEQ</TT> pointer, in which case the home area of the new pointer is
+the memory range occupied by one element of the <TT>SAFE</TT> pointer type. <BR>
+<BR>
+Casting of <TT>SEQ</TT> pointers is only allowed when the underlying types are the
+same or very closely related. We cannot freely allow the casting of <TT>SEQ</TT>
+pointers using the physical subtyping rules that we used for <TT>SAFE</TT> pointers.
+To see why consider the following program:
+<PRE CLASS="verbatim"><FONT COLOR=blue>[--noSplitPointers]
+struct wide {
+   int i;
+   int *p;
+};
+void foo(struct wide * __SEQ x) {
+  int * __SEQ pi = (int*)wide;
+  *(pi + 1) = 5;
+}
+</FONT></PRE>
+Notice that the cast has the property that it casts a pointer to a large
+structure to a pointer to smaller structure that is compatible with the large
+one. If we were to allow the above program then we would be able to write an
+arbitrary integer in a place where the pointer-type field <FONT COLOR=blue>p</FONT> is stored. The
+rule for <TT>SEQ</TT> pointers is that an infinite-tiling of the two types being
+cast is compatible. This allows us to cast a pointer to an array into a
+pointer to array elements (a very useful operation when working with
+multi-dimensional arrays): 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+double a[8][8];
+int zero() {
+  double * pa = a;
+  for(int i=0; i&lt;sizeof(a)/sizeof(double); i++) {
+     * pa ++ = 0.0;
+  }
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex20.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex20.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+<A NAME="toc11"></A>
+<H2 CLASS="section"><A NAME="htoc21">3.7</A>&nbsp;&nbsp;<TT>FSEQ</TT> Pointers</H2>
+We observed in our experiments that most <TT>SEQ</TT> pointers only move forward.
+Thus the lower-bound check is not needed and also the <FONT COLOR=blue>_b</FONT> field of the
+<TT>SEQ</TT> pointer is also not needed. To capture this common case CCured is
+using the <TT>FSEQ</TT> pointer kind (forward sequence). The <TT>FSEQ</TT> pointer is
+very similar to the <TT>SEQ</TT> pointer with a few exceptions. <BR>
+<BR>
+Consider the following example:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int addAll(int * p, int len) {
+    int sum = 0, i;
+    for(; len &gt;= 0; len --, p ++) {
+       sum += *p;
+    }
+    return sum;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex21.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex21.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+A <TT>FSEQ</TT> pointer is represented as a two-word structure with just the
+<FONT COLOR=blue>_p</FONT> (actual pointer value) and <FONT COLOR=blue>_ms._e</FONT> (end of the home area) fields:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct meta_fseqp_int {
+   void *_e ;
+};
+struct fseqp_int {
+   int *  __FSEQ  _p ;
+   struct meta_fseqp_int _ms ;
+};
+
+typedef struct fseqp_int fseqp_int;
+
+int addAll_f(int *  __FSEQ  p, void *p_ms_e , int len);
+</FONT></PRE><BR>
+<BR>
+<DIV CLASS="center">
+<IMG SRC="ccuredpp002.png">
+</DIV><BR>
+<BR>
+A <TT>FSEQ</TT> pointer can also encode an integer, in which case the <FONT COLOR=blue>_e</FONT> field
+is null. <BR>
+<BR>
+A <TT>FSEQ</TT> pointer with a non-null <FONT COLOR=blue>_e</FONT> field points always to an address
+that is above or equal to the beginning of the home area. However, it might be
+beyond the end of the home area, and that is why a <TT>FSEQ</TT> pointer requires an
+upper-bound check whenever it is used (see the CCured output for the above
+example). <BR>
+<BR>
+When doing stack checks for the <TT>FSEQ</TT> pointer we use the value of the
+<FONT COLOR=blue>_e</FONT> field. <BR>
+<BR>
+However, we must check for each arithmetic operation on <TT>FSEQ</TT> pointers
+whether it is advancing the pointer or not. This is done using the
+<FONT COLOR=blue>CHECK_ADVANCE</FONT> run-time function. Notice that just because we add 1 to a
+pointer it does not mean that we are advancing it. We might be trying to
+overflow the addition and to break the invariant.<BR>
+<BR>
+What remains to be said about <TT>FSEQ</TT> pointer is how does CCured infer that a
+pointer is <TT>FSEQ</TT> as opposed to <TT>SEQ</TT>. CCured looks at all arithmetic
+operations and if we always adding a positive constant to a pointer then
+CCured will infer that pointer to be <TT>FSEQ</TT>. Another useful heuristic that
+CCured uses is that pointer arithmetic expressed using the array indexing
+notation is taken as an indication that we are advancing the pointer:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int addAll(int * p, int len) {
+    int sum = 0, i;
+    for(i=0; i&lt;len; i++) {
+       sum += p[i];
+    }
+    return sum;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex22.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex22.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Finally, <TT>FSEQ</TT> pointers can be cast to and from <TT>SAFE</TT> pointers using the
+same rules that we discussed for <TT>SEQ</TT> pointers. <TT>FSEQ</TT> pointers can also be
+cast to and from <TT>SEQ</TT> pointers. When casting a <TT>SEQ</TT> pointer into a <TT>FSEQ</TT>
+pointer we must perform a lower-bound check. When casting a <TT>FSEQ</TT> pointer
+into a <TT>SEQ</TT> pointer we consider that the home area starts at the place where
+the pointer is pointing (provided that the pointer is not encoding an integer
+and is within bounds). Note however that such a cast will never occur in a
+program without pointer-kind annotations. The CCured inferencer will instead
+prefer to propagate the constraint that all pointers which are assigned to
+<TT>SEQ</TT> pointer must themselves be <TT>SEQ</TT> pointers and thus have a valid
+<FONT COLOR=blue>_b</FONT> field. <BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc22">3.7.1</A>&nbsp;&nbsp;Arrays of unspecified length</H3>
+We saw that a <TT>SEQ</TT> pointer obtains its metadata from the length present in
+the array type from which they originate. But occasionally it is useful to
+have arrays with either unspecified length or with a zero-length. Consider the
+following code, in which the <FONT COLOR=blue>struct open</FONT> is open-ended, that is the number
+of integer pointers contained in the <FONT COLOR=blue>rest</FONT> array field is determined at the
+allocation time (in this case 4):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct open {
+  int   count;
+  int * rest[0];
+};
+extern void* malloc(unsigned int);
+int main() {
+
+ struct open *p = (struct open*)malloc(20);
+ return p-&gt;rest[5];
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex23.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex23.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+CCured supports this paradigm and computes the size of the <FONT COLOR=blue>rest</FONT> field at
+the time of the allocation. Then CCured will turn the array <FONT COLOR=blue>rest</FONT> into a
+<B>sized</B> array, which is essentially a structure with two fields: a field
+<FONT COLOR=blue>_size</FONT> which stores the size of the array and a second field <FONT COLOR=blue>_array</FONT>
+which contains the array itself:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct _sized_a_char {
+   unsigned int _size ;
+   char (  __SIZED  _array)[20] ;
+};
+</FONT></PRE>
+Sized arrays are very similar to the Java arrays in that they store their
+length in the first word of the data structure. When a <TT>SEQ</TT> pointer is
+created from such an array the metadata is computed based on the stored size. <BR>
+<BR>
+There is one more situation in which CCured will automatically infer that an
+array must be sized. That is when the array is declared external and without a
+length:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern a[];
+int main() {
+    return a[3];
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex24.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex24.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Additionally, the programmer can request that an array be represented in sized
+form by using the <FONT COLOR=blue>__SIZED</FONT> attribute <B>on the array name</B>:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int *a [8] __SIZED;
+</FONT></PRE>
+<a target="_blank" href="examples/ex25.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex25.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Note that CCured does not support the allocation of sequences of arrays of
+structures with open arrays. For example, the following code will produce a
+warning and will allocate a sequence of <FONT COLOR=blue>struct open</FONT> elements each with a
+zero-length <FONT COLOR=blue>rest</FONT> field!
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct open {
+  int   count;
+  int * rest[0];
+};
+extern void* malloc(unsigned int);
+int main() {
+
+ struct open *p = (struct open*)malloc(20);
+ p ++; // Make p FSEQ
+ return p-&gt;rest[5];
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex26.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex26.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+You might have noticed in the previous example that when reading from a
+<TT>SEQ</TT> pointer, CCured will allow the reading of the byte immediately
+following the array. This &#8220;feature&#8221; is part of our current mechanism for
+handling null-terminated strings, in which case the terminal null character
+can be read but not written, as discussed in the next example. <BR>
+<BR>
+ <A NAME="toc12"></A>
+<H2 CLASS="section"><A NAME="htoc23">3.8</A>&nbsp;&nbsp;<TT>WILD</TT> Pointers</H2>
+The pointer kinds we have seen so far can be dereferenced and can be subject
+to pointer arithmetic but can only be cast in very restrictive ways. Therefore
+we cannot really hope to be able to annotate all existing C programs with
+kinds like <TT>SAFE</TT>, <TT>SEQ</TT> and <TT>FSEQ</TT>. We also need a pointer
+kind that can also be cast to any other type. The <TT>WILD</TT> pointer kind plays
+this role. Looking back at the kinds of pointers we have introduced so far we
+observe that the most restrictive kind of pointer, the <TT>SAFE</TT> pointer, is
+also the cheapest to use. It requires only one word for storage and only a
+null check for dereference; just like Java references. Then as we add more
+capabilities we also increase the cost of the pointer. The <TT>FSEQ</TT> pointers
+have all the capabilities of <TT>SAFE</TT> pointers but can also move forward. The
+additional cost is an extra word required for the storage of the end of the
+valid range and an upped-bound check required before dereference. The <TT>SEQ</TT>
+pointers have the additional capability of moving backwards and the additional
+cost of one more storage word and a lower-bound check before dereference.
+Keeping with this trend it is to be expected that <TT>WILD</TT> pointers are going
+to be even more costly. As we shall see, the <TT>WILD</TT> pointers must be able not
+only to find the bounds of the range in which they are supposed to navigate but
+they must also know for each word in that range whether it is a pointer or a
+non-pointer. The previously-introduced kinds of pointers did not need to
+maintain that information at run-time because the lack of casts allowed the
+compiler to keep track of such information statically.<BR>
+<BR>
+One way to think of the CCured pointer-kind inferencer is as an analysis that
+classifies your pointers into two big categories: those for which the static
+type is an accurate description of the values pointed to; and those for which
+it is not. We refer to the first category as the <EM>statically-typed</EM>
+pointers and they consist of the pointers discussed so far: <TT>SAFE</TT>, <TT>SEQ</TT>,
+and <TT>FSEQ</TT>. The second category consist of the <EM>dynamically-typed</EM> pointers and include the <TT>WILD</TT> pointers. Since the
+compiler cannot verify statically the type of the values the <TT>WILD</TT> pointers
+point to, then CCured inserts code to maintain at run-time information about
+the contents of a memory range pointed to by <TT>WILD</TT>pointers. <BR>
+<BR>
+Consider the following example, in which <FONT COLOR=blue>a</FONT> (of type <FONT COLOR=blue>int
+*</FONT>) is cast to type <FONT COLOR=blue>int * *</FONT>:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int foo(int * a) {
+   int * * g = (int * *)a; // Bad cast
+   return 0;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex27.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex27.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+There are several new things in the CCured version of the above
+program fragment. We start with the type of <FONT COLOR=blue>a</FONT>: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct meta_wildp_int {
+   void *_b ;
+}   ;
+struct wildp_int {
+   int *  __WILD  _p ;
+   struct meta_wildp_int _ms ;
+}   ;
+typedef struct wildp_int wildp_int;
+
+int foo_w(wildp_int __WILD a);
+</FONT></PRE><BR>
+<BR>
+<DIV CLASS="center">
+<IMG SRC="ccuredpp003.png">
+</DIV><BR>
+<BR>
+A <TT>WILD</TT> pointer is represented as a two-word structure. As usual the
+<FONT COLOR=blue>_p</FONT> field stores the actual pointer and just like for <TT>SEQ</TT> pointers the
+<FONT COLOR=blue>_b</FONT> field stores the beginning of the pointer's home area. The major
+difference in the representation of <TT>WILD</TT> pointers is the layout of the home
+area. Since we must keep track at run-time what is stored in each location in
+a dynamically-typed area we will store a bitmap (one bit per word) at the end
+of the home area. And just like for sized arrays the word immediately before
+the home area stores the size in words of the home area. Such an example is
+shown in the code below where the address of the local variable <FONT COLOR=blue>h</FONT> is the
+home for the pointer <FONT COLOR=blue>p</FONT>.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+void foo() {
+   int * h = 0;
+   int * p = (int *) &amp;h;
+   return 0;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex28.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex28.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+The type of <FONT COLOR=blue>h</FONT> is:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct _tagged_wildp_int {
+   unsigned int _len ;
+   wildp_int    _data  __attribute__((__packed__)) ;
+   int _tags[(sizeof(wildp_int    ) + 127U) &gt;&gt; 7]  __attribute__((__packed__)) ;
+};
+typedef struct _tagged_wildp_int _tagged_wildp_int;
+</FONT></PRE>
+The <FONT COLOR=blue>_data</FONT> field in a tagged area stores the actual data, which in this
+case is a <TT>WILD</TT> pointer. The <FONT COLOR=blue>_tags</FONT> field contains one word for every 32
+words of data. Each bit in the tags is 1 if the corresponding word in the data
+field stores the <FONT COLOR=blue>_b</FONT> field of a <TT>WILD</TT> pointer, and 0 otherwise (if it
+contains an integer or the <FONT COLOR=blue>_p</FONT> field of a <TT>WILD</TT> pointer or equivalently
+a value that is not CCured metadata). To maintain this invariant we
+must update the tag bits every time we perform a memory write. When we write an
+integer into a word we clear the bit corresponding to that word. When we write
+a <TT>WILD</TT> pointer then we set the two bits corresponding to the two words to 0
+and 1 respectively. When we read an integer we do not need to check tags. When
+we read a <TT>WILD</TT> pointer then we check that the tag bit for the word from
+which we'll read the <FONT COLOR=blue>_b</FONT> component has a set tag bit. If this is not true
+then we check whether the <FONT COLOR=blue>_b</FONT> component that we'll read is 0. In this
+latter case we would be reading a pointer that cannot be used for memory
+dereference anyway. This latter situation occurs when we read a pointer from
+an area that has been initialized with zeros. <BR>
+<BR>
+Notice that this scheme ensures that we will never interpret a word in a
+tagged area as a <FONT COLOR=blue>_b</FONT> field except if it was last written with a contents
+of a <FONT COLOR=blue>_b</FONT> field. This however does not prevent code that overwrites the
+<FONT COLOR=blue>_p</FONT> fields from running (except that the resulting pointers might not be
+later usable). <BR>
+<BR>
+The following run-time support functions are used in conjunction with <TT>WILD</TT>
+pointers:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+/* Fetch the size (in words) of the tagged area pointed to by a WILD pointer.
+   This also checks that the pointer has a valid _b field */
+unsigned int 
+CHECK_FETCHLENGTH(void *_p,          /* The _p field of the pointer */
+                  void *_b);         /* The _b field */
+
+/* Do bounds checking for WILD pointers */
+CHECK_BOUNDS_LEN(void *_b,           
+                 unsigned int bwords,/* Result of FETCHLENGTH */
+                 void *_p, 
+                 unsigned int plen); /* The size in bytes of the memory area
+                                        being accessed */
+
+/* Clear the tags for a memory range. This is called before writing a scalar
+   or a structure containing at least one scalar into a tagged area. */
+CHECK_ZEROTAGS(void *base,            /* The base of the tagged area */
+               unsigned int nrwords,  /* Number of data words in the area */
+               void *start,           /* Start of the memory range for which 
+                                         to clear the tags */
+               unsigned int size);   /* Size in bytes of the memory range for
+                                        which to clear the tags */
+
+/* Set the tags for writing a pointer. This also checks that we are not
+   writing a stack pointer. This is called for EACH pointer in a structure
+   that is being written. */
+CHECK_WILDPOINTERWRITE(void *base,    /* The base of the tagged area in which
+                                         we write */
+                       unsigned int nrwords, /* Number of data words in the 
+                                                area */
+                       void **where, /* The address in the tagged area where 
+                                        we are about to write */
+                       void *_b,     /* The _b field of the written pointer */
+                       void *_p);    /* The _p field of the written pointer */
+
+
+/* Check that the pointer we are about to read has a _b field that has not
+been tampered with */
+CHECK_WILDPOINTERREAD(void *base,    /* The base of the tagged area in which
+                                         we write */
+                       unsigned int nrwords, /* Number of data words in the 
+                                                area */
+                       void **where, /* The address in the tagged area where 
+                                        we are about to write */
+                       void *_b,     /* The _b field of the written pointer */
+                       void *_p);    /* The _p field of the written pointer */
+</FONT></PRE>
+The code fragment below uses these runtime functions:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct s {
+  int  i; // Some integer
+  int *q; // And some pointer
+} g, * __WILD pg = &amp;g;
+
+int foo(struct s * __WILD x) {
+   // Read an integer from x. 
+   // Must do bounds check
+   int read = x-&gt;i;
+   // Read a pointer from x
+   // Must do bounds check and check that the _b field is valid
+   int * ptr = x-&gt;q;
+   // Write an integer
+   x-&gt;i = 5;
+   // Write a pointer
+   x-&gt;q = (int*)6;
+   // Read and write the whole struct
+   g = *x;     
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex29.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex29.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+A <TT>WILD</TT> pointer can be used in a very flexible way but there are some
+constraints. Like any of the other pointers that can be subject to pointer
+arithmetic the <TT>WILD</TT> pointer carries with it the identity of the home area
+and can be used to access only that area. But most importantly a <TT>WILD</TT>
+pointer can only be case to and from another <TT>WILD</TT> pointer and can only
+point to scalars or other <TT>WILD</TT> pointers. Essentially this means that the
+dynamically-typed universe can touch the statically-typed universe in only a
+single way: a <TT>WILD</TT> pointer can be stored in a statically-typed area. <BR>
+<BR>
+The following pointer kind is not legal &#8220;<FONT COLOR=blue>int * <TT>SAFE</TT> * <TT>WILD</TT></FONT>&#8221;. To
+see why consider the (ill-typed) code below:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int foo(int * __SAFE * __WILD x) {
+  int * __SAFE y;
+  *(int __WILD *)x = 5; // Ok since x can be cast to another __WILD pointer
+  y = * x; // Ok
+  return *y; // Ok since y is SAFE and non-null
+}
+</FONT></PRE>
+Essentially we cannot count on the accuracy of the types pointed to by
+<TT>WILD</TT> pointers. For this reason we can only allow <TT>WILD</TT> pointers to point
+to scalars or other <TT>WILD</TT> pointers. So, in the above example CCured does not
+recognize <FONT COLOR=blue>x</FONT> as a valid type. <BR>
+<BR>
+For the same reason we cannot cast between <TT>WILD</TT> pointers and non-<TT>WILD</TT>
+pointers. <BR>
+<BR>
+<A NAME="toc13"></A>
+<H2 CLASS="section"><A NAME="htoc24">3.9</A>&nbsp;&nbsp;Split Metadata</H2><A NAME="sec-splitmeta"></A>
+In the previous examples pointers with metadata are represented as
+structures. It turns out that <TT>gcc</TT> or the Microsoft Visual C compiler
+are not very effective at optimizing code that uses many variables with
+structured types. Thus, CCured has the ability to split such variables into
+several single-word variables. Consider again one of the examples from before: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * arith(int * x, int delta) {
+   return x + delta;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex30.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex30.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Notice that <TT>x</TT> becomes split into three variables: <TT>x</TT> (for the <TT>_p</TT>
+field, or the regular pointer value), and <TT>x_b</TT> and <TT>x_e</TT> for the
+beginning and end metadata fields. Notice also that function parameters and
+arguments (but <EM>not the results</EM> are split in the same way):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * arith_sq(int * x, void * x_b, void * x_e, int delta);
+</FONT></PRE>
+By default, CCured splits the metadata. You must pass the argument
+<TT>&ndash;noSplitPointers</TT> to prevent it. <BR>
+<BR>
+<HR>
+<A HREF="ccured002.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured004.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

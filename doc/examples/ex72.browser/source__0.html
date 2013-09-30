@@ -1,0 +1,48 @@
+<html><body bgcolor=white onload='parent.fileFinishedLoading();'>
+<link rel=stylesheet type="text/css" href="styles.css"><pre>
+struct <img name="if0" src=pixel.gif width=10 height = 10> <a name="f0"></a>printf_arguments {
+   int i ;
+   double d ;
+   char <img name="in3" src=pixel.gif width=10 height = 10> <a name="n3" class="other" href="javascript: sn(3)">*<sub>3</sub></a>s <img name="in4" src=pixel.gif width=10 height = 10> <a name="n4" class="safe" href="javascript: sn(4)">&<sub>4</sub></a>;
+   long long ll ;
+};
+struct <img name="if1" src=pixel.gif width=10 height = 10> <a name="f1"></a>bar {
+   int nrInts ;
+   int  * ints ;
+};
+struct <img name="if2" src=pixel.gif width=10 height = 10> <a name="f2"></a>foo {
+   int sizeBars ;
+   <a href="javascript: sf(0, 'if1')">struct bar </a>  * bars ;
+};
+<img name="if3" src=pixel.gif width=10 height = 10> <a name="f3"></a>extern void __ccuredInit(void) ;
+<img name="if4" src=pixel.gif width=10 height = 10> <a name="f4"></a>extern void abort_deepcopy(char  * errmsg  ) ;
+<img name="if5" src=pixel.gif width=10 height = 10> <a name="f5"></a>extern void <img name="in23" src=pixel.gif width=10 height = 10> <a name="n23" class="safe" href="javascript: sn(23)">*<sub>23</sub></a>/*1*/__mkptr_size(void <img name="in24" src=pixel.gif width=10 height = 10> <a name="n24" class="safe" href="javascript: sn(24)">*<sub>24</sub></a>p  ,
+                               unsigned int len  ) <img name="in25" src=pixel.gif width=10 height = 10> <a name="n25" class="safe" href="javascript: sn(25)">&<sub>25</sub></a>;
+<img name="if6" src=pixel.gif width=10 height = 10> <a name="f6"></a>extern unsigned int /*2*/malloc(int   ) ;
+<img name="if7" src=pixel.gif width=10 height = 10> <a name="f7"></a>extern void <img name="in29" src=pixel.gif width=10 height = 10> <a name="n29" class="safe" href="javascript: sn(29)">*<sub>29</sub></a>/*3*/__ptrof_size(void <img name="in30" src=pixel.gif width=10 height = 10> <a name="n30" class="fseq" href="javascript: sn(30)">*<sub>30</sub></a>ptr  ,
+                               unsigned int size  ) <img name="in31" src=pixel.gif width=10 height = 10> <a name="n31" class="safe" href="javascript: sn(31)">&<sub>31</sub></a>;
+void init(<a href="javascript: sf(0, 'if2')">struct foo </a>  * pFoo  ) ;
+<img name="if8" src=pixel.gif width=10 height = 10> <a name="f8"></a>void init(<a href="javascript: sf(0, 'if2')">struct foo </a>  * pFoo  ) 
+{ int nrBars ;
+  <a href="javascript: sf(0, 'if1')">struct bar </a>  * bars_withsize4 ;
+  <a href="javascript: sf(0, 'if1')">struct bar </a> <img name="in21" src=pixel.gif width=10 height = 10> <a name="n21" class="fseq" href="javascript: sn(21)">*<sub>21</sub></a>bars_withsize5 <img name="in22" src=pixel.gif width=10 height = 10> <a name="n22" class="safe" href="javascript: sn(22)">&<sub>22</sub></a>;
+
+  {
+  nrBars = 5;
+  bars_withsize4 = (<a href="javascript: sf(0, 'if1')">struct bar </a>  * )<a href="javascript: sf(0, 'if5')">/*1*/__mkptr_size</a> (pFoo->bars, pFoo->sizeBars);
+  pFoo->bars = 0;
+  pFoo->sizeBars = (int )((unsigned int )nrBars * sizeof((*bars_withsize4)));
+  bars_withsize5 = (<a href="javascript: sf(0, 'if1')">struct bar </a> <img name="in21" src=pixel.gif width=10 height = 10> <a name="n21" class="fseq" href="javascript: sn(21)">*<sub>21</sub></a>)<a href="javascript: sf(0, 'if6')">/*2*/malloc</a> (pFoo->sizeBars);
+  pFoo->bars = (<a href="javascript: sf(0, 'if1')">struct bar </a>  * )<a href="javascript: sf(0, 'if7')">/*3*/__ptrof_size</a> (<img name="if9" src=pixel.gif width=10 height = 10> <a name="f9"></a>bars_withsize5,
+                                                 pFoo->sizeBars);
+  return;
+}
+}
+</pre>
+<script language="javascript">
+// Trampoline for sn
+var sn = parent.sn;
+var sf = parent.sf;
+var sff = parent.sff;
+if(parent.fileFinishedLoading == undefined) { alert('The code is not yet loaded (in source file)');}
+</script></html>

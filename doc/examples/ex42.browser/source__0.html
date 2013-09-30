@@ -1,0 +1,43 @@
+<html><body bgcolor=white onload='parent.fileFinishedLoading();'>
+<link rel=stylesheet type="text/css" href="styles.css"><pre>
+<img name="if0" src=pixel.gif width=10 height = 10> <a name="f0"></a>extern unsigned int ___stack_threshhold ;
+<img name="if1" src=pixel.gif width=10 height = 10> <a name="f1"></a>extern unsigned int ___compute_stack_threshhold(void) ;
+<img name="if2" src=pixel.gif width=10 height = 10> <a name="f2"></a>extern void ___stack_overflow(void) ;
+struct <img name="if3" src=pixel.gif width=10 height = 10> <a name="f3"></a>printf_arguments {
+   int i ;
+   double d ;
+   char <img name="in6" src=pixel.gif width=10 height = 10> <a name="n6" class="other" href="javascript: sn(6)">*<sub>6</sub></a>s <img name="in7" src=pixel.gif width=10 height = 10> <a name="n7" class="safe" href="javascript: sn(7)">&<sub>7</sub></a>;
+   long long ll ;
+};
+<img name="if4" src=pixel.gif width=10 height = 10> <a name="f4"></a>typedef int boxedint;
+<img name="if5" src=pixel.gif width=10 height = 10> <a name="f5"></a>extern void __ccuredInit(void) ;
+<img name="if6" src=pixel.gif width=10 height = 10> <a name="f6"></a>extern void abort_deepcopy(char  * errmsg  ) ;
+<img name="if7" src=pixel.gif width=10 height = 10> <a name="f7"></a>extern void <img name="in18" src=pixel.gif width=10 height = 10> <a name="n18" class="safe" href="javascript: sn(18)">*<sub>18</sub></a>/*1*/__trusted_cast(unsigned int p  ) <img name="in20" src=pixel.gif width=10 height = 10> <a name="n20" class="safe" href="javascript: sn(20)">&<sub>20</sub></a>;
+int unroll(<a href="javascript: sf(0, 'if4')">boxedint</a>  x  ) ;
+<img name="if8" src=pixel.gif width=10 height = 10> <a name="f8"></a>int unroll(<a href="javascript: sf(0, 'if4')">boxedint</a>  x  ) 
+{ void <img name="in14" src=pixel.gif width=10 height = 10> <a name="n14" class="safe" href="javascript: sn(14)">*<sub>14</sub></a>tmp <img name="in15" src=pixel.gif width=10 height = 10> <a name="n15" class="safe" href="javascript: sn(15)">&<sub>15</sub></a>;
+  int tmp___0 ;
+  int __a_local ;
+
+  {
+  if ((unsigned int )(& __a_local) <= <a href="javascript: sf(0, 'if0')">___stack_threshhold</a> ) {
+    <a href="javascript: sf(0, 'if2')">___stack_overflow</a> ();
+  }
+  {
+  if (x & 1) {
+    return (x);
+  }
+  tmp = (void <img name="in14" src=pixel.gif width=10 height = 10> <a name="n14" class="safe" href="javascript: sn(14)">*<sub>14</sub></a>)<a href="javascript: sf(0, 'if7')">/*1*/__trusted_cast</a> ((<img name="if9" src=pixel.gif width=10 height = 10> <a name="f9"></a>void <img name="in21" src=pixel.gif width=10 height = 10> <a name="n21" class="safe" href="javascript: sn(21)">*<sub>21</sub></a>)x);
+  tmp___0 = <a href="javascript: sf(0, 'if8')">unroll</a> ((*((int  * )tmp)));
+  return (tmp___0);
+  }
+}
+}
+</pre>
+<script language="javascript">
+// Trampoline for sn
+var sn = parent.sn;
+var sf = parent.sf;
+var sff = parent.sff;
+if(parent.fileFinishedLoading == undefined) { alert('The code is not yet loaded (in source file)');}
+</script></html>

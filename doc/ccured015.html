@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+A Tour of the Source Code
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured014.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured016.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc95">Appendix&nbsp;B</A>&nbsp;&nbsp;A Tour of the Source Code</H1>
+<EM>This section was updated on Janury 2003</EM>
+<PRE CLASS="verbatim">
+./: 
+  configure:            a shell script that creates the CCured makefiles by 
+                        scanning your system for existing programs (like gcc)
+  Makefile.cil.in:      instructions for building CIL
+  Makefile.in:          instructions for building CCured
+  Makefile.ocaml:       used by Makefile.ccured for the Ocaml part
+  Makefile.gcc:         Included in the above if you use gcc
+  Makefile.msvc:        Included in the above if you use Microsoft Visual C
+
+./src: (ML code)
+  main:                 driver for CCured: parses command line arguments
+                        and transforms its input C files
+
+./src/ccured: (ML code)
+  cure:                  inserts run-time checks into C code based on 
+                        pointer annotations
+  curesplit:             turns multi-word structure pointer representations 
+                        into multiple single-word variables (increases
+                        performance by allowing later compilers to make
+                        better optimizations)
+  curestats:             counts the static number of run-time checks
+                        inserted
+  curechecks:           Some run-time checks for CCured
+  cxxpp:                A preprocessor for EDG's output on C++ lowering.
+  markptr:              marks pointers based on their usage so that the
+                        inferencer can pick an efficient representation
+  markutil:             Various utility functions
+  optim:                optimizes the placement of run-time checks
+  ptrnode:              a graph data structure used by the inferencer
+  poly:                 handling of polymorphism
+  seoptim:              a symbolic-execution based run-time check
+                        eliminator
+  solver:               an old inferencer
+  solveutil:            support functions common to all inferencers
+  type:                 an implementation of physical subtyping; determines
+                        if one C type is a physical subtype of another
+  typecheck:            verify that the pointer representations have been
+                        assigned soundly
+  unionfind:            a support data structure
+  vararg:               handling of variable argument functions
+  wrappers:             handling of wrappers
+
+./bin/: (scripts)
+  ccured:               a drop-in replacement for 'gcc' and for MS 'cl'
+
+./include/: (C header files for use with programs being cured)
+  ccured_GNUCC.patch:   a description of what to patch (modify) in GCC's
+                        standard header files
+  ccured_MSVC.patch:    as above, but for MS VC
+  gcc_&lt;version&gt;/:       the patched files created when ccured_GNUCC.patch
+                        is applied to the files in your /usr/include.
+                        &lt;version&gt; is your version of gcc.  These files are
+                        created when you build ccured.
+  cl_&lt;version&gt;/:        as above, but for MSVC.
+  ccured.h:             included before curing
+  ccuredcheck.h:        inline macros for doing run-time checks (included
+                        after curing)
+  ccuredannot.h:        various declarations and macros common to ccured.h and
+                        ccuredcheck.h
+  *_wrappers.h:         wrappers for various functions in the standard library.
+                        For example, we patch stdio.h to #include
+                        stdio_wrappers.h, so that whenever you include stdio.h
+                        in the target program the appropriate wrappers are
+                        brought in as well.
+
+./lib/: (C code for use at runtime)
+  ccuredlib.c:          a library for error handling, wrapper helpers, etc
+  gc/:                  boehm-weiser garbage collector 
+                        (http://www.hpl.hp.com/personal/Hans_Boehm/gc/)
+  browser*:             browser Javascript code
+</PRE>
+ 
+<HR>
+<A HREF="ccured014.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured016.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

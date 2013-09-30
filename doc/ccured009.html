@@ -1,0 +1,907 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Advanced CCured Issues
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured008.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured010.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc65">Chapter&nbsp;9</A>&nbsp;&nbsp;Advanced CCured Issues</H1>
+In this chapter we discuss a collection of issues having to do with using
+CCured on real programs. Some of the issues are related to sound handling of
+dark corners of the C programming language (e.g. function pointers,
+initialization of globals, variable argument functions). Other issues are
+related to mechanisms to give hints to the CCured inferencer with the ultimate
+goal of reducing the number of cases in which the inferencer gives up and
+decided to use the conservative but expensive <TT>WILD</TT> pointers (e.g.
+polymorphism, custom memory allocators). <BR>
+<BR>
+<A NAME="toc31"></A>
+<H2 CLASS="section"><A NAME="htoc66">9.1</A>&nbsp;&nbsp;Function Pointers</H2><A NAME="sec-funptr"></A>
+One of the signs that a C program is a &#8220;serious&#8221; one is the use of function
+pointers. There would be nothing wrong or unsafe about that if it wasn't also
+the case that most programmers do not feel necessary to use accurate types for
+function pointers, or to even use function prototypes. This is probably due to
+the fact that the syntax for function types in C is terrible. How often have
+you declared your function pointers to have type <FONT COLOR=blue>void (*)()</FONT> when you
+actually wanted to say <FONT COLOR=blue>int * (* (* x3))(int x)(float)</FONT> (a pointer to a
+function that takes an <FONT COLOR=blue>int</FONT> and returns a pointer to a function that takes
+a <FONT COLOR=blue>float</FONT> and returns a pointer to an <FONT COLOR=blue>int</FONT>).<BR>
+<BR>
+Of course, misusing function pointers can lead to the worst kind of errors.
+Fortunately such error rarely go unnoticed in code that is executed. <BR>
+<BR>
+CCured supports two kinds of function pointers. The <TT>SAFE</TT> function pointers
+can only be invoked with the same number of arguments. If the types of the
+arguments are not right it is the argument that becomes <TT>WILD</TT> not the
+function pointer. A <TT>SAFE</TT> function pointer can only be cast to an integer or
+to the same function pointer type. We also have <TT>WILD</TT> function pointers
+which you can (try to) use as you please. In fact a <TT>WILD</TT> function pointer
+can be cast to any other <TT>WILD</TT> pointer type and can be stored in any tagged
+area. For this reason its representation must match that of any <TT>WILD</TT>
+pointer. However the capabilities of a <TT>WILD</TT> function pointer are typically
+quite different from those of a regular function pointer. For example, you
+should not be able to read or write from a function pointer. <BR>
+<BR>
+The next picture shows the meaning of the <FONT COLOR=blue>_b</FONT> field for a <TT>WILD</TT>
+function pointer. <BR>
+<BR>
+<DIV CLASS="center">
+<IMG SRC="ccuredpp004.png">
+</DIV><BR>
+<BR>
+Any function whose address is taken and becomes <TT>WILD</TT>, or that is used
+without a prototype (see the discussion at the end of this section) is a <EM>tagged function</EM> and has an associated descriptor that encodes the actual code
+to the function and the number of arguments. Here is an example:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int taggedfun(int anint, int * aptr) {
+    return anint + * aptr;
+}
+
+int main() {
+  int * i = taggedfun; // Bad cast. wildfun becomes tagged
+  // Now we invoke it
+  ((void (*)(int,int*))i)(5, i);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex62.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex62.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+The structure of a function descriptor is as shown below and a pointer to the
+<FONT COLOR=blue>_pfun</FONT> field is used as the <FONT COLOR=blue>_b</FONT> field whenever the address of the
+function is taken.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct __functionDescriptor {
+  unsigned int _len ; // Always 0
+  void (* _pfun)() ; // Pointer to a function
+  unsigned int _nrargs ; // The number of arguments
+};
+</FONT></PRE>
+Since the <FONT COLOR=blue>_len</FONT> field is always initialized to zero, whenever this
+<TT>WILD</TT> pointer is used for a read or a write it would appear that it points
+into a zero-length tagged memory area, so the bounds check will fail. We then
+have to protect against the pointer being subject to arithmetic prior to
+invocation. We do this by storing in the function descriptor the actual
+pointer to the function and checking at the time of a call through a <TT>WILD</TT>
+function pointer that the <FONT COLOR=blue>_p</FONT> field of the pointer is equal to the
+<FONT COLOR=blue>_pfun</FONT> field in the descriptor. <BR>
+<BR>
+Finally we have to ensure that the function is called with the right number
+and kinds of arguments. There is no hope to be able to ensure this statically
+because a <TT>WILD</TT> function pointer can be used very liberally as any other
+<TT>WILD</TT> pointer. So, CCured conservatively forces
+all arguments and the return type to be <TT>WILD</TT> pointers. This includes
+arguments and return types that are actually scalars (see the example above
+for how integers are wrapped into <TT>WILD</TT> pointers). This will ensure that the
+types are the same (or compatible) and all we have to check is the right
+number of arguments is passed to the function. To perform these checks we use
+the following run-time support function:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+/* Check that a function pointer points to a valid tagged function and check
+   that we are passing enough arguments. We allow the passing of more
+   arguments than the function actually expects */
+__CHECK_FUNCTIONPOINTER(void *_p, /* The _p field of the function pointer */
+                        void *_b, /* The _b field */
+                        int nrActualArgs); /* The number of actual arguments */
+</FONT></PRE>
+Also, <EM>always use prototypes for the external functions you are using</EM>.
+Otherwise, it will appear to CCured that you are casting the function pointer
+to various incompatible types corresponding to each use and the function will
+be declared tagged (and pointers to such function to be <TT>WILD</TT>). You get some
+help from CCured here because its whole-program merger will construct
+prototypes for the functions that are defined somewhere in your program. But
+when you use even simple things like <FONT COLOR=blue>printf</FONT> you must include the proper
+header files. <BR>
+<BR>
+<A NAME="toc32"></A>
+<H2 CLASS="section"><A NAME="htoc67">9.2</A>&nbsp;&nbsp;The <FONT COLOR=blue>main</FONT> Function</H2><A NAME="sec-main"></A>
+The <FONT COLOR=blue>main</FONT> function is the entry point to your program. The most general
+type of the function is:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int main(int argc, char **argv, char **envp);
+</FONT></PRE>
+although when the arguments are not used it is common to not write them.
+Depending on how you use the <FONT COLOR=blue>argv</FONT> and <FONT COLOR=blue>envp</FONT> arguments, CCured might
+decide that they should be of some non-<TT>SAFE</TT> type. In that case CCured will
+generate code that makes copies of appropriate kind of the <FONT COLOR=blue>argc</FONT> and
+<FONT COLOR=blue>envp</FONT> arguments. <BR>
+<BR>
+Take a look at what happens for this example:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int main(int argc, char **argv) {
+   for(; *argv; argv ++) { // Scan the args
+      char *p = *argv;
+      while( *p) { p ++; }
+   }
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex63.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex63.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+CCured will also insert a call to <FONT COLOR=blue>ccuredInit</FONT>, which initializes the
+CCured run-time library. <BR>
+<BR>
+<A NAME="toc33"></A>
+<H2 CLASS="section"><A NAME="htoc68">9.3</A>&nbsp;&nbsp;Global Initialization</H2><A NAME="sec-globinit"></A>
+C has a very rich language of initializers for globals and locals. The
+language is so rich that neither <FONT COLOR=blue>gcc</FONT> nor MSVC implement it fully. For a
+discussion of how our front-end handles initialization, please see the <A HREF="../cil/index.html">the CIL documentation</A>.<BR>
+<BR>
+Once programs are presented to CCured all the initialization for locals is
+turned into assignments, but most initialization code for globals is
+preserved. However, in some cases CCured must insert some checks related to
+the initializers. These checks are placed in a special function called a <EM>global initializer</EM>.<BR>
+<BR>
+The name of a global initializer starts with <FONT COLOR=blue>__globinit</FONT>. CCured will
+try to insert a call to the global initializer that it creates in the <FONT COLOR=blue>main</FONT>
+function to ensure that it is run before anything else in the program. If it
+cannot find a <FONT COLOR=blue>main</FONT> it will emit a warning:
+<PRE CLASS="verbatim">
+Warning: Cannot find main to add global initializer __globinit_myfile
+</PRE>
+ If you see such warnings and intend to actually run the code, make sure
+whoever invokes any function in the cured code calls the global initializer
+first. <BR>
+<BR>
+<A NAME="toc34"></A>
+<H2 CLASS="section"><A NAME="htoc69">9.4</A>&nbsp;&nbsp;Casting Integers to Pointers</H2><A NAME="sec-castint"></A>
+In CCured it is Ok to cast any kind of pointer to an integer, and in fact any
+pointer comparison is performed after such a cast. But if you try to cast an
+integer to a pointer the following two things happen:
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+The inferencer will not allow the destination pointer to be <TT>SAFE</TT>
+unless the value you are casting is the constant 0. Any other kind of pointer
+can be used. 
+<LI CLASS="li-enumerate">More importantly, the resulting pointer will have metadata that will
+prevent you from using the pointer in a memory dereference. For a <TT>FSEQ</TT>
+pointer the <FONT COLOR=blue>_e</FONT> field will be null, for a <TT>SEQ</TT> both the <FONT COLOR=blue>_b</FONT> and the
+<FONT COLOR=blue>_e</FONT> fields will be null and for a <TT>WILD</TT> the <FONT COLOR=blue>_b</FONT> field will be null.
+</OL>
+This means that such pointers cannot be used in memory dereferences. If your
+program casts a pointer into an integer and then back to a pointer this will
+be an issue. CCured will emit a warning whenever this happens. So far we have
+very few programs that do this and even then in one of few forms.<BR>
+<BR>
+Some programs are just not careful about keeping pointers separate from
+integers and gratuitously cast to integers. The solution in that case is to
+change the type of the intermediate location to a <FONT COLOR=blue>void*</FONT> (or to a more
+precise type of pointer if possible).<BR>
+<BR>
+Other programs cast pointers to integers because they want to do pointer
+arithmetic and do not have to worry about the implicit scaling that C uses for
+pointer arithmetic. Use <FONT COLOR=blue>char*</FONT> to do such arithmetic. <BR>
+<BR>
+Some other programs also want to do arithmetic but of a kind not allowed for
+<FONT COLOR=blue>char*</FONT> such as the following code which tries to align a pointer to a 16
+byte boundary:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int* alignit(int *x ) {
+  return (int*)((int)x &amp; ~15);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex64.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex64.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+The solution here is a cute trick that can be used in some situations to cast
+an integer into a pointer, <EM>provided you know that it has the same
+metadata with some other legal pointer</EM>. Thus to cast the integer <FONT COLOR=blue>x</FONT> to a
+pointer, while borrowing the metadata from pointer <FONT COLOR=blue>p</FONT>do:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+p + (x - (int)p);
+</FONT></PRE>
+Thus you are turning a cast into pointer arithmetic. CCured will force the
+kind of the pointer to be either <TT>WILD</TT> or <TT>SEQ</TT> but everything will work as
+expected. Of course you have to worry about scaling back the difference by the
+size of the type pointed to by <FONT COLOR=blue>x</FONT>. Here is how the previous <FONT COLOR=blue>alignit</FONT>
+function can be written:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int* alignit(int *x ) {
+  int ix = (int)x &amp; ~15;
+  return x + ((ix - (int)x) &gt;&gt; 2);
+}
+
+</FONT></PRE>
+<a target="_blank" href="examples/ex65.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex65.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+If you are lazy and do not want to change your code you can ask CCured to
+insert code that at every cast from a scalar to a pointer records the
+line-number of the cast. Then when a non-pointer is dereference the CCured
+run-time system will try to tell you which particular cast in your program
+produced this fake pointer. Use the <FONT COLOR=blue>interceptCasts</FONT> pragma for this purpose
+(see Section&nbsp;<A HREF="#sec-pragma">9.10</A>). We have not found this feature very useful because in
+fact not too many programs cast integers to pointers. <BR>
+<BR>
+<A NAME="toc35"></A>
+<H2 CLASS="section"><A NAME="htoc70">9.5</A>&nbsp;&nbsp;The <FONT COLOR=blue>sizeof</FONT> Issue</H2><A NAME="sec-sizeof"></A>
+It is obvious by now that CCured will change the layout of some datatypes.
+That can lead to several kinds of problems. For example, if you are calling a
+library that is not cured then you better not change the layout of the data
+that is passed back and forth. This issue is discussed more in
+Chapter&nbsp;<A HREF="ccured008.html#ch-wrapper">8</A>. Another problem is when the code is written assuming that
+datatypes have a certain layout, such as the following code that accesses the 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#include &lt;stdio.h&gt;
+int *a[8];
+void bad_code(int * *x) {
+  int * pa = a; // Make a's elements WILD
+  printf("a has %d elements", sizeof(a) / 4);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex66.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex66.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+This code will probably print 16 instead of 8 because each element of <FONT COLOR=blue>a</FONT>
+is now 8 bytes long. Such code is very ill and it cannot be cured without
+manual intervention. So, let's assume that we change the code to:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#include &lt;stdio.h&gt;
+int *a[8];
+void so_and_so_code(int * *x) {
+  int * pa = a; // Make a's elements WILD
+  printf("a has %d elements", sizeof(a) / sizeof(int *));
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex67.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex67.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+As it turns out this code is perfectly fine but our inferencer cannot tell
+that there is a connection between the type of the element of <FONT COLOR=blue>a</FONT> and the
+<FONT COLOR=blue>int *</FONT> that appears in the argument of <FONT COLOR=blue>sizeof</FONT>. Even though the bad cast
+will force the array elements to be <TT>WILD</TT> pointers the <FONT COLOR=blue>int *</FONT> that
+appears in the argument of <FONT COLOR=blue>sizeof</FONT> will be a <TT>SAFE</TT> pointer. Thus this
+code will also print 16. In fact, you will see a warning:
+<PRE CLASS="verbatim">
+pathexec_env.c:42: Warning: Encountered sizeof(int */* __attribute__((___ptrnode__(2595))) */) when type contains pointers. Use sizeof expression. Type has a disconnected node.
+</PRE>
+ If CCured says that the type has a connected node, then you are probably Ok.
+It means that the node inside sizeof is connected to the other nodes, so it
+will probably get the right kind. However, if CCured says that the type has
+disconnected nodes then you should worry. <BR>
+<BR>
+To really point out the connection change the code as shown below. It can be
+argued also that this code is clearer and thus should be used even if you do
+not use CCured.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#include &lt;stdio.h&gt;
+int *a[8];
+void good_code(int * *x) {
+  int * pa = a; // Make a's elements WILD
+  printf("a has %d elements", sizeof(a) / sizeof(a[0]));
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex68.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex68.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Similar problems arise for any use of <FONT COLOR=blue>sizeof</FONT>, such as in the argument of
+allocation functions.<BR>
+<BR>
+<A NAME="toc36"></A>
+<H2 CLASS="section"><A NAME="htoc71">9.6</A>&nbsp;&nbsp;Variable argument functions</H2><A NAME="sec-vararg"></A>
+Variable-argument functions in C are inherently unsafe since there is no
+language-level mechanism to ensure that the actual arguments agree in type and
+number with the arguments that the function will be using. There are several
+ways to implement variable argument functions in C and CCured supports some of
+them quite well:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+You can try to implement such function by taking the address of a formal
+argument and working your way through the stack frame. If you do this we wish
+you luck and perseverance and you'll need them both while trying to figure out
+why your program does not behave for compilers such as <FONT COLOR=blue>gcc</FONT>. CCured
+certainly cannot allow this because this is exactly the kind of operation that
+viruses would want to perform.
+<LI CLASS="li-itemize">A better alternative is to use the <FONT COLOR=blue>__builtin_next_arg</FONT> function on
+<FONT COLOR=blue>gcc</FONT> and then work your way up the stack. CCured does not support this
+low-level implementation of variable argument functions, but see next.
+<LI CLASS="li-itemize">You can write your variable argument functions using the standard macros
+in <FONT COLOR=blue>&lt;stdarg.h&gt;</FONT> and <FONT COLOR=blue>&lt;vararg.h&gt;</FONT>. CCured supports most such functions with
+minimal programmer intervention.
+</UL>
+There are two kinds of variable-argument functions in C:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Those that take an arbitrary number of arguments following the last
+specified formal (their function type contains <FONT COLOR=blue>...</FONT> after the last formal).
+We'll call these functions <EM>vararg</EM> functions. An example is <FONT COLOR=blue>printf</FONT>:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int printf(const char* format, ...)
+</FONT></PRE><BR>
+<BR>
+<LI CLASS="li-itemize">Those that take as arguments one or more pointers to lists of arguments.
+We'll call these functions <EM>valist</EM> functions. An example is <FONT COLOR=blue>vprintf</FONT>:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int vprintf(const char* format, va_list args)
+</FONT></PRE>
+</UL>
+CCured supports both kinds of functions and will scan the program to find out
+for each function what types of arguments are passed. In Section&nbsp;<A HREF="#sec-manualvararg">9.6.1</A>
+we describe how the programmer can prevent this automatic inference by
+specifying the set of types of arguments. <BR>
+<BR>
+CCured redefines the macros in <FONT COLOR=blue>&lt;stdarg.h&gt;</FONT> and <FONT COLOR=blue>&lt;vararg.h&gt;</FONT> to do
+special bookkeeping. In vararg functions, the macro <FONT COLOR=blue>va_start</FONT> is used to
+initialize an <FONT COLOR=blue>va_list</FONT> variable to point to the trailing arguments. CCured
+checks that the second argument is the last formal before the <FONT COLOR=blue>...</FONT>.<BR>
+<BR>
+Both in vararg and valist functions the macro <FONT COLOR=blue>va_arg</FONT> can be used, as
+follows: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+ T x = va_arg(args, T)
+</FONT></PRE>
+<FONT COLOR=blue>args</FONT> must be a <FONT COLOR=blue>va_list</FONT> variable and <FONT COLOR=blue>T</FONT> must be compatible after
+the usual actual argument promotions (e.g. <FONT COLOR=blue>char</FONT> and <FONT COLOR=blue>short</FONT> to <FONT COLOR=blue>int</FONT>
+and <FONT COLOR=blue>float</FONT> to <FONT COLOR=blue>double</FONT>) with one of the types in the <FONT COLOR=blue>struct</FONT> associated
+with <FONT COLOR=blue>args</FONT>. CCured checks this at run-time.<BR>
+<BR>
+The CCured support for variable argument functions is quite flexible.
+Multiple variable argument lists can be processed in parallel, an argument
+list can be re-initialized with <FONT COLOR=blue>va_start</FONT> and processed multiple times. A
+function can even work with variable argument lists that have different sets
+of types accepted (but for this you need to specify manually the set of types
+of arguments as explained in Section&nbsp;<A HREF="#sec-manualvararg">9.6.1</A>). Variable argument lists
+can be passed down but the regular CCured checks for stack allocated variables
+will prevent the passing of these lists up the call chain and also their
+storing in the heap.<BR>
+<BR>
+The main thing that is not supported in CCured is the fetching of an argument
+with a different type than it was stored. It remains to be seen if this is a
+problem. We have looked at several variable argument functions (including full
+implementations of <FONT COLOR=blue>printf</FONT> and <FONT COLOR=blue>sprintf</FONT>) and so far we have found that
+CCured accepts those functions without any change except for the specification
+of the <FONT COLOR=blue>struct</FONT> of the accepted argument types (as explained below).<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc72">9.6.1</A>&nbsp;&nbsp;Programmer control over vararg functions</H3>
+ <A NAME="sec-manualvararg"></A>
+If you do not want CCured to find automatically all the types that can be
+passed to a function, you can specify the set of types that can be used for
+arguments. Also, you should not let CCured infer the argument types for
+<FONT COLOR=blue>printf</FONT>-like functions, but you should instead use the special support for
+them, as explained in Section&nbsp;<A HREF="#sec-printf">9.6.2</A>.<BR>
+<BR>
+You can declare the argument types by declaring a descriptor. This is a
+<FONT COLOR=blue>struct</FONT> data type whose fields have the types that can be passed to the
+function. The order and the names of the fields do not matter. For example,
+such a struct for <FONT COLOR=blue>printf</FONT> would be the following (this structure is defined
+in <TT>ccured.h</TT>):
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct printf_arguments {
+   int      f_int;
+   double   f_double;
+   char    *f_string;
+};
+</FONT></PRE>
+The simplest way to specify that such a <FONT COLOR=blue>struct</FONT> describes the types of
+arguments for a variable argument function is to use a pragma:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma ccuredvararg("myvarargfunction", sizeof(struct printf_arguments))
+</FONT></PRE>
+Notes:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Since most variable argument functions are <TT>printf</TT>-like, CCured
+ provides special support for them. See Section&nbsp;<A HREF="#sec-printf">9.6.2</A> if your function is
+ of this kind. <BR>
+<BR>
+<LI CLASS="li-itemize">Note that CCured predefines the <FONT COLOR=blue>struct printf_arguments</FONT> so you do
+not have to redefine it.<BR>
+<BR>
+<LI CLASS="li-itemize">Like all CCured pragmas, you can put them anywhere in your project since
+CCured is going to merge all files into one. However, I typically prefer to
+put such pragmas in header files near the prototype for the function.<BR>
+<BR>
+<LI CLASS="li-itemize">This method does not work for specifying pointers to variable argument
+ functions. You must use the attribute method described below.<BR>
+<BR>
+<LI CLASS="li-itemize">The <FONT COLOR=blue>sizeof</FONT> operator is there because the syntax of pragmas is pretty
+much that of function calls and thus we cannot use types directly. <BR>
+<BR>
+<LI CLASS="li-itemize">This pragma can be used with both kinds of
+variable argument functions. In the case of valist functions it specifies that
+<EM>all</EM> formals and locals of type <FONT COLOR=blue>va_list</FONT> can hold arguments of the
+given types. 
+</UL>
+An equivalent method is to associate the <FONT COLOR=blue>__CCUREDVARARG(struct
+printf_arguments)</FONT> attribute with the type of the function
+<FONT COLOR=blue>myvarargfunction</FONT>:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int (__CCUREDVARARG(struct printf_arguments) myvarargfunction)(int last, ...);
+</FONT></PRE>
+You have to use this method if you want to specify that a function pointer is
+variable argument:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int (__CCUREDVARARG(struct printf_arguments) * myvarargptr)(int last, ...);
+typedef int (_CCUREDVARARG(struct printf_arguments) fptr)(char *format,...);
+</FONT></PRE>
+A more fine-grained way to specify the same thing is to use the
+<FONT COLOR=blue>__CCUREDVARARG</FONT> <EM>type attributes</EM> for <FONT COLOR=blue>va_list</FONT> every time it appears.
+This allows you to specify different sets of types for different locals:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+va_list __CCUREDVARARG(struct printf_arguments) args1, 
+        __CCUREDVARARG(struct some_other_type) args2;
+</FONT></PRE>
+
+<H3 CLASS="subsection"><A NAME="htoc73">9.6.2</A>&nbsp;&nbsp;Printf-like functions</H3><A NAME="sec-printf"></A>
+Since the vast majority of uses of variable argument functions if for
+<FONT COLOR=blue>printf</FONT>-like functions, CCured contains special support for them.
+Specifically if a vararg function is declared to be a <FONT COLOR=blue>printf</FONT>-like function
+then all of its invocations in which the format string is a constant will be
+checked statically. For the other invocations a wrapper for printf will be
+called that will check the types of the actuals against the format string
+before calling the real <FONT COLOR=blue>printf</FONT> function.<BR>
+<BR>
+To declare a function to be <FONT COLOR=blue>printf</FONT>-like use the following pragma:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma ccuredvararg("myprintf", printf(1))
+</FONT></PRE>
+where the last argument is the index of the format argument in the argument
+list (starting with 1). Note that you will get a run-time error if you try to
+use the <FONT COLOR=blue>va_arg</FONT> macro in the implementation of such a function. In those
+implementations you should invoke functions like <FONT COLOR=blue>vprintf</FONT> and <FONT COLOR=blue>vsprintf</FONT>
+instead.<BR>
+<BR>
+GCC already has support for communicating to the compiler that a function is
+<FONT COLOR=blue>printf</FONT>-like. This is done as follows:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int myprintf(const char* format, ...) __attribute__((format(printf, 1, 2)))
+</FONT></PRE>
+where the &#8220;1&#8221; means that the first argument is the format string and the
+&#8220;2&#8221; means that we should start checking with the second argument. CCured
+recognizes this attribute and it considers it equivalent with the
+<FONT COLOR=blue>ccuredvararg</FONT> from above. Note that the second argument in the
+<FONT COLOR=blue>format</FONT> attribute is ignored in CCured.<BR>
+<BR>
+You can use the <TT>format</TT> attribute even for function pointers:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int (__attribute__((format(printf, 1, 2))) *myptr)(char *format, ...);
+</FONT></PRE>
+Note that CCured does not currently like passing pointers to <FONT COLOR=blue>printf</FONT> with
+the intention of printing the pointer value. You should manually cast those
+pointers to <FONT COLOR=blue>long</FONT> when passing them to <FONT COLOR=blue>printf</FONT>-like functions.<BR>
+<BR>
+Also, you should not let CCured infer automatically the descriptors for
+<FONT COLOR=blue>printf</FONT>-like functions. Otherwise, it is quite likely that the descriptor
+that will be inferred is different than the built-in descriptor
+<FONT COLOR=blue>printf_arguments</FONT> (which the runtime library is using to check the calls
+to <FONT COLOR=blue>printf</FONT>-like functions. CCured will warn you about all automatically
+inferred descriptors and you should manually inspect all the functions
+involved. <BR>
+<BR>
+As for the regular variable argument functions, the <TT>pragma</TT> works only for
+named functions but not for pointers to functions. For that purpose you must
+use attributes: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int (__CCUREDFORMAT(1) * myprintf)(char *format, ...);
+typedef int (_CCUREDFORMAT(1) fptr)(char *format,...);
+</FONT></PRE>
+
+<H3 CLASS="subsection"><A NAME="htoc74">9.6.3</A>&nbsp;&nbsp;Scanf-like functions</H3><A NAME="sec-scanf-like"></A>
+Since it proved too much trouble to handle <FONT COLOR=blue>scanf</FONT>-like functions in a safe
+yet transparent way we currently require the programmer to rewrite the
+invocations to <FONT COLOR=blue>scanf</FONT> using a number of functions that we provide. For
+example instead of 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  int entry;   double then;   char buffer[6];
+
+ ... fscanf(file, "Entry:%d;  Then:%lf;  5 digits:%5[0-9]; useless text.", 
+            &amp;entry, &amp;then, buffer) ...
+</FONT></PRE>
+you should write
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+ ... (resetScanfCount(), 
+      entry = ccured_fscanf_int(file, "Entry:%d"),
+      then  = ccured_fscanf_double(file, ";  Then:%lf"),
+      ccured_fscanf_string(file, ";  5 digits:%5[0-9]", buffer), 
+      ccured_fscanf_nothing(file, "; useless text."), //advance the file pointer.
+      getScanfCount ()) ...
+</FONT></PRE>
+The functions <FONT COLOR=blue>resetScanfCount</FONT> and <FONT COLOR=blue>getScanfCount</FONT> are necessary only
+if you use the result of the call to <FONT COLOR=blue>fscanf</FONT> in the original code. Note
+that our replacement <FONT COLOR=blue>scanf</FONT> functions can be used to return only one result
+at a time, consequently the format string that is passed must contain only one
+format specifier, possibly along with characters to be matched. <BR>
+<BR>
+The following are the <FONT COLOR=blue>scanf</FONT>-like functions that we currently support:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+  extern int    ccured_fscanf_int(FILE *, char *format);
+  extern double ccured_fscanf_double(FILE *, char *format);
+  extern void   ccured_fscanf_string(FILE *, char *format, char *string);
+  extern void   ccured_fscanf_nothing(FILE *, char *format);
+</FONT></PRE>
+If the original program uses <FONT COLOR=blue>scanf</FONT>, just consider that you are using
+<FONT COLOR=blue>fscanf</FONT> from <FONT COLOR=blue>stdin</FONT>. If instead your program contains <FONT COLOR=blue>sscanf</FONT> then
+you can use the function 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+void resetSScanfCount(char *string);
+</FONT></PRE>
+to dump the string to the temporary file <FONT COLOR=blue>ccured_sscanf_file</FONT>
+then use the replacement for <FONT COLOR=blue>fscanf</FONT> from above. For example, 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+ ... (resetSScanfCount(inputString), 
+      entry = ccured_fscanf_int(ccured_sscanf_file, "Entry:%d"),
+      then  = ccured_fscanf_double(ccured_sscanf_file, ";   Then:%lf"),
+      ccured_fscanf_string(ccured_sscanf_file, ";   5 digits:%5[0-9]", buffer), 
+      getScanfCount ()) ...   //getScanfCount is required when using resetSScanfCount
+</FONT></PRE>
+<B>Note that the current support for <FONT COLOR=blue>scanf</FONT> is far from satisfactory and
+ will likely change in the future</B><BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc75">9.6.4</A>&nbsp;&nbsp;Implementation Issues</H3>
+Almost all of the checking for variable-argument functions is done at
+run-time. At the time of a call each actual argument is compared with the
+types in the <FONT COLOR=blue>struct</FONT> associated with the vararg function. A global data
+structure is filled with the number of arguments (in the global
+<FONT COLOR=blue>__ccured_va_count</FONT> and a list of indices describing for each actual
+argument the index within the <FONT COLOR=blue>struct</FONT> types (in <FONT COLOR=blue>__ccured_va_tags</FONT>). <BR>
+<BR>
+In the body of a vararg function, a data structure is allocated on the stack
+to hold a copy of the global description of the arguments that was created by
+the caller. The call to <FONT COLOR=blue>va_start</FONT> initializes this data structure and each
+call to <FONT COLOR=blue>va_arg</FONT> checks that we are not reading past the end of the
+actuals and also that the type of the fetched argument matches that of the
+actual argument. <BR>
+<BR>
+<A NAME="toc37"></A>
+<H2 CLASS="section"><A NAME="htoc76">9.7</A>&nbsp;&nbsp;Tagged Unions</H2><A NAME="sec-taggedunion"></A>
+As we have seen in Section&nbsp;<A HREF="tutorial.html#sec-union">3.2.2</A> CCured can handle union types whose
+fields have compatible pointer types at corresponding offsets. If this
+is not the case then you will need to tell CCured how to handle the
+union. One option is to turn the union into a struct, but we do not
+recommend this because it increases memory usage and can change the
+behavior of your program if your code writes to one union field and
+then reads from a different one. A better option is to declare that
+the union is a <EM>tagged union</EM>. CCured actually supports two
+forms of tagged unions: one in which CCured adds a tag field and
+maintains it for you, and one in which your program maintains its own
+tag, and CCured checks that it is used properly.<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc77">9.7.1</A>&nbsp;&nbsp;CCured-maintained tags</H3><A NAME="sec-taggedunion-ccured"></A>
+You can declare a union to be tagged by adding the attribute
+<TT>__TAGGED</TT> to its definition. CCured will expand the union to contain
+a tag field. A tag is an RTTI value (Section&nbsp;<A HREF="ccured007.html#sec-rtti">7.3</A>) that encodes the
+type of the last field written in each union value. Here is an example:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+union int_or_ptr {
+  int   i;
+  int  *p;
+} __TAGGED; // We declare it tagged
+
+int main() {
+  union int_or_ptr x;
+  int i;
+  x.i = 5;
+  i = x.i; // This will work
+  i = * x.p; // This will fail
+  x.p = &amp;i;
+  i = x.i; // This will fail
+  i = * x.p; // This will work
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex69.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex69.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+You can see that CCured has defined the following structure:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct tagged_int_or_ptr {
+   struct RTTI_ELEMENT *    __tag    ;
+   union int_or_ptr __data    ;
+} __TAGGED  ;
+</FONT></PRE>
+You can also see in the code that CCured generates assignments to the
+<FONT COLOR=blue>__tag</FONT> field before each assignment to a union field. And CCured inserts
+calls to <FONT COLOR=blue>CHECK_UNIONTAG</FONT> before each read-access to the field.<BR>
+<BR>
+Notes:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+If you declare a union type to be tagged you cannot take the address of
+ one of its fields. If your program takes the address of a union
+ field, you should change the union to a struct or otherwise
+ restructure the code.
+<LI CLASS="li-itemize">If a field of a union type is a structured type itself, any access to an
+ element of the field is treated (from the point of view of the tag
+ manipulation) as an access to that entire field. This means that you cannot
+ take the address of an element of a field either. 
+<LI CLASS="li-itemize">You can call the function <FONT COLOR=blue>CCURED_HASUNIONTAG</FONT> to test the
+ runtime value of a union tag. &#8220;<FONT COLOR=blue>CCURED_HASUNIONTAG(foo.bar)</FONT>&#8221;
+ will return <TT>true</TT> if it is safe to read field <FONT COLOR=blue>bar</FONT> in object
+ <FONT COLOR=blue>foo</FONT>, or false if such a read would cause a run-time error.
+<LI CLASS="li-itemize">Tagged unions use the same tag mechanism as RTTI pointers
+ (Section&nbsp;<A HREF="ccured007.html#sec-rtti">7.3</A>). This allows interoperability with RTTI pointers,
+ and creates an exception to the general rule that you may only read
+ from the most recently-written field of a tagged union. If two
+ fields have pointer types, and one of those types is a subtype of
+ the other, it is possible to write to one field and then read from a
+ different field. (All pointers are subtypes of <FONT COLOR=blue>void*</FONT>. Other
+ subtyping relationships can be declared as described in
+ Section&nbsp;<A HREF="ccured007.html#sec-rtti">7.3</A>.) For example:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+typedef struct foo {
+  int  *f1;
+} Foo;
+
+union ptrs {
+  void * v;
+  Foo * f;
+  int * i;
+} __TAGGED; // We declare it tagged
+
+int main() {
+  union ptrs u1, u2;
+  Foo f;
+  
+  //We write to the "void*" field, and read from the "Foo*" field.
+  //This works because rtti_ptr has Run-Time Typing Information.
+  void* __RTTI rtti_ptr = &amp;f;
+  u1.v = rtti_ptr;
+  Foo* pf = u1.f;       // This will work
+  int* pi = u1.i;       // This will fail
+
+  //We can also write to the Foo* field, and read from the void* field a
+  // pointer that has RTTI info. 
+  u2.f = &amp;f;            //write to the "Foo*" field
+  rtti_ptr = u2.v;      //  and read from the "void*" field
+  pf = (Foo*)rtti_ptr;  //This checked downcast will succeed.
+
+  return 0;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex70.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex70.cured.c">CCured output</A>
+for this code fragment</UL>
+
+<H3 CLASS="subsection"><A NAME="htoc78">9.7.2</A>&nbsp;&nbsp;User-defined tags</H3>
+Many programs define their own tagged unions, in which a struct
+contains a tag field and a union holding one of several types of
+data. In these cases, using a CCured-supplied tag is redundant. You
+can annotate a union to tell CCured what meaning you assign to various
+tag values, and CCured will then check that the tags are maintained
+properly.<BR>
+<BR>
+When a tag is modified, the &#8220;data&#8221; portion of the structure will be
+zeroed. <EM>Therefore, when writing both the tag and data portions,
+ programs must always modify the tag first, followed by the data.</EM><BR>
+<BR>
+When a program reads or writes the data part of a tagged union, CCured will
+read the tag and check that it is appropriate for the union field
+being accessed.<BR>
+<BR>
+Tags are defined by annotating each union field with
+<FONT COLOR=blue>__SELECTEDWHEN(<I>exp</I>)</FONT> where <I>exp</I> is a boolean expression.
+<I>exp</I> may contain integer arithmetic and comparisons, and it can refer
+to the runtime value of a field in an enclosing struct by specifying
+the name of that field. For example:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+enum tags {
+  TAG_ZERO = 0,
+};
+
+struct host {
+  short tag; // 0 for integer, 1 for structure, 10--12 for pointer to int
+  union bar {
+    int anint      __SELECTEDWHEN(tag == TAG_ZERO);
+
+    struct str {
+      int * * ptrptr;
+      float f;
+    } structure    __SELECTEDWHEN(tag == 1);
+
+    int * ptrint   __SELECTEDWHEN(tag &gt;= 10 &amp;&amp; tag &lt;= 12);
+  } data;
+} g;
+int x;
+
+int main() {
+  g.tag = 12;                 //Select g.data.ptrint
+  g.data.ptrint = &amp;x;
+
+  int* px = g.data.ptrint;    //To check that it's okay to access g.data.ptrint,
+                              //CCured checks "g.tag &gt;= 10 &amp;&amp; g.tag &lt;= 12"
+  return 0;
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex71.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex71.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+In this case, the <FONT COLOR=blue>__SELECTEDWHEN</FONT> attributes tell CCured that the
+field <FONT COLOR=blue>data.anint</FONT> is active when the <FONT COLOR=blue>tag</FONT> field is 0, the field
+<FONT COLOR=blue>data.structure</FONT> is active when the <FONT COLOR=blue>tag</FONT> field is 1, and the field
+<FONT COLOR=blue>data.ptrint</FONT> is active when the <FONT COLOR=blue>tag</FONT> field is between 10 and
+12.<BR>
+<BR>
+Notes:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<FONT COLOR=blue>__SELECTEDWHEN</FONT> annotations can reference more than one tag
+ field. The tags all must have integral types, and all must be
+ fields of the struct that contains the union in question.
+<LI CLASS="li-itemize">You must ensure that the <FONT COLOR=blue>__SELECTEDWHEN</FONT> annotations are
+ disjoint. That is, no two fields should be &#8220;selected&#8221; at once.
+ CCured does not yet check this.
+<LI CLASS="li-itemize">The requirement that tags be written only after the data value
+ is in many ways too restrictive. We are currently exploring other
+ solutions. If this is too restrictive for your program and you do
+ not need to maintain binary compatibility with external code,
+ consider letting CCured add its own tag, as described in
+ Section&nbsp;<A HREF="#sec-taggedunion-ccured">9.7.1</A>. CCured-maintained tags do not place
+ any limitation on write order, since CCured will have exclusive control
+ over the tag field that it cares about.
+<LI CLASS="li-itemize">When writing the tag field, CCured will zero the data field only
+ if the new tag is different from the old.
+</UL>
+<A NAME="toc38"></A>
+<H2 CLASS="section"><A NAME="htoc79">9.8</A>&nbsp;&nbsp;Annotated Lengths</H2><A NAME="sec-dependent"></A>
+Programmers can annotate array pointers with length attributes.
+CCured will then use the annotated length whenever it needs to do a
+bounds check on that pointer, instead of transforming the pointer into
+a fat pointer. This has two advantages: 
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+CCured will not need to change the representation of this
+ pointer, which improves compatibility with precompiled code.
+<LI CLASS="li-itemize">Using a CCured fat pointer to store the length of a buffer may
+ be redundant if the program already maintains a similar length value
+ near the pointer.
+</UL>
+Length annotations are allowed in two situations: struct fields may
+have length annotations that depend on the values of other fields in
+that struct, and function parameters may have lengths that depend on
+other parameters in that function. (NB: but the annotations on
+function parameters are not yet implemented. Coming soon ...)
+<BR>
+<BR>
+Only pointer types may be annotated. The annotation
+<FONT COLOR=blue>__SIZE(<I>exp</I>)</FONT> on a field means that the associated pointer is
+<I>exp</I> bytes long, where the expression <I>exp</I> can involve integer
+constants, arithmetic, <TT>sizeof</TT>, and the names of other fields in
+the same struct. So <FONT COLOR=blue>__SIZE(1 + foo)</FONT> means that the specified
+pointer has a length that's one greater than the runtime value of
+field foo in the same object.<BR>
+<BR>
+<FONT COLOR=blue>__COUNT(<I>exp</I>)</FONT> means that the pointer is <I>exp</I> elements long.
+So when annotating a pointer with type <FONT COLOR=blue>T*</FONT>, the
+annotation <FONT COLOR=blue>__COUNT(<I>exp</I>)</FONT> is equivalent to <FONT COLOR=blue>__SIZE(<I>exp</I> *
+sizeof(T))</FONT>.<BR>
+<BR>
+Any field that is referred to by a <FONT COLOR=blue>__SIZE</FONT> or <FONT COLOR=blue>__COUNT</FONT>
+annotation is a <EM>metadata field</EM>. When a metadata field is
+modified, any pointer fields that depend on it are set to NULL. <EM>Therefore, when writing both the metadata and pointer fields, programs
+must always modify the metadata first, followed by the pointer.</EM> <BR>
+<BR>
+When an annotated pointer field is read, CCured will read any
+metadata fields as well, and associate that length with the pointer.
+When a pointer field is written, CCured will check that the buffer's
+length is less than or equal to the length specified by the current
+value of the metadata fields.
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern void* malloc(int);
+#pragma ccuredalloc("malloc", sizein(1), nozero)
+
+struct bar {
+  int nrInts;
+  int *ints __COUNT(nrInts);
+};
+
+struct foo {
+  int sizeBars;
+  struct bar * bars __SIZE(sizeBars);
+};
+
+// Now the function that uses it
+
+void init(struct foo* pFoo) {
+  int nrBars = 5;
+  pFoo-&gt;sizeBars = nrBars * sizeof(* pFoo-&gt;bars);
+  pFoo-&gt;bars = (struct bar*)malloc(pFoo-&gt;sizeBars);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex72.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex72.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+In this code, we first overwrite the field <TT>pFoo-&gt;sizeBars</TT>, which
+automatically sets the field <TT>pFoo-&gt;bars</TT> to NULL. The next step is
+to write a new pointer to the <TT>pFoo-&gt;bars</TT> field. During this
+write, CCured will check that the pointer being written (in this case,
+the result of <TT>malloc</TT>) is at least &#8220;pFoo-&gt;sizeBars&#8221; bytes long.<BR>
+<BR>
+<A NAME="toc39"></A>
+<H2 CLASS="section"><A NAME="htoc80">9.9</A>&nbsp;&nbsp;Memory Management</H2><A NAME="sec-gc"></A>
+The high order bit: we use the Boehm-Weiser garbage collector. <BR>
+<BR>
+TODO : finish this section<BR>
+<BR>
+<A NAME="toc40"></A>
+<H2 CLASS="section"><A NAME="htoc81">9.10</A>&nbsp;&nbsp;CCured Pragmas</H2><A NAME="sec-pragma"></A>
+The following pragmas are recognized by CCured. Note that pragmas can only
+appear in between global declarations. Some of them are discussed in more
+detail in following sections:
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+<FONT COLOR=blue>#pragma box(off)</FONT> - Turn off curing. The code that is not cured does
+not contribute constraints to the type inferencer. However the code is changed
+slightly during the program transformation phase to make sure that whenever it
+refers to global variables that were cured it uses their <FONT COLOR=blue>_p</FONT> field. 
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma box(on)</FONT> - Turn curing back on
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma nobox("myfunc")</FONT> - Turn curing off for the function
+<FONT COLOR=blue>myfunc</FONT> 
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma boxtext(...)</FONT> - CCured will turn this pragma into the <FONT COLOR=blue>...</FONT>
+text in the cured file
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma ccuredpoly("myfunc1", "myfunc2", "struct foo")</FONT> - CCured will
+treat the <FONT COLOR=blue>myfunc1</FONT> and <FONT COLOR=blue>myfunc2</FONT> functions and the <FONT COLOR=blue>foo</FONT> structure
+polymorphically. See Section&nbsp;<A HREF="ccured007.html#sec-poly">7.1</A>.
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma ccuredalloc("malloc", nozero, sizein(1))</FONT> - CCured will treat
+<FONT COLOR=blue>malloc</FONT> as an allocation function whose length is passed in the first
+argument and which does not zero the allocated area. See Section&nbsp;<A HREF="ccured007.html#sec-malloc">7.2</A>.
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma ccuredalloc("calloc", zero, sizemul(1,2))</FONT> - CCured will treat
+<FONT COLOR=blue>calloc</FONT> as an allocation function whose length is passed are the product of
+the first two arguments and which does zero the allocated area. See
+Section&nbsp;<A HREF="ccured007.html#sec-malloc">7.2</A>.
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma ccuredvararg("myfunc", sizeof(struct myfunc_arguments))</FONT> -
+Declares <FONT COLOR=blue>myfunc</FONT> to be a variable argument function that can be passed a
+variable number of arguments each having one of the types of the fields of
+<FONT COLOR=blue>struct myfunc_arguments</FONT>. See Section&nbsp;<A HREF="#sec-vararg">9.6</A>.
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma ccuredvararg("myprintf", printf(2))</FONT> - Declares <FONT COLOR=blue>myprintf</FONT> to
+be a printf-like function whose format string is in the second argument.
+ See Section&nbsp;<A HREF="#sec-vararg">9.6</A>.
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma ccuredwrapper("foo_wrapper", of("foo"))</FONT> -
+ Declares <FONT COLOR=blue>foo_wrapper</FONT> to be a wrapper for <FONT COLOR=blue>foo</FONT>. See
+ Chapter&nbsp;<A HREF="ccured008.html#ch-wrapper">8</A>. Implies <FONT COLOR=blue>#pragma cilnoremove</FONT> and <FONT COLOR=blue>#pragma
+ ccuredpoly</FONT> for <FONT COLOR=blue>foo_wrapper</FONT>.
+<LI CLASS="li-enumerate"><FONT COLOR=blue>#pragma cilnoremove("func1", "var2", "type foo", "struct bar")</FONT> -
+Instructs CIL to keep the declarations and definitions of the function
+<FONT COLOR=blue>func1</FONT> and variable <FONT COLOR=blue>var2</FONT>, the definition of type <FONT COLOR=blue>foo</FONT> and of
+structure <FONT COLOR=blue>bar</FONT>.
+</OL>
+<HR>
+<A HREF="ccured008.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured010.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

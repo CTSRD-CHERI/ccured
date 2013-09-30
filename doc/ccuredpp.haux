@@ -1,0 +1,162 @@
+\@addtocsec{htoc}{1}{-1}{\@print{Chapter&nbsp;1}\quad{}Introduction}
+\@addtocsec{htoc}{2}{0}{\@print{1.1}\quad{}Authors}
+\@addtocsec{htoc}{3}{-1}{\@print{Chapter&nbsp;2}\quad{}Installation}
+\newlabel{ch-start}{{2}{X}}
+\@addtocsec{htoc}{4}{0}{\@print{2.1}\quad{}Get the CCured sources}
+\@addtocsec{htoc}{5}{0}{\@print{2.2}\quad{}Configure and Compile CCured}
+\@addtocsec{htoc}{6}{0}{\@print{2.3}\quad{}Test CCured}
+\@addtocsec{htoc}{7}{-1}{\@print{Chapter&nbsp;3}\quad{}CCured Tutorial}
+\newlabel{ch-tutorial}{{3}{X}}
+\@addtocsec{htoc}{8}{0}{\@print{3.1}\quad{}CCured Attributes}
+\newlabel{sec-typeannot}{{3.1}{X}}
+\@addtocsec{htoc}{9}{0}{\@print{3.2}\quad{}\SAFE{} pointers}
+\@addtocsec{htoc}{10}{1}{\@print{3.2.1}\quad{}Safe Casts}
+\@addtocsec{htoc}{11}{1}{\@print{3.2.2}\quad{}Union types}
+\newlabel{sec-union}{{3.2.2}{X}}
+\@addtocsec{htoc}{12}{1}{\@print{3.2.3}\quad{}\SAFE{} Function Pointers}
+\@addtocsec{htoc}{13}{0}{\@print{3.3}\quad{}Checks for \SAFE{} Pointers}
+\@addtocsec{htoc}{14}{0}{\@print{3.4}\quad{}Checks for Returning Pointers}
+\@addtocsec{htoc}{15}{0}{\@print{3.5}\quad{}Checks for Writing Pointers}
+\newlabel{sec-storeptr}{{3.5}{X}}
+\@addtocsec{htoc}{16}{0}{\@print{3.6}\quad{}\t{SEQ}uence Pointers}
+\@addtocsec{htoc}{17}{1}{\@print{3.6.1}\quad{}Representation}
+\@addtocsec{htoc}{18}{1}{\@print{3.6.2}\quad{}Invariants for SEQ pointers}
+\@addtocsec{htoc}{19}{1}{\@print{3.6.3}\quad{}Run-time checks for SEQ pointers}
+\newlabel{sec-checkseq}{{3.6.3}{X}}
+\@addtocsec{htoc}{20}{1}{\@print{3.6.4}\quad{}Casts allowed for \SEQ{} pointers}
+\@addtocsec{htoc}{21}{0}{\@print{3.7}\quad{}\FSEQ{} Pointers}
+\@addtocsec{htoc}{22}{1}{\@print{3.7.1}\quad{}Arrays of unspecified length}
+\@addtocsec{htoc}{23}{0}{\@print{3.8}\quad{}\WILD{} Pointers}
+\@addtocsec{htoc}{24}{0}{\@print{3.9}\quad{}Split Metadata}
+\newlabel{sec-splitmeta}{{3.9}{X}}
+\@addtocsec{htoc}{25}{-1}{\@print{Chapter&nbsp;4}\quad{}Invoking CCured}
+\newlabel{ch-invoke}{{4}{X}}
+\@addtocsec{htoc}{26}{0}{\@print{4.1}\quad{}Command-line options}
+\newlabel{sec-commandline}{{4.1}{X}}
+\@addtocsec{htoc}{27}{0}{\@print{4.2}\quad{}Controlling error handling at run time}
+\newlabel{sec-errorhandle}{{4.2}{X}}
+\@addtocsec{htoc}{28}{-1}{\@print{Chapter&nbsp;5}\quad{}CCured Type Inference}
+\newlabel{ch-typeinference}{{5}{X}}
+\@addtocsec{htoc}{29}{0}{\@print{5.1}\quad{}Using the pointer browser}
+\newlabel{sec-browser}{{5.1}{X}}
+\@addtocsec{htoc}{30}{-1}{\@print{Chapter&nbsp;6}\quad{}Using CCured}
+\newlabel{ch-examples}{{6}{X}}
+\@addtocsec{htoc}{31}{0}{\@print{6.1}\quad{}Example: \t{mathopd} HTTP server}
+\newlabel{sec-mathopd}{{6.1}{X}}
+\@addtocsec{htoc}{32}{1}{\@print{6.1.1}\quad{}Step 1: Regular Build}
+\@addtocsec{htoc}{33}{1}{\@print{6.1.2}\quad{}Step 2: Build with CIL}
+\@addtocsec{htoc}{34}{1}{\@print{6.1.3}\quad{}Step 3: Build with CCured}
+\@addtocsec{htoc}{35}{1}{\@print{6.1.4}\quad{}Step 4: Write the wrappers}
+\@addtocsec{htoc}{36}{1}{\@print{6.1.5}\quad{}Step 5: Run and Debug the cured code}
+\@addtocsec{htoc}{37}{0}{\@print{6.2}\quad{}Example: UCSPI TCP Suite}
+\newlabel{sec-ucspi}{{6.2}{X}}
+\@addtocsec{htoc}{38}{1}{\@print{6.2.1}\quad{}Step 1: Regular Build}
+\@addtocsec{htoc}{39}{1}{\@print{6.2.2}\quad{}Step 2: Build with CIL}
+\@addtocsec{htoc}{40}{1}{\@print{6.2.3}\quad{}Step 3: Build with CCured}
+\@addtocsec{htoc}{41}{1}{\@print{6.2.4}\quad{}Step 4: Write the wrappers}
+\@addtocsec{htoc}{42}{1}{\@print{6.2.5}\quad{}Step 5: Run and debug the cured code}
+\@addtocsec{htoc}{43}{0}{\@print{6.3}\quad{}Example: PING}
+\@addtocsec{htoc}{44}{0}{\@print{6.4}\quad{}Example: THTTPD Server}
+\@addtocsec{htoc}{45}{1}{\@print{6.4.1}\quad{}Step 1: Regular Build}
+\@addtocsec{htoc}{46}{1}{\@print{6.4.2}\quad{}Step 2: Build with CIL}
+\@addtocsec{htoc}{47}{1}{\@print{6.4.3}\quad{}Step 3: Build with CCured}
+\@addtocsec{htoc}{48}{-1}{\@print{Chapter&nbsp;7}\quad{}How to Eliminate WILD Pointers}
+\newlabel{ch-nowild}{{7}{X}}
+\@addtocsec{htoc}{49}{0}{\@print{7.1}\quad{}Polymorphism}
+\newlabel{sec-poly}{{7.1}{X}}
+\@addtocsec{htoc}{50}{0}{\@print{7.2}\quad{}User-defined memory allocators}
+\newlabel{sec-malloc}{{7.2}{X}}
+\@addtocsec{htoc}{51}{0}{\@print{7.3}\quad{}Pointers with Run-Time Type Information}
+\newlabel{sec-rtti}{{7.3}{X}}
+\@addtocsec{htoc}{52}{1}{\@print{7.3.1}\quad{}Implementation Details}
+\@addtocsec{htoc}{53}{0}{\@print{7.4}\quad{}Specifying Trusted Code}
+\newlabel{sec-trusted}{{7.4}{X}}
+\@addtocsec{htoc}{54}{1}{\@print{7.4.1}\quad{}Trusted casts}
+\@addtocsec{htoc}{55}{1}{\@print{7.4.2}\quad{}Turning off curing}
+\@addtocsec{htoc}{56}{-1}{\@print{Chapter&nbsp;8}\quad{}Writing Wrappers}
+\newlabel{ch-wrapper}{{8}{X}}
+\@addtocsec{htoc}{57}{0}{\@print{8.1}\quad{}Name Mangling}
+\newlabel{sec-mangling}{{8.1}{X}}
+\@addtocsec{htoc}{58}{0}{\@print{8.2}\quad{}Writing Simple Wrappers}
+\@addtocsec{htoc}{59}{0}{\@print{8.3}\quad{}Writing Complex Wrappers}
+\@addtocsec{htoc}{60}{0}{\@print{8.4}\quad{}Wrappers for data}
+\@addtocsec{htoc}{61}{0}{\@print{8.5}\quad{}Wrapper Helper Functions}
+\newlabel{sec-wrapperhelper}{{8.5}{X}}
+\@addtocsec{htoc}{62}{1}{\@print{8.5.1}\quad{}Helpers for incoming wrapper arguments}
+\@addtocsec{htoc}{63}{1}{\@print{8.5.2}\quad{}Helpers for outgoing wrapper return values}
+\@addtocsec{htoc}{64}{0}{\@print{8.6}\quad{}Final Notes on Wrappers}
+\@addtocsec{htoc}{65}{-1}{\@print{Chapter&nbsp;9}\quad{}Advanced CCured Issues}
+\@addtocsec{htoc}{66}{0}{\@print{9.1}\quad{}Function Pointers}
+\newlabel{sec-funptr}{{9.1}{X}}
+\@addtocsec{htoc}{67}{0}{\@print{9.2}\quad{}The \c{main} Function}
+\newlabel{sec-main}{{9.2}{X}}
+\@addtocsec{htoc}{68}{0}{\@print{9.3}\quad{}Global Initialization}
+\newlabel{sec-globinit}{{9.3}{X}}
+\@addtocsec{htoc}{69}{0}{\@print{9.4}\quad{}Casting Integers to Pointers}
+\newlabel{sec-castint}{{9.4}{X}}
+\@addtocsec{htoc}{70}{0}{\@print{9.5}\quad{}The \c{sizeof} Issue}
+\newlabel{sec-sizeof}{{9.5}{X}}
+\@addtocsec{htoc}{71}{0}{\@print{9.6}\quad{}Variable argument functions}
+\newlabel{sec-vararg}{{9.6}{X}}
+\@addtocsec{htoc}{72}{1}{\@print{9.6.1}\quad{}Programmer control over vararg functions}
+\newlabel{sec-manualvararg}{{9.6.1}{X}}
+\@addtocsec{htoc}{73}{1}{\@print{9.6.2}\quad{}Printf-like functions}
+\newlabel{sec-printf}{{9.6.2}{X}}
+\@addtocsec{htoc}{74}{1}{\@print{9.6.3}\quad{}Scanf-like functions}
+\newlabel{sec-scanf-like}{{9.6.3}{X}}
+\@addtocsec{htoc}{75}{1}{\@print{9.6.4}\quad{}Implementation Issues}
+\@addtocsec{htoc}{76}{0}{\@print{9.7}\quad{}Tagged Unions}
+\newlabel{sec-taggedunion}{{9.7}{X}}
+\@addtocsec{htoc}{77}{1}{\@print{9.7.1}\quad{}CCured-maintained tags}
+\newlabel{sec-taggedunion-ccured}{{9.7.1}{X}}
+\@addtocsec{htoc}{78}{1}{\@print{9.7.2}\quad{}User-defined tags}
+\@addtocsec{htoc}{79}{0}{\@print{9.8}\quad{}Annotated Lengths}
+\newlabel{sec-dependent}{{9.8}{X}}
+\@addtocsec{htoc}{80}{0}{\@print{9.9}\quad{}Memory Management}
+\newlabel{sec-gc}{{9.9}{X}}
+\@addtocsec{htoc}{81}{0}{\@print{9.10}\quad{}CCured Pragmas}
+\newlabel{sec-pragma}{{9.10}{X}}
+\@addtocsec{htoc}{82}{-1}{\@print{Chapter&nbsp;10}\quad{}CCured Warnings and Errors}
+\newlabel{ch-warn}{{10}{X}}
+\@addtocsec{htoc}{83}{0}{\@print{10.1}\quad{}Merging}
+\newlabel{sec-warn-merge}{{10.1}{X}}
+\@addtocsec{htoc}{84}{0}{\@print{10.2}\quad{}Inference}
+\newlabel{sec-warn-infer}{{10.2}{X}}
+\@addtocsec{htoc}{85}{0}{\@print{10.3}\quad{}Curing}
+\newlabel{sec-warn-cure}{{10.3}{X}}
+\@addtocsec{htoc}{86}{0}{\@print{10.4}\quad{}Linking}
+\newlabel{sec-warn-link}{{10.4}{X}}
+\@addtocsec{htoc}{87}{0}{\@print{10.5}\quad{}Running the Cured Code}
+\newlabel{sec-warn-run}{{10.5}{X}}
+\@addtocsec{htoc}{88}{-1}{\@print{Chapter&nbsp;11}\quad{}License}
+\@addtocsec{htoc}{89}{-1}{\@print{Chapter&nbsp;12}\quad{}Bug reports}
+\@addtocsec{htoc}{90}{-1}{\@print{Chapter&nbsp;13}\quad{}Changes}
+\newlabel{sec-changes}{{13}{X}}
+\@addtocsec{htoc}{91}{-1}{\@print{Appendix&nbsp;A}\quad{}Inference Results}
+\newlabel{ch-graph}{{A}{X}}
+\@addtocsec{htoc}{92}{1}{\@print{A.0.1}\quad{}Annotated Source}
+\newlabel{sec-graphannot}{{A.0.1}{X}}
+\@addtocsec{htoc}{93}{1}{\@print{A.0.2}\quad{}Inference Graphs }
+\newlabel{sec-graphformat}{{A.0.2}{X}}
+\@addtocsec{htoc}{94}{0}{\@print{A.1}\quad{}Type Names}
+\newlabel{sec-tnames}{{A.1}{X}}
+\@addtocsec{htoc}{95}{-1}{\@print{Appendix&nbsp;B}\quad{}A Tour of the Source Code}
+\@addtocsec{htoc}{96}{-1}{\@print{Appendix&nbsp;C}\quad{}Old Tutorials}
+\@addtocsec{htoc}{97}{0}{\@print{C.1}\quad{}ftpd}
+\@addtocsec{htoc}{98}{0}{\@print{C.2}\quad{}Writing Wrappers Manually}
+\newlabel{sec-manualwrappers}{{C.2}{X}}
+\@addtocsec{htoc}{99}{0}{\@print{C.3}\quad{}Apache Modules}
+\@addtocsec{htoc}{100}{1}{\@print{C.3.1}\quad{}Introduction}
+\@addtocsec{htoc}{101}{1}{\@print{C.3.2}\quad{}Curing Apache Modules}
+\@addtocsec{htoc}{102}{1}{\@print{C.3.3}\quad{}Linking Apache Modules}
+\@addtocsec{htoc}{103}{-1}{\@print{Appendix&nbsp;D}\quad{}Using the Regression Tester}
+\newlabel{ch-regtest}{{D}{X}}
+\@addtocsec{htoc}{104}{0}{\@print{D.1}\quad{}Running the regression}
+\newlabel{sec-regtest}{{D.1}{X}}
+\@addtocsec{htoc}{105}{0}{\@print{D.2}\quad{}Analyzing the results}
+\@addtocsec{htoc}{106}{0}{\@print{D.3}\quad{}Configuring the regression}
+\@addtocsec{htoc}{107}{0}{\@print{D.4}\quad{}An alternative interface}
+\@addtocsec{htoc}{108}{0}{\@print{D.5}\quad{}The Automated Regression Tester}
+\@addtocsec{htoc}{109}{-1}{\@print{Appendix&nbsp;E}\quad{}Debugging support}
+\newlabel{sec-debugger}{{E}{X}}
+\@addtocsec{htoc}{110}{-1}{\@print{Appendix&nbsp;F}\quad{}Experimental Features}

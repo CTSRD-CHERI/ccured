@@ -1,0 +1,171 @@
+// ccured_MSVC.patch    -*- c++ -*-
+
+<<<
+_CRTIMP int __cdecl open(const char *, int, ...);
+===
+@__pattern__@
+struct open_arguments { 
+    int a;
+};
+#pragma ccuredvararg("__open",sizeof(struct open_arguments))
+#pragma ccuredvararg("open",sizeof(struct open_arguments))
+>>>
+
+<<< file=io.h, ateof
+===
+#include <io_wrappers.h>
+>>>
+
+
+// On MSVC disable the ctype macros
+<<< file=ctype.h
+#ifdef  __cplusplus
+extern "C" {
+#endif
+===
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+#ifdef CCURED
+#define _CTYPE_DISABLE_MACROS
+#endif
+>>>
+
+<<< file=stdio.h, ateof
+===
+// This model must be placed at the end of stdio to ensure that FILE is
+// defined 
+#ifdef CCURED
+
+// Declare our accessor functions
+FILE *get_stdin(void);
+  #pragma ccuredpoly("get_stdin")
+FILE *get_stdout(void);
+  #pragma ccuredpoly("get_stdout")
+FILE *get_stderr(void);
+  #pragma ccuredpoly("get_stderr")
+#ifdef stdin
+ #undef stdin
+ #undef stdout
+ #undef stderr
+#endif
+#define stdin (get_stdin()) 
+#define stdout (get_stdout()) 
+#define stderr (get_stderr())
+
+
+#endif  // CCURED
+
+//wrappers for sprintf, fgets, etc
+#include <stdio_wrappers.h>
+
+>>>
+
+<<< file=varargs.h
+#ifndef _INC_VARARGS
+#define _INC_VARARGS
+===
+@__pattern__@
+#define WE_ARE_IN_VARARGS
+>>>
+
+
+// Code to intercept the varargs on both stdarg.h and varargs.h
+<<<
+#endif  /* _INC_STDARG */
+|||
+#endif  /* _INC_VARARGS */
+===
+#ifdef CCURED
+  typedef struct __ccured_va_list { int next; } *__ccured_va_list;
+  #ifdef va_start
+    #undef va_start
+    #undef va_list
+    #undef va_arg
+    #undef va_end
+  #endif
+  extern void __ccured_va_start(__ccured_va_list,unsigned long) ;
+  #pragma ccuredpoly("__ccured_va_arg")
+  extern void *__ccured_va_arg(__ccured_va_list, unsigned int, int);
+  extern void __ccured_va_end(__ccured_va_list);
+  #define va_list               __ccured_va_list
+  #ifdef WE_ARE_IN_VARARGS
+     #define va_start(valst) \
+           __ccured_va_start(valst, GCC_VARARGS_START())
+#                             &(va_alist))
+     #define va_arg(valst, typ)    \
+           *(typ *)__ccured_va_arg(valst, sizeof(typ), -1)
+     #define va_end(valst)        \
+            __ccured_va_end(valst)
+  #else// stdarg.h
+     #define va_start(valst, last) \
+           __ccured_va_start(valst, GCC_STDARG_START())
+//  
+//                             (unsigned long)&(last) + \
+//                                    (((sizeof(last) +  3) >> 2) << 2))
+     #define va_arg(valst, typ)    \
+           *(typ *)__ccured_va_arg(valst, sizeof(typ), -1)
+     #define va_end(valst)        \
+            __ccured_va_end(valst)
+  #endif
+#endif
+  #undef WE_ARE_IN_VARARGS
+@__pattern__@
+>>>
+
+
+<<< file=crtdbg.h, ateof
+===
+#ifdef CCURED
+#pragma ccuredvararg("_CrtDbgReport", printf(1))
+#endif
+>>>
+
+// The va_list is also defined in stdio.h
+<<< file=stdio.h
+typedef char *  va_list;
+===
+#ifdef CCURED
+  // Bring in the definition from stdarg
+  #include <stdarg.h>
+#else
+@__pattern__@
+#endif
+>>>
+
+
+<<< file=string.h, optional, ateof
+===
+//strdup_wrapper needs a declaration of malloc:
+#include <malloc.h> 
+
+//wrappers for bzero, strcpy, strcat, etc.
+#include "string_wrappers.h"
+>>>
+
+<<< file=stdlib.h, ateof
+===
+#include <stdlib_wrappers.h>
+>>>
+
+<<< file=time.h, ateof
+===
+#include <time_wrappers.h>
+>>>
+
+
+// MSVC 7 lets you tag variables as possibly needing attention when porting
+// to a 64-bit architecture.  Cil doesn't understand the tag, so just define
+// _W64 as nothing for now.
+// This patch matches many different files.
+<<< optional
+#if !defined(_W64)
+===
+#if !defined(_W64)
+#define _W64
+#endif
+#if !defined(_W64)
+>>>
+
+

@@ -1,0 +1,405 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+CCured Warnings and Errors
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured009.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured011.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc82">Chapter&nbsp;10</A>&nbsp;&nbsp;CCured Warnings and Errors</H1><A NAME="ch-warn"></A>
+As you use CCured you might encounter various kinds of problems. Most of
+these are due to a combination of aggressive coding practices and CCured being
+less smart than the programmer. (Note: this section is continuously being
+expanded; if you do not see the answer to your question, or if the answer is
+not helpful, let us know).<BR>
+<BR>
+<A NAME="toc41"></A>
+<H2 CLASS="section"><A NAME="htoc83">10.1</A>&nbsp;&nbsp;Merging</H2><A NAME="sec-warn-merge"></A>
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+You see this warning message in the merging stage:
+<PRE CLASS="verbatim">
+combine20_2.c:11: Warning: uniqueVarNames: Changing the name of local tmp___0 in main to tmp___1
+</PRE>This is nothing to worry about. It means that the merged has discovered a
+naming error in the merged file and has fixed it. <BR>
+<BR>
+<LI CLASS="li-itemize">Also during merging, you see:
+<PRE CLASS="verbatim">
+/usr/include/sys/socket.h:189: Error: Incompatible declaration for accept (4). Previous was at rblsmtpd.c:103 (0) (different type constructors: void  vs. int )
+</PRE>
+ This means that the merger has detected two incompatible declarations or
+definitions of the same external global. You must fix that either by changing
+all definitions and declarations to have the same type. In fact, in the
+sources for gcc we found a few bugs like this where one function was defined
+with one type and was declared and used with another type in some other file.<BR>
+<BR>
+In some cases however, there is nothing wrong with the program but it just
+happens to redefine a function already defined in the library (as in the
+example from which we got the error message). The program redefines accepts in
+one file and uses the library's accept in another file. When you put the
+things together it does not make sense anymore. You should change the name of
+your global in that case.<BR>
+<BR>
+<LI CLASS="li-itemize">Also during merging, you may see:
+<PRE CLASS="verbatim">
+/home/weimer/cil/include/netdb_wrappers.h:110: Warning: The name gethostent_wrapper is used for two distinct globals
+</PRE>
+TODO. </UL>
+<A NAME="toc42"></A>
+<H2 CLASS="section"><A NAME="htoc84">10.2</A>&nbsp;&nbsp;Inference</H2><A NAME="sec-warn-infer"></A>
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+You see this warning in the Inference stage:
+<PRE CLASS="verbatim">
+chkshsgr.c:8: Warning: Calling function getgroups without proper prototype: will be WILD.
+  getgroups has type void * __attribute__((___ptrnode__(12))) /* /* missing proto */  */()
+</PRE>
+ You should always have prototypes for the functions that you use. In fact,
+CCured will be happy if you include the prototype in at least one of your
+modules!<BR>
+<BR>
+<LI CLASS="li-itemize">Or, you see this
+<PRE CLASS="verbatim">
+chkshsgr.c:8: Warning: Calling function _exit with 1 arguments when expecting 0: will be WILD.
+  _exit has type void ()
+</PRE>
+ Here what happens is that <FONT COLOR=blue>exit</FONT> is declared like &#8220;void _exit();&#8221;. This
+is legal in C, and it allows you to call <FONT COLOR=blue>_exit</FONT> with whatever arguments
+you choose. CCured will accept that but the cost will be that the function
+becomes a <TT>WILD</TT> function with some significant run-time cost to ensure that
+you call it correctly. Better, use a correct prototype!<BR>
+<BR>
+<LI CLASS="li-itemize">CCured cannot handle soundly inline assembly. You will see this if you
+try to cure a program that contains inline assembly.
+<PRE CLASS="verbatim">
+iopause.c:68: Error: You did not turn on the handling of inline assembly. Better hide this assembly somewhere else!
+</PRE>
+ You can turn on the (unsound) handling of inline assembly by passing the
+argument <FONT COLOR=blue>&ndash;allowInlineAssembly</FONT> to CCured. But you should try instead to
+hide that inline assembly from CCured. You can put it in a file that CCured
+does not see, for example (pass the name of that function with the
+<FONT COLOR=blue>&ndash;leavealone</FONT> argument to CCured). <BR>
+<BR>
+<LI CLASS="li-itemize">Sometimes you see these warnings:
+<PRE CLASS="verbatim">
+pathexec_env.c:42: Warning: Encountered sizeof(char */* __attribute__((___ptrnode__(2595))) */) when type contains pointers. Use sizeof expression. Type has a disconnected node.
+</PRE>
+ Section&nbsp;<A HREF="ccured009.html#sec-sizeof">9.5</A> explains what the problem could be here.<BR>
+<BR>
+<LI CLASS="li-itemize">Sometimes you get this warning in the inference stage:
+<PRE CLASS="verbatim">
+Warning: Generated automatic vararg descriptor for log_d: struct autoVarargDescr_log_d : char const   */* __attribute__((___ptrnode__(922))) */,
+uid_t
+If this is a printf-like function you should declare it!
+</PRE>
+ This means that the function <FONT COLOR=blue>log_d</FONT> is a variable argument function that
+was not declared using a <FONT COLOR=blue>ccuredvararg</FONT> pragma. In absence of such a pragma,
+CCured examines all the call sites of that function and collects the set of
+types for the arguments. You must inspect the definition of the function
+involved to ensure that CCured has inferred correctly. If you see that this is
+not the case, <EM>or if the function is a printf-like function</EM>, the you
+should provide an explicit descriptor, as explained in Section&nbsp;<A HREF="ccured009.html#sec-vararg">9.6</A>. <BR>
+<BR>
+<LI CLASS="li-itemize">You get an error &#8220;<FONT COLOR=blue>type mismatch between called and use of va_arg
+function</FONT>&#8221;. One possible problem is that you have a printf-like function that
+CCured did not recognize and it inferred for it a wrong set of possible
+argument types. For example,
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#include &lt;stdio.h&gt;
+#include &lt;stdarg.h&gt;
+
+void myprintf(int level, const char *fmt, ...)
+{
+  va_list ap;
+  char msgbuf[2048];
+
+  va_start(ap,fmt);
+  vsnprintf(msgbuf, sizeof(msgbuf), fmt, ap);
+  puts(msgbuf); 
+  va_end(ap); 
+}
+
+int main()
+{
+  int i;
+
+  myprintf(0, "Hello, %s! 2+2=%d\n", "world", 4); 
+  return 0; 
+} 
+</FONT></PRE>
+<a target="_blank" href="examples/ex73.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex73.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Here CCured will infer that the possible argument types for <FONT COLOR=blue>myprintf</FONT>
+contain only <FONT COLOR=blue>int</FONT> and <FONT COLOR=blue>char *</FONT> (based on the call). Yet, the built-in
+<FONT COLOR=blue>vsnprintf</FONT> uses a different set of argument types. To fix this problem you
+must add:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+#pragma ccuredvararg("myprintf", printf(2))
+</FONT></PRE><BR>
+<BR>
+<LI CLASS="li-itemize">You might also see a warning such as the following:
+<PRE CLASS="verbatim">
+/home/necula/ccured/include/netdb_wrappers.h:329: Warning: Solver: changing User Specified SAFE node 1371 (the local variable p_ith_alias) to WILD
+</PRE>
+ This means that CCured must change a user-specified <TT>SAFE</TT> pointer into
+<TT>WILD</TT>. Open the browser (see Section&nbsp;<A HREF="ccured005.html#sec-browser">5.1</A>) and type in the node number
+in question. Have you annotated that pointer to be <TT>SAFE</TT>? If yes, then
+CCured thinks otherwise. If the message is from a wrapper (like the above
+example) then most likely is a symptom of a badly written wrapper.<BR>
+<BR>
+<LI CLASS="li-itemize">Another possible warning that you might see is:
+<PRE CLASS="verbatim">
+/usr/include/sys/socket.h:156: Warning: sendmsg appears to be external
+  (it has a wrapper), yet it has a mangled name: sendmsg_scsws_.
+  Did you forget to use __ptrof and a version of __mkptr?
+ For more information, consult the online documentation on
+  "Writing Wrappers".
+</PRE>
+ In this case CCured mangles the name of the <FONT COLOR=blue>sendmsg</FONT> function (see
+Section&nbsp;<A HREF="ccured008.html#sec-mangling">8.1</A>). The type of this function is
+<PRE CLASS="verbatim">
+struct msghdr {
+   void *msg_name ;
+   socklen_t msg_namelen ;
+   struct iovec *msg_iov ;
+   int msg_iovlen ;
+   void *msg_control ;
+   socklen_t msg_controllen ;
+   int msg_flags ;
+};
+int sendmsg(int s, const struct msghdr *fat_msg, int flags);
+</PRE>
+ The particular mangling suffix (_scsws_) means that the <FONT COLOR=blue>msg_iov</FONT>
+pointer must be <TT>WILD</TT>. We can investigate why this happens also using the
+browser. We press &#8220;Show types&#8221; and then click on <FONT COLOR=blue>msghdr</FONT>. We see that
+indeed the <FONT COLOR=blue>msg_iov</FONT> field is <TT>WILD</TT> and when we click on the red pointer
+type we find out that the <FONT COLOR=blue>__trusted_add_iov</FONT> issue is the cause of this
+problem.</UL>
+<A NAME="toc43"></A>
+<H2 CLASS="section"><A NAME="htoc85">10.3</A>&nbsp;&nbsp;Curing</H2><A NAME="sec-warn-cure"></A>
+<UL CLASS="itemize"><LI CLASS="li-itemize"><PRE CLASS="verbatim">
+main.c:278: Warning: Casting scalar (1) to non-WILD pointer in main!
+</PRE>This warning says that the given scalar expression is assigned to a pointer
+lvalue. This assignment probably has the effect that the lvalue is not
+<TT>SAFE</TT>. During the assignment, CCured will produce a fat pointer value whose
+metadata is NULL, which means that it cannot be used to access memory. In this
+particular case, this is Ok, since nobody in its right mind would plan to use
+the number 1 as an address. <BR>
+<BR>
+But sometimes you have a pointer value that is stored in an integer variable
+and you want later to use it as a pointer. This is not safe in CCured, because
+the compiler cannot be sure where this pointer originated. There are several
+ways to solve this one. First, maybe the scalar variable that is being
+assigned should be a pointer variable after all. If you cannot do that then
+you must come up with some other pointer variable that is supposed to be in
+the same home memory area as the scalar. Then you can change the code, as
+follows: 
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * home;
+int   scalar;
+int * p = (int*)scalar;
+// Change the last line:
+int * p = home + (((int)scalar - (int)home) &gt;&gt; 2);
+// Or, even
+int * p = __mkptr(scalar, home);
+</FONT></PRE>
+Anyway, it is best if you keep pointer values into pointer variables at
+all times. <BR>
+<BR>
+<LI CLASS="li-itemize"><PRE CLASS="verbatim">
+Error: The suffix for the compatible version of sigaction_COMPAT is ws. This means that you have misused this compatible version. Please check your code.
+</PRE>
+ The <FONT COLOR=blue>sigaction_COMPAT</FONT> is a copy of <FONT COLOR=blue>struct sigaction</FONT> that CCured
+creates automatically for use in wrappers. However, that structure should
+remain compatible with the external version. When you get this error it means
+that you have written an incorrect wrapper and somehow the constraints from
+your program flow into the compatible version of the structure. You should use
+the browser to find out why this happens.<BR>
+<BR>
+<LI CLASS="li-itemize"><PRE CLASS="verbatim">
+Warning: isImported for CHECK_FORMATARGS, which is not even declared
+</PRE>
+TODO. <BR>
+<BR>
+<LI CLASS="li-itemize"><PRE CLASS="verbatim">
+dnssec.c:236: Warning: Casting SAFE void* to FSEQ. The area is 1 word.
+</PRE>
+TODO. </UL>
+<A NAME="toc44"></A>
+<H2 CLASS="section"><A NAME="htoc86">10.4</A>&nbsp;&nbsp;Linking</H2><A NAME="sec-warn-link"></A>
+<UL CLASS="itemize"><LI CLASS="li-itemize">During linking you get the error:
+<PRE CLASS="verbatim">
+mathopd_comb.o: In function `log_request':
+mathopd_comb.o(.text+0x189fd): undefined reference to `asctime_qs'
+</PRE>
+ If the missing function is one with a mangling suffix (see Section&nbsp;<A HREF="ccured008.html#sec-mangling">8.1</A>)
+then this means that CCured has changed the calling convention of the
+functions involved (in this case <FONT COLOR=blue>asctime</FONT>) and you need to provide a
+wrapper to match the calling convention to the library version. See
+Chapter&nbsp;<A HREF="ccured008.html#ch-wrapper">8</A> for details on how to do that.<BR>
+<BR>
+If the missing function has a &#8220;_t&#8221; mangling, then it is a <TT>WILD</TT>
+function. You have either used the function without a prototype, or with a
+type that does not match the prototype, or you have cast its pointer to
+something strange. See if you can fix the prototypes (and fill in the argument
+types in the function types).<BR>
+<BR>
+However, if the missing function does not have a mangled name then it means
+that somehow CCured has lost an external global. This is probably a bug in
+CIL, most likely in the module that removes unnecessary locals and prototypes.
+Try disabling that module by passing the <FONT COLOR=blue>&ndash;keepunused</FONT> flag to CCured. <BR>
+<BR>
+<LI CLASS="li-itemize">You get this error while trying to use the merger.
+<PRE CLASS="verbatim">
+gcc -D_GNUCC  -o tcpserver -s tcpserver_comb.o cdb.a dns.a time.a unix.a byte.a
+cdb.a: could not read symbols: Archive has no index; run ranlib to add one
+</PRE>
+ You look at <FONT COLOR=blue>cdb.a</FONT> and it is not a object file at all but, starts like
+this:
+<PRE CLASS="verbatim">
+!&lt;arch&gt;
+cdb.o/          1042137412  1002  100   100644  20279     `
+#pragma merger(0, "./cdb.i", "")
+# 1 "cdb.c"
+ 
+
+# 1 "/home/necula/ccured/include/gcc_2.95.3/sys/types.h" 1
+</PRE>
+ You look at <FONT COLOR=blue>cdb.o</FONT> and, indeed, it is not an object file, but a copy of
+the <FONT COLOR=blue>cdb.i</FONT> file. This is normal. What happened is that for merging,
+compilation means just preprocessing (this explains why <FONT COLOR=blue>cdb.o</FONT> is as it
+is). But the problem is that you have just invoked the <FONT COLOR=blue>ar</FONT> program to build
+a library out of object files that are actually text file. The solution is to
+use instead of <FONT COLOR=blue>ar</FONT> the command <FONT COLOR=blue>ccured &ndash;mode=AR</FONT>. This should create the
+<FONT COLOR=blue>cdb.a</FONT> library as needed, but if you look at it, it is a C source file that
+contains all the stuff from the archived files, with the necessary renaming to
+avoid conflicts between static variables. You can find more information about
+the merger at <A HREF="../cil/merger.html"><TT>../cil/merger.html</TT></A>. <BR>
+<BR>
+<LI CLASS="li-itemize">You get this error while trying to use the merger. 
+<PRE CLASS="verbatim">
+ranlib: cdb.a: File format not recognized
+</PRE>
+ You look at <FONT COLOR=blue>cdb.a</FONT> and find that it is a merged source file. You should
+not use <FONT COLOR=blue>ranlib</FONT> on such files.<BR>
+<BR>
+<LI CLASS="li-itemize">Or this link-time error: 
+<PRE CLASS="verbatim">
+client.c:2139: warning: second parameter of `va_start' not last named
+argument
+</PRE>
+TODO. </UL>
+<A NAME="toc45"></A>
+<H2 CLASS="section"><A NAME="htoc87">10.5</A>&nbsp;&nbsp;Running the Cured Code</H2><A NAME="sec-warn-run"></A>
+When you run the code you might get run-time errors. Make sure you read the
+Chapter&nbsp;<A HREF="ccured004.html#ch-invoke">4</A> on ways to control the handling of errors. 
+<UL CLASS="itemize"><LI CLASS="li-itemize">At run-time you get the error:
+<PRE CLASS="verbatim">
+Failure UBOUND at config.c:924: new_pool(): Ubound
+Aborted
+</PRE>
+ This says that the code triggered an upper bound check. Investigate the
+problem first by looking at the line number. Also run the program with
+<FONT COLOR=blue>gdb</FONT>; it should stop right where the error arises.<BR>
+<BR>
+There is one relatively common instance when you get a UBound error. Say that
+the variable <FONT COLOR=blue>ceiling</FONT> is intended to be the end of a memory area:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+int * ceiling = area + area_length;
+</FONT></PRE>
+The <FONT COLOR=blue>area</FONT> pointer will be inferred <TT>FSEQ</TT> but the <FONT COLOR=blue>ceiling</FONT> pointer
+will be inferred <TT>SAFE</TT>. This means that before the assignment, CCured will
+insert an upper-bound check, which will fail. <BR>
+<BR>
+There are several solutions:
+ <UL CLASS="itemize"><LI CLASS="li-itemize">
+ Change the <FONT COLOR=blue>ceiling</FONT> pointer to be a <TT>FSEQ</TT> pointer. This is always
+ Ok, or
+ <LI CLASS="li-itemize">Change the <FONT COLOR=blue>ceiling</FONT> pointer to be an integer. This is Ok if you
+ never plan to use the value it contains as a pointer (scan the <FONT COLOR=blue>comb.c</FONT>
+ file to see all the uses of a variable), or
+ <LI CLASS="li-itemize">Pass the<FONT COLOR=blue>&ndash;noUnrefPointerChecks</FONT> to CCured to ask it to figure out
+ those pointer values that do not appear to be used, and to treat them as
+ integers.
+ </UL><BR>
+<BR>
+<LI CLASS="li-itemize"><PRE CLASS="verbatim"> 
+Failure UBOUND at ping.c:1303: main(): Ubound
+</PRE>
+ Also an upper bound. We look at the code and we find the following:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct icmp {
+   int various;
+   char data[1];
+};
+char outpack[65536];
+
+char foo() {
+ // Get the 8th data character
+ return ((struct icmp*)outpack)-&gt;data[8];
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex74.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex74.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+This looks good overall, but technically we are accessing the 8th character
+in a 1 character array. Once you cast the <FONT COLOR=blue>outpack</FONT> array to <TT>struct
+icmp*</TT>, you loose access to some of the trailing characters. If you look at
+the cured code you will see in fact the CCured uses a length of 1 in doing the
+bounds check.<BR>
+<BR>
+Instead you could change the code to express more directly what you mean:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct icmp {
+   int various;
+   char data[1];
+};
+char outpack[65536];
+
+char foo() {
+ // Get the 8th data character
+ return * (outpack + (int) &amp;((struct icmp*)0)-&gt;data[8]);
+}
+</FONT></PRE>
+<a target="_blank" href="examples/ex75.browser/index.html">Browse</a> the CCured inferred pointer kinds,
+or see the <A HREF="examples/ex75.cured.c">CCured output</A>
+for this code fragment<BR>
+<BR>
+Now the access is in the <TT>outpack</TT> array and its length is used for bounds
+checking. <BR>
+<BR>
+<LI CLASS="li-itemize">You get this error: <PRE CLASS="verbatim">
+Failure STORE_SP at pathexec_env.c:47: pathexec_qq(): Storing stack address
+</PRE>
+ This means that you are trying to store into the heap, a pointer to some
+stack location. See Section&nbsp;<A HREF="tutorial.html#sec-storeptr">3.5</A> for how to fix this. In rare occasions
+the pointer is from your <TT>argv</TT> or <TT>envp</TT> arguments. Use <TT>strdup</TT> in
+that case. </UL>
+<HR>
+<A HREF="ccured009.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured011.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

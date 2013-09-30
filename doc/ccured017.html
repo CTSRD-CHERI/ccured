@@ -1,0 +1,292 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Using the Regression Tester
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured016.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured018.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc103">Appendix&nbsp;D</A>&nbsp;&nbsp;Using the Regression Tester</H1><A NAME="ch-regtest"></A>
+The regression tester is a program that allows you to do two things: 
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Run a list of shell commands and capture their standard and error output
+ in a log file, and<BR>
+<BR>
+<LI CLASS="li-itemize">Analyze such log files and extract various information, among which the
+ most important is which test cases have succeeded and which have failed. <BR>
+<BR>
+<LI CLASS="li-itemize">Compare results of two runs according to many parameters, such as
+whether the test succeeded or not, how much time CCured took to process it,
+how many different kinds of pointers were inferred and how fast is the
+resulting program. 
+</UL>
+Since the running of the tests and the analysis of the output is separated
+you can easily do things like compare the results on multiple runs, extract
+various reports from a single output (like what tests have succeeded, which
+have failed, plus such information split by test groups). You can also extract
+some data from each test (such as the running time) and make simple reports. <BR>
+<BR>
+Test cases can have comments associated with them (such as reminders of why
+it fails) and can be associated with zero or more test groups.<BR>
+<BR>
+<A NAME="toc50"></A>
+<H2 CLASS="section"><A NAME="htoc104">D.1</A>&nbsp;&nbsp;Running the regression</H2><A NAME="sec-regtest"></A>
+The regression tester is implemented in Perl as "<TT>testsafec.pl</TT>", which in
+turn contains simple wrappers for functions provided by the more generic
+<TT>RegTest.pm</TT>.<BR>
+<BR>
+The regression tester uses relative paths so it must be run in the
+ <TT>cil/test</TT> directory.<BR>
+<BR>
+The basic command for running the tests is "<TT>testsafec &ndash;run</TT>". This runs
+all of the test cases, saving the log in the file "<TT>safec.log</TT>". Before
+creating this file, it renames previous versions of this file as
+"<TT>safec.log.&lt;n&gt;</TT>" where n is an integer starting from 1 to a maximum number
+that is configurable.<BR>
+<BR>
+The following command line options are useful for running the tests (see
+ "<TT>testsafec &ndash;help</TT>" for a complete list:
+<PRE CLASS="verbatim">
+ --one &lt;testname&gt;       : runs only the named test
+ --gory                 : shows lots of details about the execution of the
+                          test, such as the commands executed
+ --dryrun               : only pretends to run the test. Useful to see what
+                          would be run
+ --log                  : select the base name of the log file (default
+                          "safec.log")
+ --logversions &lt;n&gt;      : keep logs up to version &lt;n&gt;. Default is 5.
+ --noremake             : runs the commands without trying to remake the safec
+                          compiler before each test. Useful if you want to 
+                          work on the compiler while the tests are running
+ --safecdebug           : uses the DEBUG version of the safec compiler and
+                          uses the C compiler in debug mode. By default it
+                          used the RELEASE version and the optimizing compiler.
+
+
+
+ --group &lt;groupname&gt;    : adds all the tests in the named group to the list of 
+                          tests to be run or to participate in the analysis of
+                          the log. (Right now we have groups: apache,
+                          bad, cil, box, infer.) If no such option is
+                          specified then all tests are selected. Multiple such
+                          options can be given and are cumulative. 
+ --nogroup &lt;groupname&gt;  : excludes the tests in the named group from running
+                          or from the analysis. Multiple such options can be
+                          given and are cumulative. These options are
+                          processed after all --group options have 
+                          been processed. 
+
+ --listtests            : list the tests that are enabled along with their
+                          group membership. This is useful to find out what
+                          tests and groups exist.
+
+ --stoponerror          : stop at the first error
+ --showoutput           : show the output on the console. Normally output is
+                          saved in a file.  
+</PRE>
+ <A NAME="toc51"></A>
+<H2 CLASS="section"><A NAME="htoc105">D.2</A>&nbsp;&nbsp;Analyzing the results</H2>
+The basic command for analyzing log files is "<TT>testsafec</TT>". This will
+prompt the user to select one of the several log files that exist in the
+current directory and then (by default) it will print a list of the failed
+test cases, with a short (user provided) comment and the last error message
+detected in the output for that test case.<BR>
+<BR>
+The following commands are useful during analysis:
+<PRE CLASS="verbatim">
+ --log                  : select the log file (see above)
+ --group, --nogroup     : select groups (see above)
+ --listtests            : list tests and groups (see above)
+ --param=&lt;pnames&gt;       : show a report about the successes, with the columns
+                          being the named parameters (separated by ,). Run
+                          "testsafec --help" to see what parameters are
+                          available. Use --param=ALL to make a report with 
+                          all available parameters.
+ --sort=&lt;pnames&gt;        : sorts the report by the given parameters. 
+</PRE>
+ Furthermore, the reports that are generated can be compared. To compare the
+ results of two runs (whose logs are say &#8220;safec.log.1&#8221; and &#8220;safec.log.2&#8221;,
+ run 
+<PRE CLASS="verbatim">
+ test/compare safec.log.2 safec.log.1 --group=slow
+</PRE>
+ This will compare the results of <TT>safec.log.2</TT> using as reference the
+results in log <TT>safec.log.1</TT>.<BR>
+<BR>
+<A NAME="toc52"></A>
+<H2 CLASS="section"><A NAME="htoc106">D.3</A>&nbsp;&nbsp;Configuring the regression</H2>
+For this you have to edit testsafec.pl. You will see a large section in the
+ middle of the file containing lines like:
+<PRE CLASS="verbatim">
+\$TEST-&gt;add3Tests("test/array1");
+</PRE>
+ (check out the definition of <TT>add3Tests</TT> at the bottom of the file). This
+ adds three tests named "<TT>test/array1-cil</TT>", "<TT>test/array1-box</TT>" and
+ <TT>test/array1-inferbox</TT>", each one containing one command that invokes
+ "<TT>make test/array1 ...</TT>", where <TT>...</TT> are appropriate parameters.<BR>
+<BR>
+A second optional string parameter to <TT>add2Tests</TT> is something to be added
+ to the command line.<BR>
+<BR>
+A third optional array parameters is a list of patterns to be used in
+scanning the output of the test cases. This is an advanced feature and you are
+on your own. <BR>
+<BR>
+To add just one test do (as in the body of add3Tests):
+<PRE CLASS="verbatim">
+    $TEST-&gt;newTest(Name =&gt; "mytestname",
+                   Dir =&gt; "..",
+                   Cmd =&gt; "make something",
+                   Enabled =&gt; 1,
+                   Comm =&gt; "Print this along with the test name",
+                   Group =&gt; ["cil", "othergroup"],
+                   Patterns =&gt; \%mypatterns);
+</PRE>Sometimes you might want to add just a comment or to add one group to a
+ certain test. Use the following simple functions: 
+<PRE CLASS="verbatim">
+ $TEST-&gt;addGroups("mytestname", "group1", "group2");
+ $TEST-&gt;addComment("mytestname", "Another line of comment");
+</PRE>
+ There are some wrappers defined at the end of testsafec.pl:
+<PRE CLASS="verbatim">
+   $TEST-&gt;add3BadComment("test/scope3", "missing prototype");
+</PRE>
+ (this one adds a comment and the group "bad" to all three test cases)
+<PRE CLASS="verbatim">
+  $TEST-&gt;addBadComment("li-box", "bug in box.ml");
+</PRE>
+ (the same but just for one test)
+<PRE CLASS="verbatim">
+  $TEST-&gt;enable("li-box", 0);   (disable the li-box test case)
+</PRE>
+ For more advanced customization, read the Perl code. It is fairly easy to
+ understand, especially the testsafec.pl.<BR>
+<BR>
+<A NAME="toc53"></A>
+<H2 CLASS="section"><A NAME="htoc107">D.4</A>&nbsp;&nbsp;An alternative interface</H2>
+A simpler (but somewhat less powerful) interface to add tests is
+provided by the <TT>smAddTest</TT> and <TT>smFailTest</TT> functions. <BR>
+<BR>
+Suppose you want to add a test which runs &#8220;<TT>make sometarget
+someoptions</TT>&#8221;. Just say
+<PRE CLASS="verbatim">
+  smAddTest("sometarget someoptions");
+</PRE>somewhere after <TT>smAddTest</TT> is defined.<BR>
+<BR>
+If at some point this test stops working for <TT>somereason</TT> (just a
+human-readable one-line description of what's wrong), and you want the
+regression tester to expect failure, change it to read
+<PRE CLASS="verbatim">
+  smFailTest("somereason", "sometarget someoptions");
+</PRE>
+There are also facilities for associating a diagnosis with a failure
+(for example, if failure of a particular test is often due to a
+known, fixable cause), and for running a shell script upon completion
+of a test. See the <TT>scott/tprintf</TT> and <TT>scott/ptrkinds</TT> tests
+for examples of each.<BR>
+<BR>
+Finally, there is a script called <TT>regrtest</TT> in the base <TT>cil</TT>
+directory which runs <TT>testsafec.pl</TT> with a set of options which:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Stops on the first failure or unexpected success.
+<LI CLASS="li-itemize">Prints all test output to the screen (in addition to the log).
+<LI CLASS="li-itemize">Numbers tests, and allows you to skip to a particular test.
+<LI CLASS="li-itemize">Runs a mix of tests designed to maximize both speed and
+ coverage. It runs in about 1 minute on a fast (1GHz) machine,
+ and is made up mostly of micro-tests isolated from previous
+ bugs in CCured.
+</UL>
+To use this, just say &#8220;<TT>./regrtest</TT>&#8221; in the <TT>cil</TT> directory.
+It accepts the &#8220;<TT>-help</TT>&#8221; option.<BR>
+<BR>
+<A NAME="toc54"></A>
+<H2 CLASS="section"><A NAME="htoc108">D.5</A>&nbsp;&nbsp;The Automated Regression Tester</H2>
+Every time you commit a change to the CIL or CCURED repositories you trigger
+two regression tests. The first is called the QUICK test and it takes about 5
+minutes to complete and you should be receiving email with the results. If you
+don't then it must be that the automated regression tester is not running or
+it has encountered a problem that it cannot fix. <BR>
+<BR>
+The automated regression tester is implemented as a script <TT>mk-reports.pl</TT>
+and lives in the home directory of user <TT>regtest</TT> on <TT>manju</TT>. To see
+whether the tester is running run <TT>ps -Af</TT> and look for a line <TT>perl
+mk-reports.pl -daemon</TT>. If you do not see any let me know. <BR>
+<BR>
+Here are the operations that are performed by the tester:
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+A new directory is created under <TT>/home/regtest/cil.nightly</TT>. The name
+of the directory encodes the time of the commit (e.g.
+<TT>2001-12-07_17_50_-0800.dir</TT> is the directory for the commit at 17:50 on
+07/12/2001 in the timezone that is 8 hours behind UTC). 
+<LI CLASS="li-enumerate">A complete copy of CIL and CCURED is checked out in that directory and
+<TT>make setup</TT> is run in there. 
+<LI CLASS="li-enumerate">Then in the <TT>test</TT> directory we run <TT>testsafec</TT> but only on the
+groups that are known to terminate quickly. This run takes about 3 minutes. A
+copy of the <TT>safec.log</TT> file generated is saved as <TT>/home/regtest/cil.nightly/2001-12-07_17_50_-0800.safec.quick.log</TT>.
+<LI CLASS="li-enumerate">Then we run <TT>testsafec</TT> again to produce a report with all available
+parameters. This report is saved as
+<TT>/home/regtest/cil.nightly/2001-12-07_17_50_-0800.report.quick.txt</TT>. In the
+event that any of the previous steps fail this file will be created but with
+zero length.
+<LI CLASS="li-enumerate">Then we compare this report both with the previous commit and with a
+reference report and a message is sent to the user who performed the commit.
+This report is also saved as <TT>/home/regtest/cil.nightly/2001-12-07_17_50_-0800.msg.quick.txt</TT>. 
+</OL>
+The automated regression tester should be running continuously and monitoring
+the commits every 60 seconds. However, between midnight and 6am it alternates
+between the QUICK run described above and a SLOW run that processes those
+tests that the QUICK run does not do. A SLOW run might take anywhere between
+15 and 30 minutes. The SLOW report is generated using the same checked-out
+repository as the QUICK run. Results of the regression test, reports and
+messages for the SLOW run are saved in similar files as for the QUICK run
+except that the word &#8220;quick&#8221; is replaced by &#8220;slow&#8221; in the name of those
+files. <BR>
+<BR>
+If the QUICK report is zero-length then the SLOW run is not performed. This
+is at the moment the only way to prevent the SLOW run from happening.<BR>
+<BR>
+If both the QUICK and SLOW reports exist then the directory containing the
+distribution can be deleted. <BR>
+<BR>
+The reference report is in
+<TT>/home/regtest/cil.nightly/reference.report.quick.txt</TT>. You can edit it
+manually to change the reference for the messages but please do so only to
+improve it.<BR>
+<BR>
+You can start <TT>regtest</TT> manually (though this shouldn't be necessary):
+&#8220;<TT>sudo become-regtest</TT>&#8221; (only certain users can do this), then
+&#8220;<TT>perl mk-reports.pl</TT>&#8221;.<BR>
+<BR>
+For each of your commit, a copy of the repository is checked out. This takes
+about 150Mb on <TT>manju</TT> and 30 minutes worth of regression testing. If you
+want to disable the SLOW run (because, for example, you made a silly mistake
+and are committing a fix right away) you have to manually delete the contents
+(<B>not the file</B>) of the corresponding <TT>report.quick</TT>. <BR>
+<BR>
+<HR>
+<A HREF="ccured016.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured018.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

@@ -1,0 +1,202 @@
+<html><body bgcolor=white onload='parent.fileFinishedLoading();'>
+<link rel=stylesheet type="text/css" href="styles.css"><pre>
+struct <img name="if0" src=pixel.gif width=10 height = 10> <a name="f0"></a>printf_arguments {
+   int i ;
+   double d ;
+   char <img name="in3" src=pixel.gif width=10 height = 10> <a name="n3" class="other" href="javascript: sn(3)">*<sub>3</sub></a>s <img name="in4" src=pixel.gif width=10 height = 10> <a name="n4" class="safe" href="javascript: sn(4)">&<sub>4</sub></a>;
+   long long ll ;
+};
+struct msghdr;
+struct iovec;
+struct <img name="if1" src=pixel.gif width=10 height = 10> <a name="f1"></a>msghdr {
+   void <img name="in6" src=pixel.gif width=10 height = 10> <a name="n6" class="safe" href="javascript: sn(6)">*<sub>6</sub></a>msg_name <img name="in7" src=pixel.gif width=10 height = 10> <a name="n7" class="safe" href="javascript: sn(7)">&<sub>7</sub></a>;
+   int msg_namelen ;
+   <a href="javascript: sff(0)">struct iovec </a> <img name="in9" src=pixel.gif width=10 height = 10> <a name="n9" class="fseq" href="javascript: sn(9)">*<sub>9</sub></a>msg_iov <img name="in10" src=pixel.gif width=10 height = 10> <a name="n10" class="safe" href="javascript: sn(10)">&<sub>10</sub></a>;
+   int msg_iovlen ;
+   void <img name="in12" src=pixel.gif width=10 height = 10> <a name="n12" class="safe" href="javascript: sn(12)">*<sub>12</sub></a>msg_control <img name="in13" src=pixel.gif width=10 height = 10> <a name="n13" class="safe" href="javascript: sn(13)">&<sub>13</sub></a>;
+   int msg_controllen ;
+   int msg_flags ;
+};
+struct <img name="if2" src=pixel.gif width=10 height = 10> <a name="f2"></a>iovec {
+   char  * iov_base ;
+   int iov_len ;
+};
+<img name="if3" src=pixel.gif width=10 height = 10> <a name="f3"></a>extern void __ccuredInit(void) ;
+<img name="if4" src=pixel.gif width=10 height = 10> <a name="f4"></a>extern void abort_deepcopy(char  * errmsg  ) ;
+struct msghdr_COMPAT;
+struct iovec_COMPAT;
+struct <img name="if5" src=pixel.gif width=10 height = 10> <a name="f5"></a>msghdr_COMPAT {
+   void <img name="in22" src=pixel.gif width=10 height = 10> <a name="n22" class="safe" href="javascript: sn(22)">*<sub>22</sub></a>msg_name <img name="in23" src=pixel.gif width=10 height = 10> <a name="n23" class="safe" href="javascript: sn(23)">&<sub>23</sub></a>;
+   int msg_namelen ;
+   <a href="javascript: sff(1)">struct iovec_COMPAT </a>  * msg_iov ;
+   int msg_iovlen ;
+   void <img name="in28" src=pixel.gif width=10 height = 10> <a name="n28" class="safe" href="javascript: sn(28)">*<sub>28</sub></a>msg_control <img name="in29" src=pixel.gif width=10 height = 10> <a name="n29" class="safe" href="javascript: sn(29)">&<sub>29</sub></a>;
+   int msg_controllen ;
+   int msg_flags ;
+};
+<img name="if6" src=pixel.gif width=10 height = 10> <a name="f6"></a>extern int sendmsg(int fd  ,
+                   <a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> <img name="in32" src=pixel.gif width=10 height = 10> <a name="n32" class="safe" href="javascript: sn(32)">*<sub>32</sub></a>msg  ,
+                   int flags  ) <img name="in33" src=pixel.gif width=10 height = 10> <a name="n33" class="safe" href="javascript: sn(33)">&<sub>33</sub></a>;
+static int /*1*/sendmsg_wrapper3(int fd  ,
+                                 <a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in50" src=pixel.gif width=10 height = 10> <a name="n50" class="safe" href="javascript: sn(50)">*<sub>50</sub></a>msg  <img name="in108" src=pixel.gif width=10 height = 10> <a name="n108" class="safe" href="javascript: sn(108)">&<sub>108</sub></a>,
+                                 int flags  ) <img name="in51" src=pixel.gif width=10 height = 10> <a name="n51" class="safe" href="javascript: sn(51)">&<sub>51</sub></a>;
+int foo(int fd  ,
+        <a href="javascript: sf(0, 'if2')">struct iovec </a> <img name="in34" src=pixel.gif width=10 height = 10> <a name="n34" class="fseq" href="javascript: sn(34)">*<sub>34</sub></a>array  <img name="in37" src=pixel.gif width=10 height = 10> <a name="n37" class="safe" href="javascript: sn(37)">&<sub>37</sub></a>,
+        int array_len  ) <img name="in35" src=pixel.gif width=10 height = 10> <a name="n35" class="safe" href="javascript: sn(35)">&<sub>35</sub></a>;
+<img name="if7" src=pixel.gif width=10 height = 10> <a name="f7"></a>int foo(int fd  ,
+        <a href="javascript: sf(0, 'if2')">struct iovec </a> <img name="in34" src=pixel.gif width=10 height = 10> <a name="n34" class="fseq" href="javascript: sn(34)">*<sub>34</sub></a>array  <img name="in37" src=pixel.gif width=10 height = 10> <a name="n37" class="safe" href="javascript: sn(37)">&<sub>37</sub></a>,
+        int array_len  ) 
+{ <a href="javascript: sf(0, 'if1')">struct msghdr </a> msg <img name="in39" src=pixel.gif width=10 height = 10> <a name="n39" class="safe" href="javascript: sn(39)">&<sub>39</sub></a>;
+  <a href="javascript: sf(0, 'if2')">struct iovec </a>  * foo___0 ;
+  int tmp ;
+
+  {
+  msg.msg_name = 0;
+  msg.msg_namelen = 0;
+  msg.msg_iov<img name="if8" src=pixel.gif width=10 height = 10> <a name="f8"></a> = array;
+  msg.msg_iovlen = array_len;
+  msg.msg_control = 0;
+  msg.msg_controllen = 0;
+  msg.msg_flags = 0;
+  foo___0 = msg.msg_iov <img name="if9" src=pixel.gif width=10 height = 10> <a name="f9"></a>+ 1;
+  tmp = <a href="javascript: sff(2)">/*1*/sendmsg_wrapper3</a> (fd, & msg, 0);
+  return (tmp);
+}
+}
+struct <img name="if10" src=pixel.gif width=10 height = 10> <a name="f10"></a>iovec_COMPAT {
+   char  * iov_base ;
+   int iov_len ;
+};
+extern void __deepcopy_msghdr_to_compat(<a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> <img name="in55" src=pixel.gif width=10 height = 10> <a name="n55" class="safe" href="javascript: sn(55)">*<sub>55</sub></a>compat  <img name="in58" src=pixel.gif width=10 height = 10> <a name="n58" class="safe" href="javascript: sn(58)">&<sub>58</sub></a>,
+                                        <a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in56" src=pixel.gif width=10 height = 10> <a name="n56" class="safe" href="javascript: sn(56)">*<sub>56</sub></a>fat  <img name="in59" src=pixel.gif width=10 height = 10> <a name="n59" class="safe" href="javascript: sn(59)">&<sub>59</sub></a>) <img name="in57" src=pixel.gif width=10 height = 10> <a name="n57" class="safe" href="javascript: sn(57)">&<sub>57</sub></a>;
+//
+
+<img name="if11" src=pixel.gif width=10 height = 10> <a name="f11"></a>extern void <img name="in69" src=pixel.gif width=10 height = 10> <a name="n69" class="safe" href="javascript: sn(69)">*<sub>69</sub></a>/*2*/__ptrof_nocheck(void <img name="in70" src=pixel.gif width=10 height = 10> <a name="n70" class="safe" href="javascript: sn(70)">*<sub>70</sub></a>ptr  ) <img name="in71" src=pixel.gif width=10 height = 10> <a name="n71" class="safe" href="javascript: sn(71)">&<sub>71</sub></a>;
+<img name="if12" src=pixel.gif width=10 height = 10> <a name="f12"></a>extern int /*3*/__ccured_has_empty_mangling(unsigned int   ) ;
+<img name="if13" src=pixel.gif width=10 height = 10> <a name="f13"></a>extern void <img name="in75" src=pixel.gif width=10 height = 10> <a name="n75" class="safe" href="javascript: sn(75)">*<sub>75</sub></a>/*4*/__trusted_cast(void <img name="in76" src=pixel.gif width=10 height = 10> <a name="n76" class="safe" href="javascript: sn(76)">*<sub>76</sub></a>p  ) <img name="in77" src=pixel.gif width=10 height = 10> <a name="n77" class="safe" href="javascript: sn(77)">&<sub>77</sub></a>;
+<img name="if14" src=pixel.gif width=10 height = 10> <a name="f14"></a>extern void <img name="in81" src=pixel.gif width=10 height = 10> <a name="n81" class="safe" href="javascript: sn(81)">*<sub>81</sub></a>/*5*/__ptrof_nocheck(void <img name="in82" src=pixel.gif width=10 height = 10> <a name="n82" class="fseq" href="javascript: sn(82)">*<sub>82</sub></a>ptr  ) <img name="in83" src=pixel.gif width=10 height = 10> <a name="n83" class="safe" href="javascript: sn(83)">&<sub>83</sub></a>;
+<img name="if15" src=pixel.gif width=10 height = 10> <a name="f15"></a>extern int /*6*/__ccured_has_empty_mangling(unsigned int   ) ;
+<img name="if16" src=pixel.gif width=10 height = 10> <a name="f16"></a>extern void <img name="in87" src=pixel.gif width=10 height = 10> <a name="n87" class="safe" href="javascript: sn(87)">*<sub>87</sub></a>/*7*/__trusted_cast(void <img name="in88" src=pixel.gif width=10 height = 10> <a name="n88" class="safe" href="javascript: sn(88)">*<sub>88</sub></a>p  ) <img name="in89" src=pixel.gif width=10 height = 10> <a name="n89" class="safe" href="javascript: sn(89)">&<sub>89</sub></a>;
+<img name="if17" src=pixel.gif width=10 height = 10> <a name="f17"></a>extern void <img name="in93" src=pixel.gif width=10 height = 10> <a name="n93" class="safe" href="javascript: sn(93)">*<sub>93</sub></a>/*8*/__ptrof_nocheck(void <img name="in94" src=pixel.gif width=10 height = 10> <a name="n94" class="safe" href="javascript: sn(94)">*<sub>94</sub></a>ptr  ) <img name="in95" src=pixel.gif width=10 height = 10> <a name="n95" class="safe" href="javascript: sn(95)">&<sub>95</sub></a>;
+<img name="if18" src=pixel.gif width=10 height = 10> <a name="f18"></a>extern int /*9*/__ccured_has_empty_mangling(unsigned int   ) ;
+<img name="if19" src=pixel.gif width=10 height = 10> <a name="f19"></a>extern void <img name="in99" src=pixel.gif width=10 height = 10> <a name="n99" class="safe" href="javascript: sn(99)">*<sub>99</sub></a>/*10*/__trusted_cast(void <img name="in100" src=pixel.gif width=10 height = 10> <a name="n100" class="safe" href="javascript: sn(100)">*<sub>100</sub></a>p  ) <img name="in101" src=pixel.gif width=10 height = 10> <a name="n101" class="safe" href="javascript: sn(101)">&<sub>101</sub></a>;
+extern void __deepcopy_msghdr_to_compat(<a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> <img name="in55" src=pixel.gif width=10 height = 10> <a name="n55" class="safe" href="javascript: sn(55)">*<sub>55</sub></a>compat  <img name="in58" src=pixel.gif width=10 height = 10> <a name="n58" class="safe" href="javascript: sn(58)">&<sub>58</sub></a>,
+                                        <a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in56" src=pixel.gif width=10 height = 10> <a name="n56" class="safe" href="javascript: sn(56)">*<sub>56</sub></a>fat  <img name="in59" src=pixel.gif width=10 height = 10> <a name="n59" class="safe" href="javascript: sn(59)">&<sub>59</sub></a>) <img name="in57" src=pixel.gif width=10 height = 10> <a name="n57" class="safe" href="javascript: sn(57)">&<sub>57</sub></a>;
+<img name="if20" src=pixel.gif width=10 height = 10> <a name="f20"></a>extern void __deepcopy_msghdr_to_compat(<a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> <img name="in55" src=pixel.gif width=10 height = 10> <a name="n55" class="safe" href="javascript: sn(55)">*<sub>55</sub></a>compat  <img name="in58" src=pixel.gif width=10 height = 10> <a name="n58" class="safe" href="javascript: sn(58)">&<sub>58</sub></a>,
+                                        <a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in56" src=pixel.gif width=10 height = 10> <a name="n56" class="safe" href="javascript: sn(56)">*<sub>56</sub></a>fat  <img name="in59" src=pixel.gif width=10 height = 10> <a name="n59" class="safe" href="javascript: sn(59)">&<sub>59</sub></a>) 
+{ void <img name="in60" src=pixel.gif width=10 height = 10> <a name="n60" class="safe" href="javascript: sn(60)">*<sub>60</sub></a>__cil_tmp3 <img name="in61" src=pixel.gif width=10 height = 10> <a name="n61" class="safe" href="javascript: sn(61)">&<sub>61</sub></a>;
+  int dest_mangling4 ;
+  <a href="javascript: sf(0, 'if2')">struct iovec </a>  * __cil_tmp5 ;
+  int dest_mangling6 ;
+  void <img name="in66" src=pixel.gif width=10 height = 10> <a name="n66" class="safe" href="javascript: sn(66)">*<sub>66</sub></a>__cil_tmp7 <img name="in67" src=pixel.gif width=10 height = 10> <a name="n67" class="safe" href="javascript: sn(67)">&<sub>67</sub></a>;
+  int dest_mangling8 ;
+
+  {
+  __cil_tmp7 = (void <img name="in66" src=pixel.gif width=10 height = 10> <a name="n66" class="safe" href="javascript: sn(66)">*<sub>66</sub></a>)<a href="javascript: sf(0, 'if11')">/*2*/__ptrof_nocheck</a> (fat->msg_name);
+  if (! __cil_tmp7) {
+    {
+    compat->msg_name = 0;
+    }
+  } else {
+    {
+    dest_mangling8 = <a href="javascript: sf(0, 'if12')">/*3*/__ccured_has_empty_mangling</a> (sizeof((*__cil_tmp7)));
+    if (dest_mangling8) {
+      {
+      compat->msg_name = (void <img name="in22" src=pixel.gif width=10 height = 10> <a name="n22" class="safe" href="javascript: sn(22)">*<sub>22</sub></a>)<a href="javascript: sf(0, 'if13')">/*4*/__trusted_cast</a> (__cil_tmp7);
+      }
+    } else {
+      {
+      <a href="javascript: sf(0, 'if4')">abort_deepcopy</a> ((char  * )"Abort deepcopy_to_compat for msghdr.msg_name");
+      }
+    }
+    }
+  }
+  compat->msg_namelen = fat->msg_namelen;
+  __cil_tmp5 = (<a href="javascript: sf(0, 'if2')">struct iovec </a>  * )<a href="javascript: sf(0, 'if14')">/*5*/__ptrof_nocheck</a> (<img name="if21" src=pixel.gif width=10 height = 10> <a name="f21"></a>fat->msg_iov);
+  if (! __cil_tmp5) {
+    {
+    compat->msg_iov = 0;
+    }
+  } else {
+    {
+    dest_mangling6 = <a href="javascript: sf(0, 'if15')">/*6*/__ccured_has_empty_mangling</a> (sizeof((*__cil_tmp5)));
+    if (dest_mangling6) {
+      {
+      compat->msg_iov = (<a href="javascript: sf(0, 'if10')">struct iovec_COMPAT </a>  * )<a href="javascript: sf(0, 'if16')">/*7*/__trusted_cast</a> (__cil_tmp5);
+      }
+    } else {
+      {
+      <a href="javascript: sf(0, 'if4')">abort_deepcopy</a> ((char  * )"Abort deepcopy_to_compat for msghdr.msg_iov");
+      }
+    }
+    }
+  }
+  compat->msg_iovlen = fat->msg_iovlen;
+  __cil_tmp3 = (void <img name="in60" src=pixel.gif width=10 height = 10> <a name="n60" class="safe" href="javascript: sn(60)">*<sub>60</sub></a>)<a href="javascript: sf(0, 'if17')">/*8*/__ptrof_nocheck</a> (fat->msg_control);
+  if (! __cil_tmp3) {
+    {
+    compat->msg_control = 0;
+    }
+  } else {
+    {
+    dest_mangling4 = <a href="javascript: sf(0, 'if18')">/*9*/__ccured_has_empty_mangling</a> (sizeof((*__cil_tmp3)));
+    if (dest_mangling4) {
+      {
+      compat->msg_control = (void <img name="in28" src=pixel.gif width=10 height = 10> <a name="n28" class="safe" href="javascript: sn(28)">*<sub>28</sub></a>)<a href="javascript: sf(0, 'if19')">/*10*/__trusted_cast</a> (__cil_tmp3);
+      }
+    } else {
+      {
+      <a href="javascript: sf(0, 'if4')">abort_deepcopy</a> ((char  * )"Abort deepcopy_to_compat for msghdr.msg_control");
+      }
+    }
+    }
+  }
+  compat->msg_controllen = fat->msg_controllen;
+  compat->msg_flags = fat->msg_flags;
+}
+}
+<img name="if22" src=pixel.gif width=10 height = 10> <a name="f22"></a>extern void <img name="in121" src=pixel.gif width=10 height = 10> <a name="n121" class="safe" href="javascript: sn(121)">*<sub>121</sub></a>/*11*/__ptrof_nocheck(void <img name="in122" src=pixel.gif width=10 height = 10> <a name="n122" class="safe" href="javascript: sn(122)">*<sub>122</sub></a>ptr  ) <img name="in123" src=pixel.gif width=10 height = 10> <a name="n123" class="safe" href="javascript: sn(123)">&<sub>123</sub></a>;
+<img name="if23" src=pixel.gif width=10 height = 10> <a name="f23"></a>extern void <img name="in125" src=pixel.gif width=10 height = 10> <a name="n125" class="safe" href="javascript: sn(125)">*<sub>125</sub></a>/*12*/__trusted_cast(void <img name="in126" src=pixel.gif width=10 height = 10> <a name="n126" class="safe" href="javascript: sn(126)">*<sub>126</sub></a>p  ) <img name="in127" src=pixel.gif width=10 height = 10> <a name="n127" class="safe" href="javascript: sn(127)">&<sub>127</sub></a>;
+<img name="if24" src=pixel.gif width=10 height = 10> <a name="f24"></a>extern int /*13*/__ccured_has_empty_mangling(unsigned int   ) ;
+<img name="if25" src=pixel.gif width=10 height = 10> <a name="f25"></a>extern void <img name="in130" src=pixel.gif width=10 height = 10> <a name="n130" class="safe" href="javascript: sn(130)">*<sub>130</sub></a>/*14*/__trusted_cast(void <img name="in131" src=pixel.gif width=10 height = 10> <a name="n131" class="safe" href="javascript: sn(131)">*<sub>131</sub></a>p  ) <img name="in132" src=pixel.gif width=10 height = 10> <a name="n132" class="safe" href="javascript: sn(132)">&<sub>132</sub></a>;
+static int /*1*/sendmsg_wrapper3(int fd  ,
+                                 <a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in50" src=pixel.gif width=10 height = 10> <a name="n50" class="safe" href="javascript: sn(50)">*<sub>50</sub></a>msg  <img name="in108" src=pixel.gif width=10 height = 10> <a name="n108" class="safe" href="javascript: sn(108)">&<sub>108</sub></a>,
+                                 int flags  ) <img name="in51" src=pixel.gif width=10 height = 10> <a name="n51" class="safe" href="javascript: sn(51)">&<sub>51</sub></a>;
+<img name="if26" src=pixel.gif width=10 height = 10> <a name="f26"></a>static int /*1*/sendmsg_wrapper3(int fd  ,
+                                 <a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in50" src=pixel.gif width=10 height = 10> <a name="n50" class="safe" href="javascript: sn(50)">*<sub>50</sub></a>msg  <img name="in108" src=pixel.gif width=10 height = 10> <a name="n108" class="safe" href="javascript: sn(108)">&<sub>108</sub></a>,
+                                 int flags  ) 
+{ <a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> msg1__area <img name="in110" src=pixel.gif width=10 height = 10> <a name="n110" class="safe" href="javascript: sn(110)">&<sub>110</sub></a>;
+  <a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in111" src=pixel.gif width=10 height = 10> <a name="n111" class="safe" href="javascript: sn(111)">*<sub>111</sub></a>msg1__ptrof <img name="in112" src=pixel.gif width=10 height = 10> <a name="n112" class="safe" href="javascript: sn(112)">&<sub>112</sub></a>;
+  <a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in113" src=pixel.gif width=10 height = 10> <a name="n113" class="safe" href="javascript: sn(113)">*<sub>113</sub></a>tmp <img name="in114" src=pixel.gif width=10 height = 10> <a name="n114" class="safe" href="javascript: sn(114)">&<sub>114</sub></a>;
+  <a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> <img name="in115" src=pixel.gif width=10 height = 10> <a name="n115" class="safe" href="javascript: sn(115)">*<sub>115</sub></a>msg1 <img name="in116" src=pixel.gif width=10 height = 10> <a name="n116" class="safe" href="javascript: sn(116)">&<sub>116</sub></a>;
+  <a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> <img name="in117" src=pixel.gif width=10 height = 10> <a name="n117" class="safe" href="javascript: sn(117)">*<sub>117</sub></a>tmp___2 <img name="in118" src=pixel.gif width=10 height = 10> <a name="n118" class="safe" href="javascript: sn(118)">&<sub>118</sub></a>;
+  int tmp___4 ;
+  int tmp___5 ;
+
+  {
+  tmp = (<a href="javascript: sf(0, 'if1')">struct msghdr </a> <img name="in113" src=pixel.gif width=10 height = 10> <a name="n113" class="safe" href="javascript: sn(113)">*<sub>113</sub></a>)<a href="javascript: sf(0, 'if22')">/*11*/__ptrof_nocheck</a> ((void <img name="in124" src=pixel.gif width=10 height = 10> <a name="n124" class="safe" href="javascript: sn(124)">*<sub>124</sub></a>)msg);
+  msg1__ptrof = tmp;
+  if (msg1__ptrof) {
+    tmp___4 = <a href="javascript: sf(0, 'if24')">/*13*/__ccured_has_empty_mangling</a> (sizeof(<a href="javascript: sf(0, 'if1')">struct msghdr </a> ));
+    if (tmp___4) {
+      tmp___2 = (<a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> <img name="in117" src=pixel.gif width=10 height = 10> <a name="n117" class="safe" href="javascript: sn(117)">*<sub>117</sub></a>)<a href="javascript: sf(0, 'if25')">/*14*/__trusted_cast</a> ((void <img name="in133" src=pixel.gif width=10 height = 10> <a name="n133" class="safe" href="javascript: sn(133)">*<sub>133</sub></a>)msg1__ptrof);
+    } else {
+      <a href="javascript: sf(0, 'if20')">__deepcopy_msghdr_to_compat</a> (& msg1__area, msg1__ptrof);
+      tmp___2 = & msg1__area;
+    }
+  } else {
+    tmp___2 = (<a href="javascript: sf(0, 'if5')">struct msghdr_COMPAT </a> <img name="in117" src=pixel.gif width=10 height = 10> <a name="n117" class="safe" href="javascript: sn(117)">*<sub>117</sub></a>)<a href="javascript: sf(0, 'if23')">/*12*/__trusted_cast</a> ((void <img name="in128" src=pixel.gif width=10 height = 10> <a name="n128" class="safe" href="javascript: sn(128)">*<sub>128</sub></a>)msg1__ptrof);
+  }
+  msg1 = tmp___2;
+  tmp___5 = <a href="javascript: sf(0, 'if6')">sendmsg</a> (fd, msg1, flags);
+  return (tmp___5);
+}
+}
+</pre>
+<script language="javascript">
+// Trampoline for sn
+var sn = parent.sn;
+var sf = parent.sf;
+var sff = parent.sff;
+if(parent.fileFinishedLoading == undefined) { alert('The code is not yet loaded (in source file)');}
+</script></html>

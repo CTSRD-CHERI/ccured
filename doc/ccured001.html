@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Introduction
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured002.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc1">Chapter&nbsp;1</A>&nbsp;&nbsp;Introduction</H1>
+<EM>This version of the document refers to CCured 1.3.5 (based
+ on CIL 1.3.5) and was last modified on 						28th									September,&nbsp;2006</EM><BR>
+<BR>
+CCured is a source-to-source translator for C. It analyzes the C program to
+determine the smallest number of run-time checks that must be inserted in the
+program to prevent all memory safety violations. The resulting program is
+memory safe, meaning that it will stop rather than overrun a buffer or
+scribble over memory that it shouldn't touch. Many programs can be made
+memory-safe this way while losing only 10&ndash;60% run-time performance (the
+performance cost is smaller for cleaner programs, and can be improved further
+by holding CCured's hand on the parts of the program that it does not
+understand by itself). Using CCured we have found bugs that Purify misses with
+an order of magnitude smaller run-time cost.<BR>
+<BR>
+Small programs can be passed through CCured automatically. For medium size
+and large programs you have to hold CCured's hand a bit but we tried to
+explain the process clearly in this manual. We have used CCured on programs
+such as <FONT COLOR=blue>sendmail</FONT>, <FONT COLOR=blue>bind</FONT>, <FONT COLOR=blue>openssl</FONT>, <FONT COLOR=blue>Apache modules</FONT>, <FONT COLOR=blue>Linux</FONT>
+device drivers, and the SPEC95 benchmarks. Some of these programs are quite
+big (300Kloc) and it can take a few days for somebody to &#8220;port&#8221; the program
+to CCured. <BR>
+<BR>
+The translator itself is written in Ocaml (a dialect of ML). There is also a
+Perl script, <FONT COLOR=blue>ccured</FONT>, that operates as a drop-in replacement for 'gcc', so
+that software packages' existing Makefiles can be used with very minor
+changes. Finally, CCured provides a library of runtime functions (including
+the Boehm-Weiser conservative garbage collector).<BR>
+<BR>
+CCured is implemented on top of the <a target="_blank"
+href="../cil/index.html">CIL framework</a>. for analysis and transformation
+of C programs. This one you can use to write easily a program analysis
+module that works on ANSI C code as well as on code that uses the GNU C
+extensions.<BR>
+<BR>
+If you are anxious to see CCured in action you can try out our 
+<a target="_blank" href="web/index.html">online demo</a>.<BR>
+<BR>
+In this manual you can find a tutorial on getting started with CCured
+(Chapter&nbsp;<A HREF="tutorial.html#ch-tutorial">3</A>), documentation for all of the features (actually some of
+the more researchy features are not yet fully documented) and step-by-step
+accounts on what it took to use CCured on several example programs
+(Chapter&nbsp;<A HREF="ccured006.html#ch-examples">6</A>). We suggest that you read the chapters in order and go to
+the &#8220;Advanced CCured Features&#8221; only if you need it. The Chapter&nbsp;<A HREF="ccured010.html#ch-warn">10</A> (CCured
+Warnings and Errors) will help you figure out if you are running into an error
+that is covered by an advanced feature.<BR>
+<BR>
+In addition to this manual, you can find information on CCured in the
+research papers that we have written. A comprehensive look at CCured
+can be found in our <A HREF="/ccured/toplas.pdf">ACM TOPLAS article</A>, which
+includes much of the material from the other CCured papers. You may
+also be interested in the <A HREF="/ccured/popl02.pdf">POPL '02 paper</A>
+describing the type system and inference algorithm, and the
+<A HREF="/ccured/pldi03.pdf">&#8220;CCured in the Real World&#8221;</A> paper from PLDI '03
+that discusses several advanced features that we discovered were
+important for large legacy systems.<BR>
+<BR>
+<A NAME="toc1"></A>
+<H2 CLASS="section"><A NAME="htoc2">1.1</A>&nbsp;&nbsp;Authors</H2>
+CCured was developed primarily by
+<A HREF="mailto:necula@cs.berkeley.edu">George Necula</A>,
+<A HREF="mailto:smcpeak@cs.berkeley.edu">Scott McPeak</A>,
+<A HREF="mailto:weimer@cs.berkeley.edu">Westley Weimer</A>,
+<A HREF="mailto:matth@cs.berkeley.edu">Matthew Harren</A> and
+<A HREF="mailto:jcondit@cs.berkeley.edu">Jeremy Condit</A>. Other people helped with
+various components: Shree Rahul, Raymond To, Aman Bhargava, James Lee, Winston
+Liaw.<BR>
+<BR>
+This work was supported in part by the National Science Foundation under
+Grants No. 9875171, 0085949 and 0081588, and gifts from Microsoft Research.
+Any opinions, findings, and conclusions or recommendations expressed in this
+material are those of the author(s) and do not necessarily reflect the views
+of the National Science Foundation or the other sponsors.<BR>
+<BR>
+<HR>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured002.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

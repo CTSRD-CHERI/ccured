@@ -1,0 +1,67 @@
+<html><body bgcolor=white onload='parent.fileFinishedLoading();'>
+<link rel=stylesheet type="text/css" href="styles.css"><pre>
+struct <img name="if0" src=pixel.gif width=10 height = 10> <a name="f0"></a>printf_arguments {
+   int i ;
+   double d ;
+   char <img name="in3" src=pixel.gif width=10 height = 10> <a name="n3" class="other" href="javascript: sn(3)">*<sub>3</sub></a>s <img name="in4" src=pixel.gif width=10 height = 10> <a name="n4" class="safe" href="javascript: sn(4)">&<sub>4</sub></a>;
+   long long ll ;
+};
+<img name="if1" src=pixel.gif width=10 height = 10> <a name="f1"></a>extern void __ccuredInit(void) ;
+<img name="if2" src=pixel.gif width=10 height = 10> <a name="f2"></a>extern void abort_deepcopy(char  * errmsg  ) ;
+<img name="if3" src=pixel.gif width=10 height = 10> <a name="f3"></a>extern char  * strchr(char  *   , int   ) ;
+<img name="if4" src=pixel.gif width=10 height = 10> <a name="f4"></a>extern void exit(int   ) ;
+//
+
+char <img name="in26" src=pixel.gif width=10 height = 10> <a name="n26" class="fseq" href="javascript: sn(26)">*<sub>26</sub></a>/*1*/strchr_wrapper(char  * str  , int chr  ) <img name="in28" src=pixel.gif width=10 height = 10> <a name="n28" class="safe" href="javascript: sn(28)">&<sub>28</sub></a>;
+char  * /*2*/strchr_wrapper(char  * str  , int chr  ) ;
+void foo(char  * s  ) ;
+<img name="if5" src=pixel.gif width=10 height = 10> <a name="f5"></a>void foo(char  * s  ) 
+{ char <img name="in16" src=pixel.gif width=10 height = 10> <a name="n16" class="fseq" href="javascript: sn(16)">*<sub>16</sub></a>res <img name="in17" src=pixel.gif width=10 height = 10> <a name="n17" class="safe" href="javascript: sn(17)">&<sub>17</sub></a>;
+  char <img name="in18" src=pixel.gif width=10 height = 10> <a name="n18" class="fseq" href="javascript: sn(18)">*<sub>18</sub></a>tmp <img name="in19" src=pixel.gif width=10 height = 10> <a name="n19" class="safe" href="javascript: sn(19)">&<sub>19</sub></a>;
+  char  * ( * p_strchr)(char  *   , int   ) ;
+  char  * tmp___0 ;
+
+  {
+  tmp = (<img name="if6" src=pixel.gif width=10 height = 10> <a name="f6"></a>char <img name="in18" src=pixel.gif width=10 height = 10> <a name="n18" class="fseq" href="javascript: sn(18)">*<sub>18</sub></a>)<a href="javascript: sff(0)">/*1*/strchr_wrapper</a> (s, 'q');
+  res<img name="if7" src=pixel.gif width=10 height = 10> <a name="f7"></a> = tmp;
+  p_strchr = & <a href="javascript: sff(1)">/*2*/strchr_wrapper</a> ;
+  tmp___0 = (char  * )((*p_strchr))(s, 'q');
+  if ((unsigned int )res != (unsigned int )tmp___0) {
+    <a href="javascript: sf(0, 'if4')">exit</a> (1);
+  }
+  res = res <img name="if8" src=pixel.gif width=10 height = 10> <a name="f8"></a>+ 1;
+  return;
+}
+}
+<img name="if9" src=pixel.gif width=10 height = 10> <a name="f9"></a>extern char <img name="in38" src=pixel.gif width=10 height = 10> <a name="n38" class="fseq" href="javascript: sn(38)">*<sub>38</sub></a>/*3*/__mkptr_string(char  * p  ) <img name="in40" src=pixel.gif width=10 height = 10> <a name="n40" class="safe" href="javascript: sn(40)">&<sub>40</sub></a>;
+char <img name="in26" src=pixel.gif width=10 height = 10> <a name="n26" class="fseq" href="javascript: sn(26)">*<sub>26</sub></a>/*1*/strchr_wrapper(char  * str  , int chr  ) <img name="in28" src=pixel.gif width=10 height = 10> <a name="n28" class="safe" href="javascript: sn(28)">&<sub>28</sub></a>;
+<img name="if10" src=pixel.gif width=10 height = 10> <a name="f10"></a>char <img name="in26" src=pixel.gif width=10 height = 10> <a name="n26" class="fseq" href="javascript: sn(26)">*<sub>26</sub></a>/*1*/strchr_wrapper(char  * str  , int chr  ) 
+{ char  * result ;
+  char <img name="in36" src=pixel.gif width=10 height = 10> <a name="n36" class="fseq" href="javascript: sn(36)">*<sub>36</sub></a>tmp <img name="in37" src=pixel.gif width=10 height = 10> <a name="n37" class="safe" href="javascript: sn(37)">&<sub>37</sub></a>;
+
+  {
+  result = (char  * )<a href="javascript: sf(0, 'if3')">strchr</a> (str, chr);
+  tmp = (<img name="if11" src=pixel.gif width=10 height = 10> <a name="f11"></a>char <img name="in36" src=pixel.gif width=10 height = 10> <a name="n36" class="fseq" href="javascript: sn(36)">*<sub>36</sub></a>)<a href="javascript: sf(0, 'if9')">/*3*/__mkptr_string</a> ((char  * )result);
+  <img name="if12" src=pixel.gif width=10 height = 10> <a name="f12"></a>return (tmp);
+}
+}
+<img name="if13" src=pixel.gif width=10 height = 10> <a name="f13"></a>extern char  * /*4*/__mkptr_string(char  * p  ) ;
+char  * /*2*/strchr_wrapper(char  * str  , int chr  ) ;
+<img name="if14" src=pixel.gif width=10 height = 10> <a name="f14"></a>char  * /*2*/strchr_wrapper(char  * str  , int chr  ) 
+{ char  * result ;
+  char  * tmp ;
+
+  {
+  result = (char  * )<a href="javascript: sf(0, 'if3')">strchr</a> (str, chr);
+  tmp = (char  * )<a href="javascript: sf(0, 'if13')">/*4*/__mkptr_string</a> ((char  * )result);
+  return (tmp);
+}
+}
+</pre>
+<script language="javascript">
+// Trampoline for sn
+var sn = parent.sn;
+var sf = parent.sf;
+var sff = parent.sff;
+if(parent.fileFinishedLoading == undefined) { alert('The code is not yet loaded (in source file)');}
+</script></html>

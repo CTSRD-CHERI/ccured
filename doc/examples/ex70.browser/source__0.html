@@ -1,0 +1,62 @@
+<html><body bgcolor=white onload='parent.fileFinishedLoading();'>
+<link rel=stylesheet type="text/css" href="styles.css"><pre>
+struct <img name="if0" src=pixel.gif width=10 height = 10> <a name="f0"></a>printf_arguments {
+   int i ;
+   double d ;
+   char <img name="in3" src=pixel.gif width=10 height = 10> <a name="n3" class="other" href="javascript: sn(3)">*<sub>3</sub></a>s <img name="in4" src=pixel.gif width=10 height = 10> <a name="n4" class="safe" href="javascript: sn(4)">&<sub>4</sub></a>;
+   long long ll ;
+};
+struct <img name="if1" src=pixel.gif width=10 height = 10> <a name="f1"></a>foo {
+   int  * f1 ;
+};
+<img name="if2" src=pixel.gif width=10 height = 10> <a name="f2"></a>typedef <a href="javascript: sf(0, 'if1')">struct foo </a> Foo;
+union <img name="if3" src=pixel.gif width=10 height = 10> <a name="f3"></a>ptrs {
+   void <img name="in8" src=pixel.gif width=10 height = 10> <a name="n8" class="safe" href="javascript: sn(8)">*<sub>8</sub></a>v <img name="in9" src=pixel.gif width=10 height = 10> <a name="n9" class="safe" href="javascript: sn(9)">&<sub>9</sub></a>;
+   <a href="javascript: sf(0, 'if2')">Foo</a>   * f ;
+   int  * i ;
+} __TAGGED  ;
+struct <img name="if4" src=pixel.gif width=10 height = 10> <a name="f4"></a>tagged_ptrs {
+   struct RTTI_ELEMENT  * __tag ;
+   <a href="javascript: sf(0, 'if3')">union ptrs </a> __data <img name="in16" src=pixel.gif width=10 height = 10> <a name="n16" class="safe" href="javascript: sn(16)">&<sub>16</sub></a>;
+} __TAGGED  ;
+<img name="if5" src=pixel.gif width=10 height = 10> <a name="f5"></a>extern void __ccuredInit(void) ;
+<img name="if6" src=pixel.gif width=10 height = 10> <a name="f6"></a>extern void abort_deepcopy(char  * errmsg  ) ;
+<img name="if7" src=pixel.gif width=10 height = 10> <a name="f7"></a>static struct RTTI_ELEMENT  * /*1*/__CCURED_RTTITAGFOR(void <img name="in32" src=pixel.gif width=10 height = 10> <a name="n32" class="safe" href="javascript: sn(32)">*<sub>32</sub></a>value  ) <img name="in33" src=pixel.gif width=10 height = 10> <a name="n33" class="safe" href="javascript: sn(33)">&<sub>33</sub></a>;
+<img name="if8" src=pixel.gif width=10 height = 10> <a name="f8"></a>static struct RTTI_ELEMENT  * /*2*/__CCURED_RTTITAGFOR(void <img name="in44" src=pixel.gif width=10 height = 10> <a name="n44" class="safe" href="javascript: sn(44)">*<sub>44</sub></a>value  ) <img name="in45" src=pixel.gif width=10 height = 10> <a name="n45" class="safe" href="javascript: sn(45)">&<sub>45</sub></a>;
+int main(void) ;
+<img name="if9" src=pixel.gif width=10 height = 10> <a name="f9"></a>int main(void) 
+{ <a href="javascript: sf(0, 'if4')">struct tagged_ptrs </a> u1 <img name="in21" src=pixel.gif width=10 height = 10> <a name="n21" class="safe" href="javascript: sn(21)">&<sub>21</sub></a>;
+  <a href="javascript: sf(0, 'if4')">struct tagged_ptrs </a> u2 <img name="in22" src=pixel.gif width=10 height = 10> <a name="n22" class="safe" href="javascript: sn(22)">&<sub>22</sub></a>;
+  <a href="javascript: sf(0, 'if2')">Foo</a>  f ;
+  void <img name="in24" src=pixel.gif width=10 height = 10> <a name="n24" class="rtti" href="javascript: sn(24)">*<sub>24</sub></a>rtti_ptr <img name="in25" src=pixel.gif width=10 height = 10> <a name="n25" class="safe" href="javascript: sn(25)">&<sub>25</sub></a>;
+  <a href="javascript: sf(0, 'if2')">Foo</a>   * pf ;
+  int  * pi ;
+
+  {
+  __ccuredAlwaysStopOnError = 0;
+  __ccuredUseStrings = 1;
+  __ccuredLogNonPointers = 0;
+  <a href="javascript: sf(0, 'if5')">__ccuredInit</a> ();
+  rtti_ptr = (void <img name="in30" src=pixel.gif width=10 height = 10> <a name="n30" class="rtti" href="javascript: sn(30)">*<sub>30</sub></a>)(& f);
+  u1.__tag = (struct RTTI_ELEMENT  * )<a href="javascript: sf(0, 'if7')">/*1*/__CCURED_RTTITAGFOR</a> ((void <img name="in34" src=pixel.gif width=10 height = 10> <a name="n34" class="safe" href="javascript: sn(34)">*<sub>34</sub></a>)rtti_ptr);
+  u1.__data.v<img name="if10" src=pixel.gif width=10 height = 10> <a name="f10"></a> = (void <img name="in38" src=pixel.gif width=10 height = 10> <a name="n38" class="rtti" href="javascript: sn(38)">*<sub>38</sub></a>)rtti_ptr;
+  __CCURED_RTTIUNIONCHECK(sizeof(u1.__data.f));
+  pf = u1.__data.f;
+  __CCURED_RTTIUNIONCHECK(sizeof(u1.__data.i));
+  pi = u1.__data.i;
+  u2.__tag = (struct RTTI_ELEMENT  * )<a href="javascript: sf(0, 'if8')">/*2*/__CCURED_RTTITAGFOR</a> (& f);
+  u2.__data.f = & f;
+  __CCURED_RTTIUNIONCHECK(sizeof(u2.__data.v));
+  rtti_ptr = (<img name="if11" src=pixel.gif width=10 height = 10> <a name="f11"></a>void <img name="in50" src=pixel.gif width=10 height = 10> <a name="n50" class="rtti" href="javascript: sn(50)">*<sub>50</sub></a>)u2.__data.v;
+  pf = (<a href="javascript: sf(0, 'if2')">Foo</a>   * )rtti_ptr;
+  return (0);
+}
+}
+</pre>
+<script language="javascript">
+// Trampoline for sn
+var sn = parent.sn;
+var sf = parent.sf;
+var sff = parent.sff;
+if(parent.fileFinishedLoading == undefined) { alert('The code is not yet loaded (in source file)');}
+</script></html>

@@ -1,0 +1,279 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Invoking CCured
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="tutorial.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured005.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc25">Chapter&nbsp;4</A>&nbsp;&nbsp;Invoking CCured</H1><A NAME="ch-invoke"></A>
+CCured consists of several components: an Ocaml application that does the
+main work, a set of Perl scripts that are used to invoke the CCured
+application, and a set of header and run-time library files. <BR>
+<BR>
+The easiest way to use CCured is through the <FONT COLOR=blue>bin/ccured</FONT> script. This
+script is intended to be used in the same context and with the same
+command-options as either the <FONT COLOR=blue>gcc</FONT> compiler or the Microsoft Visual C
+compiler (MSVC). This script is configured at installation time to know where
+the rest of the CCured installation resides. If you move this script to
+another directory you must also make a copy in the new directory of the
+<FONT COLOR=blue>CilConfig.pm</FONT> file. <BR>
+<BR>
+Since <FONT COLOR=blue>ccured</FONT> is a drop-in replacement for <FONT COLOR=blue>gcc</FONT>, for most software
+projects you can reuse the regular build-infrastructure:
+<PRE CLASS="verbatim">
+make mystuff CC="bin/ccured [options]"
+</PRE>
+ Here is the sequence of actions that the <FONT COLOR=blue>ccured</FONT> script performs:
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+It recognizes among the command-line arguments those that are intended
+for the pre-processor; then, for each source file (i.e. with the extension
+t.c), calls the preprocessor and places the result in a file with the
+extension <FONT COLOR=blue>.i</FONT> in the same directory as the source file.
+<LI CLASS="li-enumerate">For every <FONT COLOR=blue>.i</FONT> file that it produces and that must be compiled (i.e.
+the <FONT COLOR=blue>-E</FONT> option was not specified to require only preprocessing) <FONT COLOR=blue>ccured</FONT>
+will save a copy of the file with the extension <FONT COLOR=blue>.o</FONT>, thus &#8220;fooling&#8221;
+<FONT COLOR=blue>make</FONT> that the object file was actually produced. 
+<LI CLASS="li-enumerate">Whenever <FONT COLOR=blue>ccured</FONT> is invoked to link <EM>into a library</EM> a number of
+<FONT COLOR=blue>.o</FONT> files that are actually preprocessed sources saved in the previous
+step, the CCured engine will be invoked to parse all of the files and produce
+a single <FONT COLOR=blue>C</FONT> file with the same content but with names of types and
+variables properly renamed. The output is then saved as the resulting library.
+You should use the <FONT COLOR=blue>&ndash;mode=AR</FONT> argument to CCured if you want to pass the
+remaining arguments as for the <FONT COLOR=blue>ar</FONT> utility. More details about the merging
+stage that CCured used can be found <A HREF="../cil/merger.html">.</A>
+<LI CLASS="li-enumerate">Finally, when <FONT COLOR=blue>ccured</FONT> is called to link <EM>into an executable</EM> a
+number of object files and libraries it will separate from them those that are
+actually saved sources and will merge them all in memory. The resulting file
+is then subject to CCured type inference followed by the insertion of run-time
+checks. Optionally, an optimizer is invoked to try to clean up some of the
+inserted run-time checks. The result is saved using the full name of the
+desired executable with the suffix <FONT COLOR=blue>ccured.c</FONT>. Finally this file is
+preprocessed, compiled and linked using the underlying compiler. 
+</OL>
+Notice that by default the curing process is invoked on the whole program.
+This is necessary to allow the CCured inferencer to see all the uses of your
+pointers. An alternative is to annotate the include files with pointer-kind
+annotation and let the inferencer do the inference within one file only. <BR>
+<BR>
+<A NAME="toc14"></A>
+<H2 CLASS="section"><A NAME="htoc26">4.1</A>&nbsp;&nbsp;Command-line options</H2><A NAME="sec-commandline"></A>
+You always run CCured with the command options of <FONT COLOR=blue>gcc</FONT> (e.g., <FONT COLOR=blue>-c</FONT> to
+compile only, <FONT COLOR=blue>-o</FONT> to specify the output file, etc.). Here are some common
+ways to use invoke CCured:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<FONT COLOR=blue>bin/ccured &ndash;nocure &ndash;nomerge hello1.c hello2.c -o hello.exe</FONT>
+&nbsp;&nbsp;&nbsp;- Compiles and links without curing and without merging (still
+uses the CIL front-end)
+<LI CLASS="li-itemize"><FONT COLOR=blue>bin/ccured &ndash;nocure hello1.c hello2.c -o hello.exe</FONT>
+&nbsp;&nbsp;&nbsp;-Merges using CIL, then compiles and links with <FONT COLOR=blue>gcc</FONT>
+<LI CLASS="li-itemize"><FONT COLOR=blue>bin/ccured hello1.c hello2.c -o hello.exe</FONT> &nbsp;&nbsp;&nbsp;-Merges using
+CIL, processes with CCured, the compiles and links with <FONT COLOR=blue>gcc</FONT>
+<LI CLASS="li-itemize"><FONT COLOR=blue>bin/ccured -c hello1.c hello2.c</FONT> &nbsp;&nbsp;&nbsp;-Just put preprocessed source in the object files
+<LI CLASS="li-itemize"><FONT COLOR=blue>bin/ccured hello1.o hello2.o -o hello.exe</FONT> &nbsp;&nbsp;&nbsp;-Take the
+preprocessed source in the object file, merge, cure, gcc. 
+<LI CLASS="li-itemize"><FONT COLOR=blue>bin/ccured &ndash;mode=AR cr hello.a hello1.o hello2.o</FONT> &nbsp;&nbsp;&nbsp;-Merge
+the preprocessed source in the object files into an archive (which itself
+contains source)
+<LI CLASS="li-itemize"><FONT COLOR=blue>bin/ccured hello.a main.c -o hello.exe</FONT>&nbsp;&nbsp;&nbsp;-Preprocess the C
+source, merge with the sources in the archive, cure and gcc. 
+</UL>
+Most of the command-line options that you pass to <FONT COLOR=blue>ccured</FONT> will be passed
+along to the underlying preprocessor, compiler or linker. However the
+<FONT COLOR=blue>ccured</FONT> script recognizes the following special options:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+General options
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<FONT COLOR=blue>&ndash;save-temps</FONT>. It tells the CCured script to save the temporary files
+ (including the output of CCured).
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;nocure</FONT>. It does not actually cure the code. However, it reads it
+in using the CIL front-end and then it prints it out immediately. Use this in
+the first phase to check that the CIL front-end works for you. 
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;mode=AR</FONT>. Invoke CCured to act as the archiver. In this case there
+should be no more arguments, except those that the <FONT COLOR=blue>ar</FONT> utility would take.
+This is because the <FONT COLOR=blue>ar</FONT> arguments are positional.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;mode=MSVC</FONT>. Use instead of the Microsoft Visual C compiler
+(<FONT COLOR=blue>cl</FONT>). CCured and the CIL front-end know how to handle the MSVC extensions.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;leavealone=foo</FONT>. CCured will not merge and will not process the
+file whose name starts with foo. Instead it will compile it as usual and will
+link it in when needed. You can put in this file functions that you do not
+want CCured to see (e.g., if they are really ugly and you are ashamed of
+what you did!). See Section&nbsp;<A HREF="ccured007.html#sec-trusted">7.4</A> for details.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;stats</FONT>. Print some statistics about the inserted checks.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;stages</FONT>. Print details about the various stages.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;extrafiles=&lt;xxx&gt;</FONT>. Give the name of a text file that contains
+whitespace-separated named of additional files to process (in case your
+command lines are too long).
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;nomerge</FONT>. Invoke the curing process during the compilation stage,
+without waiting to have the whole program.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;keepunused</FONT>. Disable the removal of apparently unused elements from
+the file, such as local variables or prototypes.
+</UL><BR>
+<BR>
+<LI CLASS="li-itemize">Inference
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<FONT COLOR=blue>&ndash;noemitbrowser</FONT>. Do not produce the browser information (speed up
+curing). 
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;browserdir=&lt;dir&gt;</FONT>. Use <FONT COLOR=blue>&lt;dir&gt;</FONT> as the name of the directory where
+to store the browser information. By default it is placed in a directory whose
+name is formed from the name of the executable followed by <TT>.browser</TT>. 
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;browserSourceFileSize=N</FONT>. Specify the number of statements to put
+in a source file fragment. Default is 2000. Larger value means fewer source
+fragments but also slower browser operation. 
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;browserNodeFileSize=N</FONT>. Specify the number of inference nodes to
+put in a file. Default is 2000. Larger value means fewer
+source fragments but also slower browser operation.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;emitinfer</FONT>. This means that the result of inference is also printed
+in a file <FONT COLOR=blue>fooinfer.c</FONT> where <FONT COLOR=blue>foo</FONT> is the desired executable. See
+Chapter&nbsp;<A HREF="ccured014.html#ch-graph">A</A>. It is recommended that you use the browser instead.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;emitGraphDetailLevel</FONT>. Controls how much information to put in the
+infer file. Values range from 0 to 3. 
+</UL><BR>
+<BR>
+<LI CLASS="li-itemize">Curing
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<FONT COLOR=blue>&ndash;allowInlineAssembly</FONT>. Allow (unsound, best-effort) handling of
+inline assembly.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;nogc</FONT>. Will assume that you do not use a garbage collector. In this
+case the cured code will use explicit deallocation and might be unsafe.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;optimize</FONT>. Run the optimizer after curing.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;releaselib</FONT>. Use the release library (compiled with optimizations
+on) 
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;noUnrefPointerChecks</FONT>. Treat as scalars those pointer variables
+whose values are never used as pointers. 
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;allowPartialElementsInSequence</FONT>. Do not check that a sequence
+contains a whole number of elements. If you turn this on, more programs will
+cure, but the bounds checks for sequence pointers will be more expensive (see
+Section&nbsp;<A HREF="tutorial.html#sec-checkseq">3.6.3</A>). 
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;noSplitPointers</FONT>. Do not split CCured multi-word pointers into
+ single-word variables (Section&nbsp;<A HREF="tutorial.html#sec-splitmeta">3.9</A>).
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;alwaysStopOnError</FONT>. Generate code that always stops on error
+(slightly faster).
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;failIsTerse</FONT>. Do not print source-file location on failure. This
+makes your program smaller and faster.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;noPrintLn</FONT>. Turns off the printing of line-number information. This
+way the errors will be referenced to the Cured file not the source file.
+<LI CLASS="li-itemize"><FONT COLOR=blue>&ndash;commPrintLn</FONT>. Print line-number information as comments. This
+way the errors that CCured prints at run-time and the debugging information in
+the cured code refer to the cured file, not the original source, but
+you can still figure out from what file this is coming.
+<LI CLASS="li-itemize"><TT>&ndash;printCilAsIs</TT>. Do not attempt to simplify the program while
+ printing. If this is turned on, then all loops will be printed as
+ &#8220;while(1)&#8221;, as they are in the internal language.
+</UL>
+</UL>
+For most performance you should use the options:
+<PRE CLASS="verbatim">
+--optimize --releaselib --alwaysStopOnError --failIsTerse
+</PRE>
+ All of the other options that start with <FONT COLOR=blue>&ndash;</FONT> (and are not recognized as
+compiler options) are passed unmodified to the CCured Ocaml application.<BR>
+<BR>
+<A NAME="toc15"></A>
+<H2 CLASS="section"><A NAME="htoc27">4.2</A>&nbsp;&nbsp;Controlling error handling at run time</H2><A NAME="sec-errorhandle"></A>
+After you cure a program you can run it as usual. The operations of the
+CCured-inserted run-time checks can be controlled with a few environment
+variables when the target program is run:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+<FONT COLOR=blue>CCURED_CONTINUE_ON_ERROR</FONT>: if set and if <FONT COLOR=blue>&ndash;alwaysStopOnError</FONT>
+was not used during curing, the execution will continue on error. This means
+that your program might be unsafe. It might also be possible that a cascade of
+check failures will be triggered.
+<LI CLASS="li-itemize"><FONT COLOR=blue>CCURED_SLEEP_ON_ERROR</FONT>: if set the program goes to sleep on an
+error. When it does so, it prints the process id. You can then connect to it
+using <TT>gdb</TT> as follows (replace <TT>test</TT> with the name of your executable
+and <TT>10343</TT> with the actual process id printed when the process goes to
+sleep.):
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Start <TT>gdb</TT> (preferably from within Emacs)
+<LI CLASS="li-itemize">Type
+<PRE CLASS="verbatim">
+(gdb) file test
+(gdb) attach 10343
+</PRE></UL><BR>
+This is useful for debugging multi-threaded code or code that
+is started by daemons. This has effect only if the program would actually stop
+there.<BR>
+<BR>
+Note that this mode is most useful when you compiled the code with <TT>-g</TT> and
+you did not use <TT>&ndash;releaselib</TT>. I also prefer to use <TT>-commPrintLn</TT> so
+that the debugging information refers to the cured file, not the original. <BR>
+<BR>
+<LI CLASS="li-itemize"><FONT COLOR=blue>CCURED_ERROR_HANDLERS</FONT>: if set, then its value is taken to be the
+name of a text file that contains indications on how to handle various error
+conditions. First, the error messages that CCured prints are like this:
+<PRE CLASS="verbatim">
+Failure UBOUND at hello.c:10: main(): Ubound
+</PRE>
+ Each message has an error name (<FONT COLOR=blue>UBOUND</FONT>), a file location (<FONT COLOR=blue>hello.c</FONT>), a
+line number (<FONT COLOR=blue>10</FONT>), a function in which the error occurred (<FONT COLOR=blue>main</FONT>), and
+some explanation. You can specify error handlers based on the error name and
+error location. <BR>
+<BR>
+Each line in the error handler file must look like this:
+<PRE CLASS="verbatim">
+[stop|warn|sleep|ignore|//] [*|ERRNAME] at [*|FILE] : [*|LINE] : [*:FUNC]
+</PRE>
+ Note that you can almost copy and paste CCured error messages into this file.
+<FONT COLOR=blue>stop</FONT> means that the execution stops, <FONT COLOR=blue>warn</FONT> that a warning is printed
+and the execution continues, <FONT COLOR=blue>ignore</FONT> that not even a warning is printed.
+<TT>//</TT> means that the rest of the line is to be ignored.
+<FONT COLOR=blue>*</FONT> is a wildcard that matches anything. Except for the first two elements,
+any suffix of the line can be missing. Whatever comes after the function name
+is ignored. Empty lines are ignored and lines are matched in order. The file
+is parsed when the program starts and then it is indexed by the error number
+and looked up when an error occurs. Note that you cannot override
+<FONT COLOR=blue>&ndash;alwaysStopOnError</FONT> this way!<BR>
+<BR>
+For example, the following file:
+<PRE CLASS="verbatim">
+ignore UBOUND
+stop * at hello.c: 10
+ignore LBOUND at *:*:tricky
+</PRE>
+ means that all UBOUND errors are ignored, the execution stops for any error
+in line 10 of hello.c (except UBOUND), and LBOUND in function <FONT COLOR=blue>tricky</FONT> is
+ignored (except if it happens in line 10 of hello.c). Errors that do not
+match are treated in the default way (stop if <FONT COLOR=blue>&ndash;alwaysStopOnError</FONT> or
+<FONT COLOR=blue>CCURED_CONTINUE_ON_ERROR</FONT> are not specified).<BR>
+<BR>
+<LI CLASS="li-itemize"><FONT COLOR=blue>CCURED_DUMP_HANDLERS</FONT>: if set, then CCured dumps its error handler
+table (so that you can check that it has the values you want). <BR>
+<BR>
+<LI CLASS="li-itemize"><FONT COLOR=blue>CCURED_ERROR_LOG</FONT>: If set, CCured will print all error
+messages (except those which are are listed as <FONT COLOR=blue>ignore</FONT> in the error
+handling file) to the specified log file in addition to
+<TT>stderr</TT>. This variable should be set to the absolute path of the
+log file.<BR>
+<BR>
+<LI CLASS="li-itemize"><FONT COLOR=blue>CCURED_NO_SIGABRT</FONT>: When CCured handles an error by
+ stopping the program's execution, it will normally call <TT>abort()</TT>.
+ If this variable is set, CCured will use <TT>exit(-1)</TT> instead of
+ <TT>abort()</TT>, which means that <TT>SIGABRT</TT> is not thrown.</UL>
+<HR>
+<A HREF="tutorial.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured005.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

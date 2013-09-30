@@ -1,0 +1,983 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+
+
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+
+<base target="main">
+<script language="JavaScript">
+<!-- Begin
+function loadTop(url) {
+  parent.location.href= url;
+}
+// -->
+</script>
+<LINK rel="stylesheet" type="text/css" href="ccured.css">
+<TITLE>
+Using CCured
+</TITLE>
+</HEAD>
+<BODY >
+<A HREF="ccured005.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured007.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+<HR>
+
+<H1 CLASS="chapter"><A NAME="htoc30">Chapter&nbsp;6</A>&nbsp;&nbsp;Using CCured</H1><A NAME="ch-examples"></A>
+In this chapter we describe the typical steps that must be taken to use
+CCured on a new software package. For each step we give general instructions.
+Then, we look at a few concrete software packages and we describe all the
+steps that were necessary. We describe the warnings and the errors that we ran
+into and how we solved them. Most of these warnings and errors are also
+discussed in Chapter&nbsp;<A HREF="ccured010.html#ch-warn">10</A>. Take a look there if the explanation here is too
+terse.
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+<B>Regular build</B> First try to download the sources and build them in
+the regular manner (using <FONT COLOR=blue>gcc</FONT>). It might be a good idea to setup a CVS
+repository right after you download the sources, in order to better keep track
+of the changes you are making.<BR>
+<BR>
+<LI CLASS="li-enumerate"><B>Build using CIL</B> Next you should try to build the package using CIL
+(the front-end that CCured uses). This step is optional but is a good idea
+just in case your software package exposes a bug in CIL. To perform this step
+you should edit the Makefile as follows (assuming it uses CC to invoke the
+compiler <EM>and</EM> the linker):
+<PRE CLASS="verbatim">
+ifdef CCURED
+ CC:=/home/necula/ccured/bin/ccured
+endif
+ifdef NOCURE
+ CC+= --nocure
+endif
+ifdef NOMERGE
+ CC+= --nomerge
+endif
+</PRE>
+ If your project includes a more complicated setup, you must make the
+necessary changes to use the above commands instead of <FONT COLOR=blue>gcc</FONT> (both for
+compiling and for linking). <BR>
+<BR>
+Then you can run:
+<PRE CLASS="verbatim">
+make clean
+make CCURED=1 NOCURE=1 NOMERGE=1
+</PRE>
+ This should build your project as before, except that each source file is
+first preprocessed, then passed through the <FONT COLOR=blue>ccured.asm.exe</FONT> executable to
+produce the CIL output (a file with suffix <FONT COLOR=blue>cil.c</FONT> that contains the source
+of your program after being processed by the CIL front-end), then preprocessed
+again and then finally passed to <FONT COLOR=blue>gcc</FONT>. Here is an example of what you
+should see for the file <FONT COLOR=blue>util.c</FONT> from the <FONT COLOR=blue>mathopd</FONT> package:
+<PRE CLASS="verbatim">
+/home/necula/ccured/bin/ccured --nocure --nomerge -c -O -Wall -DHAVE_CRYPT_H util.c -o util.o
+gcc -D_GNUCC -E  -O -DHAVE_CRYPT_H util.c -o ./util.i
+/home/necula/ccured/obj/x86_LINUX/ccured.asm.exe --cilout ./utilcil.c --nocure --warnall ./util.i
+gcc -D_GNUCC -E  -O -DHAVE_CRYPT_H -I/home/necula/ccured/include ./utilcil.c -o ./utilcil.i
+gcc -D_GNUCC -c -O -DHAVE_CRYPT_H -Wall -o util.o ./utilcil.i
+</PRE>
+ At this point you should ensure that the executable still works as expected.
+If it does not then you have found a bug in the CIL front-end or in the
+<FONT COLOR=blue>ccured</FONT> Perl script that tries to impersonate <FONT COLOR=blue>gcc</FONT>. CIL has been tested
+extensively, so you can consider yourself truly unfortunate. Please let us know
+about your problem.<BR>
+<BR>
+Next, we try the same thing, but this time with merging. In this mode of
+operation, the CIL front-end will attempt to create a single C source file
+from all of the files in your project. In this case, when <FONT COLOR=blue>make</FONT> invokes
+<FONT COLOR=blue>ccured</FONT> to compile a source file, the resulting object file will contain
+just the preprocessed version of the source. And when <FONT COLOR=blue>ccured</FONT> is invoked to
+link the executable then all of the preprocessed sources are merged into a
+single file (with the suffix combcil.c), which is processed as before. Here is
+an example of what you should see for the <FONT COLOR=blue>mathopd</FONT> package:
+<PRE CLASS="verbatim">
+make clean
+make CCURED=1 NOCURE=1
+...
+gcc -D_GNUCC -E  -O -DHAVE_CRYPT_H util.c -o ./util.i
+/home/necula/ccured/bin/ccured --nocure  -o mathopd base64.o cgi.o config.o core.o dump.o imap.o log.o main.o redirect.o request.o util.o -lcrypt
+/home/necula/ccured/obj/x86_LINUX/ccured.asm.exe --cilout ./mathopd_combcil.c --nocure  base64.o cgi.o config.o core.o dump.o imap.o log.o main.o redirect.o request.o util.o
+gcc -D_GNUCC -E -I/home/necula/ccured/include ./mathopd_combcil.c -o ./mathopd_combcil.i
+gcc -D_GNUCC -c  -o mathopd_comb.o ./mathopd_combcil.i
+gcc -D_GNUCC  -o mathopd mathopd_comb.o -lcrypt
+</PRE>
+ You should again try to run your executable. If it does not work as expected
+then you have found a bug in the merger. This is again unlikely, but if it
+happens, let us know. <BR>
+<BR>
+If your project is built by first creating some libraries then merging works
+in a slightly different way. Take a look at the UCSPI TCP example
+(Section&nbsp;<A HREF="#sec-ucspi">6.2</A>) next to see how that goes.<BR>
+<BR>
+<LI CLASS="li-enumerate"><B>Build with CCured</B>
+ Now we start using CCured:
+<PRE CLASS="verbatim">
+make clean
+make CCURED=1
+</PRE>
+ The sequence of operations is the same as in the case of CIL with merging,
+except that this time, after the sources are merged into <FONT COLOR=blue>foo_comb.c</FONT>, the
+<FONT COLOR=blue>ccured.asm.exe</FONT> engine is invoked.
+CCured will print information about the stages that it goes through. You
+should watch for warnings and error messages, especially in the &#8220;Inference&#8221;
+stage and in the &#8220;Curing&#8221; stage. If you are lucky the above steps are enough
+to build the executable. However, many times CCured will stop with some error.
+The first thing you should do in that case is to scan the warnings that lead
+to the error and proceed as explained in Chapter&nbsp;<A HREF="ccured010.html#ch-warn">10</A>. <BR>
+<BR>
+<LI CLASS="li-enumerate"><B>Write the wrappers</B><BR>
+<BR>
+If curing succeeds the resulting file (with suffix <FONT COLOR=blue>cured.c</FONT>) is passed to
+<TT>gcc</TT> for compilation and linking. Often you will see linking errors that
+mean that CCured has changed the interface of a function in a way that is
+incompatible with the library version of the function. See the examples below
+and Chapter&nbsp;<A HREF="ccured008.html#ch-wrapper">8</A> for a tutorial on writing wrappers.<BR>
+<BR>
+<LI CLASS="li-enumerate"><B>Run and debug the cured code</B>
+ Now that you have build your executable with CCured you should run it on as
+many examples as possible. Remember that CCured is engineered to catch the
+majority of the bugs at run-time (it is designed with the philosophy that the
+C programmer is better than the CCured static analyzer, so CCured just
+silently inserts a run-time checks when it cannot ensure statically that what
+the program is doing is guaranteed to be correct). <BR>
+<BR>
+When you get an error message from CCured you should investigate it to see if
+it is a false alarm or a true bug. <BR>
+<BR>
+You can tell CCured to continue the execution after it encounters an error if
+you set the environment variable <FONT COLOR=blue>CCURED_CONTINUE_ON_ERROR</FONT>.</OL>
+Next we look at concrete examples. If you want to try your hand at using
+CCured on real code you might want to try it on these packages and then use
+the instructions when you get stuck.<BR>
+<BR>
+<A NAME="toc17"></A>
+<H2 CLASS="section"><A NAME="htoc31">6.1</A>&nbsp;&nbsp;Example: <TT>mathopd</TT> HTTP server</H2><A NAME="sec-mathopd"></A>
+
+<H3 CLASS="subsection"><A NAME="htoc32">6.1.1</A>&nbsp;&nbsp;Step 1: Regular Build</H3>
+From the README file: &#8220;This is Mathopd, a fast, lightweight, non-forking HTTP
+ server for UN*X systems.&#8221;<BR>
+<BR>
+We describe here the steps required for processing the version 1.4-gamma of
+mathopd (a development version). This package contains of 5000 lines of code. <BR>
+<BR>
+We download <FONT COLOR=blue>mathopd-1.4-gamma.tar.gz</FONT>, unpack, change the Makefile as
+required for Linux and then we try it out: 
+<PRE CLASS="verbatim">
+cd src
+make
+</PRE>
+ Next we edit the configuration file (<FONT COLOR=blue>doc/sample.cfg</FONT>) so that we can run
+the server on port 8000. Right after the line <FONT COLOR=blue>Server {</FONT> we add <FONT COLOR=blue>Port
+ 8000</FONT>. Then we must become root and create a directory for the log:
+<PRE CLASS="verbatim">
+su root
+mkdir /var/mathopd
+chmod 777 /var/mathopd
+exit
+./mathopd &lt;../doc/sample.cfg
+</PRE>
+ Now from another machine (make sure you have &nbsp;/public_html/index.html on the
+ server machine):
+<PRE CLASS="verbatim">
+explorer http://manju.cs.berkeley.edu:8000/~necula/
+</PRE>
+ and we see that it works.<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc33">6.1.2</A>&nbsp;&nbsp;Step 2: Build with CIL</H3>
+Completely uneventful.<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc34">6.1.3</A>&nbsp;&nbsp;Step 3: Build with CCured</H3>
+For <FONT COLOR=blue>mathopd</FONT> we saw the warning:
+<PRE CLASS="verbatim">
+Warning: Generated automatic vararg descriptor for log_d: struct autoVarargDescr_log_d : char const   */* __attribute__((___ptrnode__(922))) */,
+uid_t
+If this is a printf-like function you should declare it!
+</PRE>
+ As explained in Chapter&nbsp;<A HREF="ccured010.html#ch-warn">10</A>, we take a look at the implementation of
+<FONT COLOR=blue>log_d</FONT> (we find it in the merged file <FONT COLOR=blue>mathopd_comb.c</FONT>) to make sure
+CCured did not miss anything. Sure enough, <FONT COLOR=blue>log_d</FONT> is a printf warning.
+Same thing for <FONT COLOR=blue>die</FONT>. We fix this by adding the following pragma in
+<FONT COLOR=blue>main.c</FONT> (see Section&nbsp;<A HREF="ccured009.html#sec-manualvararg">9.6.1</A> for details):
+<PRE CLASS="verbatim">
+#pragma ccuredvararg("log_d", printf(1))
+#pragma ccuredvararg("die", printf(2))
+</PRE>
+ In the process of doing mathopd, we encountered the warning:
+<PRE CLASS="verbatim">
+/home/necula/ccured/include/netdb_wrappers.h:329: Warning: Solver: changing User Specified SAFE node 1371 (the local variable p_ith_alias) to WILD
+</PRE>
+ This turned out to be a bug in the wrapper for the socket functions. We found
+it using the browser (see Section&nbsp;<A HREF="ccured005.html#sec-browser">5.1</A>). <BR>
+<BR>
+Then we saw a warning:
+<PRE CLASS="verbatim">
+/usr/include/sys/socket.h:156: Warning: sendmsg appears to be external
+  (it has a wrapper), yet it has a mangled name: sendmsg_scsws_.
+  Did you forget to use __ptrof and a version of __mkptr?
+ For more information, consult the online documentation on
+  "Writing Wrappers".
+</PRE>
+ This turned out to be due to the same socket wrapper error.<BR>
+<BR>
+Another warning you might see when you run CCured is:
+<PRE CLASS="verbatim">
+3 incompatible types flow into node void  *1127
+  Type struct iovec_LEAN  *1178 at /home/necula/ccured/include/socket_wrappers.h:237
+  Type char */* __NODE(1371) __ROSTRING  */ *1372 at /home/necula/ccured/include/netdb_wrappers.h:332
+  Type struct iovec_LEAN  *1146 at /home/necula/ccured/include/socket_wrappers.h:219
+</PRE>This means that a <FONT COLOR=blue>void *</FONT> node is cast to several incompatible types. When
+you investigate this (using the browser, for example, or just following the
+line numbers) you discover that the <FONT COLOR=blue>__trusted_add_iov</FONT> issue is the
+cause of this also. <BR>
+<BR>
+Once we fix the above problem we notice that there are no more <TT>WILD</TT>
+pointers: 
+<PRE CLASS="verbatim">
+ptrkinds: Graph contains 12886 nodes
+ptrkinds:   SAFE - 9256 ( 72\%)
+ptrkinds:   SEQ - 429 (  3\%)
+ptrkinds:   FSEQ - 3201 ( 25\%)
+</PRE>
+ 
+<H3 CLASS="subsection"><A NAME="htoc35">6.1.4</A>&nbsp;&nbsp;Step 4: Write the wrappers</H3>
+We see now that there are some missing functions:
+<PRE CLASS="verbatim">
+mathopd_comb.o: In function `log_request':
+mathopd_comb.o(.text+0x1b02d): undefined reference to `asctime_qs'
+</PRE>
+ See Chapter&nbsp;<A HREF="ccured008.html#ch-wrapper">8</A> for information on how to write this wrapper: Essentially
+this is what we had to add to <FONT COLOR=blue>time_wrappers.h</FONT> file:
+<PRE CLASS="verbatim">
+#pragma ccuredwrapper("asctime_wrapper", of("asctime"))
+__inline static
+char *asctime_wrapper(const struct tm *timep) {
+  struct tm *thinTimep = __ptrof(timep);
+  char *thinRet = asctime(thinTimep);
+  return __mkptr_string(thinRet);
+}
+</PRE>
+ 
+<H3 CLASS="subsection"><A NAME="htoc36">6.1.5</A>&nbsp;&nbsp;Step 5: Run and Debug the cured code</H3>
+We ran the <FONT COLOR=blue>mathopd</FONT> server and we get an error right away:
+<PRE CLASS="verbatim">
+Failure at config.c:924: new_pool(): Ubound
+Aborted
+</PRE>
+ We look at the code and we see this code in <FONT COLOR=blue>config.c</FONT>:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+p-&gt;ceiling = t + s;
+</FONT></PRE>
+This looks like the pointer that is stored in the <FONT COLOR=blue>ceiling</FONT> field is
+outside bounds, that that is Ok. This field is never used as a pointer. So, we
+change its type to <FONT COLOR=blue>long</FONT> instead. We could change it to <TT>FSEQ</TT> as well.
+See Chapter&nbsp;<A HREF="ccured010.html#ch-warn">10</A> for more possible solutions. <BR>
+<BR>
+Now mathopd seems to work!! But of course you should be using it for real in
+order to find the bugs. <BR>
+<BR>
+<A NAME="toc18"></A>
+<H2 CLASS="section"><A NAME="htoc37">6.2</A>&nbsp;&nbsp;Example: UCSPI TCP Suite</H2><A NAME="sec-ucspi"></A>
+
+<H3 CLASS="subsection"><A NAME="htoc38">6.2.1</A>&nbsp;&nbsp;Step 1: Regular Build</H3>
+This is a package that provides &#8220;tcpserver&#8221; and &#8220;tcpclient&#8221;. From their
+web page (<A HREF="javascript:loadTop('http://cr.yp.to/ucspi-tcp.html')">)</A>: &#8220;they are easy-to-use
+command-line tools for building TCP client-server applications.&#8221; The package
+also includes a number of clients built using these tools. There are 6700
+lines of code in this package. We actually found one bug in this library. <BR>
+<BR>
+We downloaded the version 0.88 (as of January 9, 2003). Following the
+instructions:
+<PRE CLASS="verbatim">
+gunzip ucspi-tcp-0.88.tar
+tar -xf ucspi-tcp-0.88.tar
+cd ucspi-tcp-0.88
+make
+</PRE>
+ Before we install it, we edit the file conf_home to point to the current
+directory (we do not want to mess up the /usr/local). Then we continue:
+<PRE CLASS="verbatim">
+make setup check
+</PRE>
+ And now the big moment:
+<PRE CLASS="verbatim">
+./http@ www.yahoo.com
+</PRE>
+ Bingo!<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc39">6.2.2</A>&nbsp;&nbsp;Step 2: Build with CIL</H3>
+This software package has a strange build interface. The Makefile contains
+things like:
+<PRE CLASS="verbatim">
+addcr.o: \
+compile addcr.c buffer.h exit.h
+        ./compile addcr.c
+
+compile: \
+warn-auto.sh conf-cc
+        ( cat warn-auto.sh; \
+        echo exec "`head -1 conf-cc`" '-c $${1+"$$@"}' \
+        ) &gt; compile
+        chmod 755 compile
+</PRE>
+ What is happening is that the compile script is created from the first line
+of <FONT COLOR=blue>conf-cc</FONT> and then used as a compiler. That line contains <FONT COLOR=blue>gcc -O2</FONT>
+right now. We change that file to use instead the value of the CC environment variable:
+<PRE CLASS="verbatim">
+$CC -O2
+</PRE>
+ (You might want to also change warn-auto.sh to add a -v argument to /bin/sh
+ so that you see what is going on.)<BR>
+<BR>
+Then we add the stuff to Makefile to define CC (and export it to child
+scripts). It turns out that this file also was missing a clean target, so we
+add that as well:
+<PRE CLASS="verbatim">
+export CC:=gcc
+ifdef CCURED
+ CC:=/home/necula/ccured/bin/ccured
+endif
+ifdef NOCURE
+ CC+= --nocure
+endif
+ifdef NOMERGE
+ CC+= --nomerge
+endif
+
+clean:
+        rm -f *.i *.o *.a
+        rm -f *cil.c *infer.c *comb.c *cured.c
+        rm http@ tcpclient tcpserver
+</PRE>
+ Just to test the new setup we make it again and test it again. <BR>
+<BR>
+Now we try to make it with CIL.
+<PRE CLASS="verbatim">
+make clean
+make CCURED=1 NOCURE=1 NOMERGE=1
+</PRE>
+ Now we get an error:
+<PRE CLASS="verbatim">
+tcpserver.o: In function `main':
+tcpserver.o(.text+0xa29): undefined reference to `env_get'
+tcpserver.o(.text+0xa50): undefined reference to `env_get'
+</PRE>
+ Clearly we have done something wrong. A quick investigation reveals that
+tcpserver.c does need <FONT COLOR=blue>env_get</FONT>, which is defined in env.c, but seems to
+be missing from <FONT COLOR=blue>envcil.c</FONT>. This means that the CIL front-end has dropped
+this function. This is an embarrassing CIL bug. Now, when you have things
+disappear then the fault is most often in the algorithm that CIL uses to
+remove &#8220;unnecessary&#8221; things (such as locals or prototypes that are not
+used). To disable that stage, pass the <FONT COLOR=blue>&ndash;keepunused</FONT> flag to CCured.<BR>
+<BR>
+Anyway, we fix that bug and now everything works. We now have to try the
+merging. For this we must also intervene in the way the Makefile links
+libraries and executables. It uses the scripts <FONT COLOR=blue>makelib</FONT> to make a library
+and <FONT COLOR=blue>load</FONT> to make an executable. <BR>
+<BR>
+For the <FONT COLOR=blue>load</FONT> script all we need to change is the <FONT COLOR=blue>conf-ld</FONT> to use
+<FONT COLOR=blue>$CC</FONT> instead of <FONT COLOR=blue>gcc</FONT>. We do this and we run with merging. We get this
+error:
+<PRE CLASS="verbatim">
+gcc -D_GNUCC  -o tcpserver -s tcpserver_comb.o cdb.a dns.a time.a unix.a byte.a
+cdb.a: could not read symbols: Archive has no index; run ranlib to add one
+</PRE>
+ As explained in Chapter&nbsp;<A HREF="ccured010.html#ch-warn">10</A>, this is because we should not use <FONT COLOR=blue>ar</FONT> to
+archive files in the merging mode, but we should use <FONT COLOR=blue>ccured &ndash;mode=AR</FONT>. We
+achieve this by changing the Makefile, which creates the <FONT COLOR=blue>makelib</FONT> script.
+We change it such that the <FONT COLOR=blue>makelib</FONT> script uses the environment variable
+<FONT COLOR=blue>AR</FONT> instead of <FONT COLOR=blue>ar</FONT>. And we defined AR in the Makefile as follows:
+<PRE CLASS="verbatim">
+export AR:=ar
+ifdef CCURED
+  ifndef NOMERGE
+    AR:=/home/necula/ccured/bin/ccured --mode=AR
+  endif
+endif
+
+</PRE>
+ We run again in merging mode and now we get:
+<PRE CLASS="verbatim">
+ranlib: cdb.a: File format not recognized
+</PRE>
+ You look at <FONT COLOR=blue>cdb.a</FONT> and find that it is a merged source file. You should
+not use <FONT COLOR=blue>ranlib</FONT> on such files. We edit the Makefile again and rerun. <BR>
+<BR>
+Now we get this error message when trying to merge <FONT COLOR=blue>rblsmtpd</FONT> from a number
+of object files and libraries:
+<PRE CLASS="verbatim">
+/usr/include/sys/socket.h:189: Error: Incompatible declaration for accept (4). Previous was at rblsmtpd.c:103 (0) (different type constructors: void  vs. int )
+</PRE>
+ What happens is that the file <FONT COLOR=blue>rblsmtpd.c</FONT> defines its own global <FONT COLOR=blue>accept</FONT>
+(luckily, with a different type than the one in the library; otherwise CCured
+would not have noticed!). Yet, one of the
+other files that are merged (<FONT COLOR=blue>socket_accept.c</FONT>) uses the standard
+library's accept. This looks like a bug. When the linker puts everything
+together the references to the &#8220;accept&#8221; from <FONT COLOR=blue>socket_accept</FONT> will be
+resolved to the &#8220;accept&#8221; from <FONT COLOR=blue>rblsmtpd</FONT> (which is clearly not an
+acceptable replacement for the socket function). <BR>
+<BR>
+We change the name of the &#8220;accept&#8221; in <FONT COLOR=blue>rblsmtpd</FONT> and we rerun and now
+everything works. A result of your work so far is that for all of the utility
+programs that make up this package you have their sources in one source file
+(e.g. <FONT COLOR=blue>tcpclient_comb.c</FONT>. And, we have found a bug even before we started
+to use the actual CCured!<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc40">6.2.3</A>&nbsp;&nbsp;Step 3: Build with CCured</H3>
+The first thing we see when we enable CCured on this package is:
+<PRE CLASS="verbatim">
+chkshsgr.c:8: Warning: Calling function getgroups without proper prototype: will be WILD.
+  getgroups has type void * __attribute__((___ptrnode__(12))) /* /* missing proto */  */()
+chkshsgr.c:8: Warning: Calling function _exit with 1 arguments when expecting 0: will be WILD.
+  _exit has type void ()
+</PRE>
+ Two warnings, both due to missing or incomplete prototypes. In the cast of
+<FONT COLOR=blue>getgroups</FONT> it is a missing prototype. We add to <FONT COLOR=blue>chkshgr.c</FONT> the following:
+<PRE CLASS="verbatim">
+#include &lt;unistd.h&gt; // For getgroups
+#include &lt;grp.h&gt;    // For setgroups
+</PRE>
+ We also exit the prototype of <FONT COLOR=blue>_exit</FONT> in <FONT COLOR=blue>exit.h</FONT>:
+<PRE CLASS="verbatim">
+extern void _exit(int); // The "int" was missing
+</PRE>
+ Now CCured succeeds in making this executable and proceeds to make
+<FONT COLOR=blue>tcpserver</FONT>. Here we find this one:
+<PRE CLASS="verbatim">
+tcpserver.c:352: Error: You did not turn on the handling of inline assembly. Better hide this assembly somewhere else!
+</PRE>
+ This is interesting! We look at the inline assembly (a good place to look in
+is <FONT COLOR=blue>tcpserver_comb.c</FONT>, you'll see them all in there). One is a use of
+<FONT COLOR=blue>ntohs</FONT>, which is harmless because it does not involve pointers. We'll
+leave this alone. <BR>
+<BR>
+But the other 5 or 6 such things are uses of the macros <FONT COLOR=blue>FD_SET</FONT> and
+friends from <FONT COLOR=blue>&lt;sys/select.h&gt;</FONT>. We investigate and we find that these macros
+are defined in <FONT COLOR=blue>&lt;bits/select.h&gt;</FONT>, and luckily that file also provides
+regular C implementation for them, along the following lines:
+<PRE CLASS="verbatim">
+#if defined __GNUC__ &amp;&amp; __GNUC__ &gt;= 2
+
+# define __FD_ZERO(fdsp) \
+  do {                                                                        \
+    int __d0, __d1;                                                           \
+    __asm__ __volatile__ ("cld; rep; stosl"                                   \
+                          : "=c" (__d0), "=D" (__d1)                          \
+                          : "a" (0), "0" (sizeof (fd_set)                     \
+                                          / sizeof (__fd_mask)),              \
+                            "1" (&amp;__FDS_BITS (fdsp)[0])                       \
+                          : "memory");                                        \
+  } while (0)
+#else   /* ! GNU CC */
+# define __FD_ZERO(set)  \
+  do {                                                                        \
+    unsigned int __i;                                                         \
+    fd_set *__arr = (set);                                                    \
+    for (__i = 0; __i &lt; sizeof (fd_set) / sizeof (__fd_mask); ++__i)          \
+      __FDS_BITS (__arr)[__i] = 0;                                            \
+  } while (0)
+
+#endif  /* GNU CC */
+</PRE>
+ I am going to patch that include file to make the conditional test always
+false and thus ensure that the C version is used always. 
+<OL CLASS="enumerate" type=1><LI CLASS="li-enumerate">
+First, we tell CCured that <FONT COLOR=blue>&lt;bits/select.h&gt;</FONT> is a file that must be
+patched (you can see that it is not patched already because it is not present
+in the directory <FONT COLOR=blue>cil/include/gcc_2.95.3</FONT>; by the time you read this it this
+whole patching business should have been done already). We go into
+<FONT COLOR=blue>cil/Makefile.gcc</FONT> and add to the list of <FONT COLOR=blue>PATCH_SYSINCLUDES</FONT> the name
+<FONT COLOR=blue>bits/select.h</FONT> (but we do it only in the Linux section). 
+<LI CLASS="li-enumerate">Then, we specify the patch. We add the following to the file <FONT COLOR=blue>cil/ccured_GNUCC.patch</FONT>:
+<PRE CLASS="verbatim">
+&lt;&lt;&lt; file=bits/select.h, system=linux
+#if defined __GNUC__ &amp;&amp; __GNUC__ &gt;= 2
+===
+#if 0 &amp;&amp; defined __GNUC__ &amp;&amp; __GNUC__ &gt;= 2
+&gt;&gt;&gt; 
+</PRE>This says that the specified patch should be applied to the file
+ <FONT COLOR=blue>bits/select.h</FONT> when CCured is run on a Linux system. (Not all
+ platforms have bits/select.h.)
+Matching is done whitespace-insensitive. Now you rebuild CCured (just run
+<FONT COLOR=blue>make</FONT>) and you should find the patched file in the
+<FONT COLOR=blue>cil/include/gcc_2.95.3/bits</FONT>. Make sure it is as you need. More information
+about the patcher is at <A HREF="../cil/patcher.html"><TT>../cil/patcher.html</TT></A>
+</OL>
+And since we have left one inline assembly in, we must tell CCured to accept
+it as is. We change the Makefile to pass the <FONT COLOR=blue>&ndash;allowInlineAssembly</FONT> to
+CCured.<BR>
+<BR>
+Now we find more missing prototype problems:
+<PRE CLASS="verbatim">
+tcpserver.c:210: Warning: Calling function close with 1 arguments when expecting 0: will be WILD.
+  close has type int ()
+</PRE>
+ In fact, <FONT COLOR=blue>close</FONT> does not have a prototype at all. CCured has supplied one
+without arguments while making <FONT COLOR=blue>unix.a</FONT>! We add the &#8220;#include &lt;unistd.h&gt;&#8221;
+to <FONT COLOR=blue>tcpserver.c</FONT> and go on. <BR>
+<BR>
+We add a few more prototypes and then we get:
+<PRE CLASS="verbatim">
+buffer_get.c:10: Warning: Calling function (*op) with 3 arguments when expecting 0: will be WILD.
+  (*op) has type int ()
+</PRE>
+ We find in <FONT COLOR=blue>buffer.h</FONT> and <FONT COLOR=blue>buffer_get</FONT> a function pointer type declared
+as &#8220;int (*op)()&#8221;. Again the missing argument types. We fill those in. <BR>
+<BR>
+Now starts the real fun, chasing away the <TT>WILD</TT> pointers (see
+Chapter&nbsp;<A HREF="ccured007.html#ch-nowild">7</A> for general techniques). We see this message:
+<PRE CLASS="verbatim">
+** 1: Bad cast at cdb_make.c:36 (char  *510 -&gt;struct cdb_hplist  *1376)
+** 2: Bad cast at pathexec_env.c:42 (char  *510 -&gt;char */* __NODE(2537)  */ *2538)
+** 3: Bad cast at pathexec_env.c:67 (char */* __NODE(2537)  */ *2538 -&gt;char  *2553)
+** 4: Bad cast at sig.c:12 (void (int  ) *2695 -&gt;void () *2694)
+** 5: Bad cast at sig_catch.c:9 (void () *673 -&gt;void (int  ) *2711)
+ptrkinds: Graph contains 4383 nodes
+ptrkinds:   SAFE - 3142 ( 72%)
+ptrkinds:   SEQ - 15 (  0%)
+ptrkinds:   FSEQ - 127 (  3%)
+ptrkinds:   WILD - 1099 ( 25%)
+535 pointers are void*
+5 bad casts of which 0 involved void* and 2 involved function pointers
+1 (20%) of the bad casts are downcasts
+0 incompatible equivalence classes
+</PRE>
+ The casts 4 and 5 are due to missing argument types function types. We edit
+sig.h to add the &#8220;int&#8221; as the argument type for signal handler. <BR>
+<BR>
+We investigate cast number 2 and we find something like this:
+<PRE CLASS="verbatim">
+ e = (char **) alloc((elen + 1) * sizeof(char *));
+</PRE>
+ This is a custom allocator. We must declare it (in alloc.h):
+<PRE CLASS="verbatim">
+extern void *alloc(unsigned int);
+#pragma ccuredalloc("alloc", nozero, sizein(1)) // We added this line
+</PRE>
+ We run CCured again and no more bad casts (it looks like all the others were
+due to <FONT COLOR=blue>alloc</FONT>), but still a bunch of <TT>WILD</TT>:
+pointers: 
+<PRE CLASS="verbatim">
+ptrkinds: Graph contains 4575 nodes
+ptrkinds:   SAFE - 3324 ( 73%)
+ptrkinds:   SEQ - 41 (  1%)
+ptrkinds:   FSEQ - 150 (  3%)
+ptrkinds:   WILD - 1060 ( 23%)
+579 pointers are void*
+0 bad casts of which 0 involved void* and 0 involved function pointers
+No bad casts, so no downcasts
+2 incompatible types flow into node void  *518
+  Type char */* __NODE(2549)  */ *2550 at pathexec_env.c:67
+  Type char  *102 at dns_transmit.c:63
+2 incompatible equivalence classes
+</PRE>
+ Notice that we have more pointers in the program. This is due to the
+allocator, which is now polymorphic and is duplicated several times. But we
+also have incompatible equivalence classes. This is because there is a <FONT COLOR=blue>void
+*</FONT> pointer that is used with several incompatible types (in this case <FONT COLOR=blue>char
+*</FONT> and <FONT COLOR=blue>char **</FONT>). See Section&nbsp;<A HREF="ccured007.html#sec-poly">7.1</A> for more details on this. This turns
+out to be because the function <FONT COLOR=blue>alloc_free</FONT> with a declared argument of
+type <FONT COLOR=blue>void *</FONT> is used in two places with different argument types. We simply
+declare that function to be polymorphic (in <FONT COLOR=blue>alloc.h</FONT>):
+<PRE CLASS="verbatim">
+#pragma ccuredpoly("alloc_free")
+</PRE>Finally, CCured succeeds, with no <TT>WILD</TT> pointers, but there still is a
+warning that we have not looked at:
+<PRE CLASS="verbatim">
+pathexec_env.c:42: Warning: Encountered sizeof(char */* __attribute__((___ptrnode__(2595))) */) when type contains pointers. Use sizeof expression. Type has a disconnected node.
+</PRE>
+ As explained in Section&nbsp;<A HREF="ccured009.html#sec-sizeof">9.5</A> we should take a look at the code. We find
+this typical example, and we fix it accordingly:
+<PRE CLASS="verbatim">
+  e = (char **) alloc((elen + 1) * sizeof(* e)); // Was sizeof(char *)
+</PRE>
+ 
+<H3 CLASS="subsection"><A NAME="htoc41">6.2.4</A>&nbsp;&nbsp;Step 4: Write the wrappers</H3>
+In this package there in an interesting case:
+<PRE CLASS="verbatim">
+tcpserver_comb.o: In function `env_get_qf':
+tcpserver_comb.o(.text+0x15d10): undefined reference to `environ_qq'
+</PRE>
+ This time the global that needs a wrapper is a pointer to data, not a
+function. You cannot write a wrapper for this, but you can replace its
+accesses with functions. <BR>
+<BR>
+Since the program accesses <FONT COLOR=blue>environ</FONT> always with an index operation
+<FONT COLOR=blue>environ[i]</FONT>, we can write a function <FONT COLOR=blue>environ_idx</FONT> that takes an integer
+and returns the <I>i</I><SUP><I>th</I></SUP> element in <FONT COLOR=blue>environ</FONT>. I show below the case where
+it appropriate to trust that the index is within the bounds:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+extern char ** environ;
+char* environ_idx(int i) {
+  char * __SAFE * __SAFE p_environ = __trusted_add(environ, i);
+  // We are going to believe that i is within bounds
+  return __mkptr_string(* p_environ);
+  
+}
+</FONT></PRE>
+
+<H3 CLASS="subsection"><A NAME="htoc42">6.2.5</A>&nbsp;&nbsp;Step 5: Run and debug the cured code</H3>
+We have built the suite of tools and now we run it. Right away we get a
+run-time error, so we set <FONT COLOR=blue>CCURED_CONTINUE_ON_ERROR</FONT>
+(Section&nbsp;<A HREF="ccured004.html#sec-errorhandle">4.2</A>) to see them all. 
+<PRE CLASS="verbatim">
+Failure STORE_SP at pathexec_env.c:47: pathexec_qq(): Storing stack address
+...
+Failure STORE_SP at /home/necula/ccured/include/functions/deepcopy_stringarray.h:70: __deepcopy_stringarray_to_compat___0_ssqq(): Storing stack address
+</PRE>
+ There are two distinct errors. We'll fix them, but here is a way to silence
+CCured if you are lazy: we can use
+<FONT COLOR=blue>CCURED_ERROR_HANDLERS</FONT> to specify that we want to ignore all
+<FONT COLOR=blue>STORE_SP</FONT> errors in those two functions. For this we write a text file
+(ucspi.handlers):
+<PRE CLASS="verbatim">
+ignore STORE_SP at *:*:pathexec_qq
+ignore STORE_SP at *:*:__deepcopy_stringarray_to_compat___0_ssqq
+</PRE>
+ Now we run as follows:
+<PRE CLASS="verbatim">
+CCURED_ERROR_HANDLERS=ucspi.handlers ./http@
+</PRE>
+ and <TT>http@</TT> seems to work.<BR>
+<BR>
+Let's go back to fixing these errors. These errors are all trying to store
+strings that are obtained from the <FONT COLOR=blue>environ</FONT> variable. It turns out that
+those strings are on the stack (allocated before <FONT COLOR=blue>main</FONT> is invoked). The
+solution would be to copy those strings on the heap. But right after I saw
+this error I realized that CCured should not complain if the address that is
+being stored is in the stack frame of <FONT COLOR=blue>main</FONT> or at higher addresses. So, I
+added this feature to CCured and now you will not see these particular errors.
+But if you run <TT>http@ www.yahoo.com</TT> you will get:
+<PRE CLASS="verbatim">
+Failure STORE_SP at dns_transmit.c:213: dns_transmit_start_sqqff(): Storing stack address
+</PRE>
+ It does not take much to find that this is due to the following code:
+<PRE CLASS="verbatim">
+# 5 "dns_resolve.c"
+int dns_resolve(char *q,char qtype[2])
+{
+  struct taia stamp;
+  struct taia deadline;
+  char servers[64];
+
+  if (dns_transmit_start(&amp;dns_resolve_tx,servers,1,q,qtype,"\0\0\0\0") == -1) return -1;
+</PRE>
+ <TT>dns_transmit_start</TT> then stores the address of the array <FONT COLOR=blue>servers</FONT>
+into the heap. The solution here is to move the <FONT COLOR=blue>servers</FONT> array into the
+heap (or make it a global). We can achieve the former by declaring:
+<PRE CLASS="verbatim">
+ char servers[64]  __HEAPIFY;
+</PRE>
+ and CCured will move it to the heap (see Section&nbsp;<A HREF="tutorial.html#sec-storeptr">3.5</A>).<BR>
+<BR>
+Bingo! It seems to work. Now, you can start measuring performance and, if
+desired, you can try to make CCured infer better checks for your code. <BR>
+<BR>
+<A NAME="toc19"></A>
+<H2 CLASS="section"><A NAME="htoc43">6.3</A>&nbsp;&nbsp;Example: PING</H2>
+In this section I describe what it took to do the <TT>ping</TT> utility from
+<TT>netkit-base-0.17</TT>. <BR>
+<BR>
+We download, compile, test it. Then we setup the Makefiles to use ccured
+instead of <TT>gcc</TT> and we test that it works in the <TT>&ndash;nocure</TT> mode. Then we
+turn on curing. <BR>
+<BR>
+First we see two errors pointing out that there is inline assembly in
+<TT>ping</TT>. CCured also prints the instructions and we see that they are just
+bit manipulations. So, we just pass <TT>&ndash;allowInlineAssembly</TT> to ccured and go
+on. <BR>
+<BR>
+Now we get:
+<PRE CLASS="verbatim">
+Failure UBOUND at ping.c:1303: main(): Ubound
+</PRE>
+ To investigate this one we can use <TT>CCURED_SLEEP_ON_ERROR</TT> (see
+Chapter&nbsp;<A HREF="ccured004.html#ch-invoke">4</A>). The fragment of code that causes this error is similar to the
+following code:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+struct icmp {
+   int various;
+   char data[1];
+};
+char outpack[65536];
+
+char foo() {
+ // Get the 8th data character
+ return ((struct icmp*)outpack)-&gt;data[8];
+}
+</FONT></PRE>
+The problem is that once <FONT COLOR=blue>outpack</FONT> is cast to a <FONT COLOR=blue>struct icmp *</FONT> it looses
+the ability to access most element in the original array. The solution for
+this particular error involves a slight rewrite of the access as:
+<PRE CLASS="verbatim"><FONT COLOR=blue>
+char foo() {
+ // Get the offset of the 8th data character
+ int off = (int) &amp; ((struct icmp*)0)-&gt;data[8];
+ return outpack[off];
+}
+</FONT></PRE>
+We need to fix that problem in all accesses to the <TT>data</TT> field. After
+that, we run into another problem:
+<PRE CLASS="verbatim">
+Failure ALIGNSEQ at ./ping_combcured.c:3923: pinger(): Creating an unaligned sequence
+</PRE>
+ This is because at some point we create a sequence pointer whose home area
+does not contain a whole number of elements. See Section&nbsp;<A HREF="tutorial.html#sec-checkseq">3.6.3</A> for the
+various ways to address this problem. We choose to simply tell CCured to allow
+partial elements in structures and to adapt its checks accordingly. To achieve
+this we pass <TT>&ndash;allowPartialElementsInSequence</TT> to CCured.<BR>
+<BR>
+Now it works, we are done.<BR>
+<BR>
+<A NAME="toc20"></A>
+<H2 CLASS="section"><A NAME="htoc44">6.4</A>&nbsp;&nbsp;Example: THTTPD Server</H2>
+In this section, we take a look into how to cure thttpd, described by its 
+author as &#8220;a simple, small, portable, fast, and secure HTTP server.&#8221; It 
+is currently the fifth most popular HTTP server on the net. You can get it 
+at <A HREF="javascript:loadTop('http://www.acme.com/software/thttpd/')">.</A> The version I work 
+with is 2.23 beta 1.<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc45">6.4.1</A>&nbsp;&nbsp;Step 1: Regular Build</H3>
+First, we unpack the files:
+<PRE CLASS="verbatim">
+gunzip thttpd-2.23beta1.tar.gz
+tar -xvf thttpd-2.23beta1.tar
+</PRE>
+Look into the directory for the file <FONT COLOR=blue>configure</FONT>. We don't want to mess up 
+the /usr/local/ folder, so go into <FONT COLOR=blue>configure</FONT> and delete the folder path 
+from <FONT COLOR=blue>ac_default_prefix</FONT>. Now Makefile should make thttpd to the folder 
+where the source code resides. Run <FONT COLOR=blue>configure</FONT>.
+<PRE CLASS="verbatim">
+./configure
+</PRE>
+The file should do some work and generate a few files. <BR>
+<BR>
+There is also another modification we should make to avoid conflicts with any 
+existing http servers (e.g. Apache). In <FONT COLOR=blue>config.h</FONT>, go-to Line 321 and 
+change the default port from 80 to something like 7500. <BR>
+<BR>
+Now we can run make. The compiler does work and should produce a file named 
+<FONT COLOR=blue>thttpd</FONT>. Run the program and test the server from another computer. In my 
+case, I steered my browser to <FONT COLOR=blue>http://manju.cs.berkeley.edu:7500/&nbsp;andypang/</FONT>.
+<PRE CLASS="verbatim">
+make
+</PRE>a few seconds later...
+<PRE CLASS="verbatim">
+./thttpd
+</PRE>
+If you see your homepage, thttpd is working. If not, make sure you have a 
+public_html folder. If you are lazy, there is another way to check if thttpd 
+is working. Check whether the site for the server is up at the port you 
+specified (e.g. <FONT COLOR=blue>http://manju.cs.berkeley.edu:7500/</FONT>). A page with a green 
+background should appear notifying you that thttpd is running.<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc46">6.4.2</A>&nbsp;&nbsp;Step 2: Build with CIL</H3>
+It's time to look into that <FONT COLOR=blue>Makefile.in</FONT> that came with thttpd. 
+<FONT COLOR=blue>Makefile.in</FONT> is the file from which <FONT COLOR=blue>configure</FONT> generates <FONT COLOR=blue>Makefile</FONT>, 
+which in turn is used to build the application. <BR>
+<BR>
+Below the line that says &#8220;You shouldn't need to edit anything below here,&#8221; 
+we make the same changes to the <FONT COLOR=blue>CC</FONT> variable as in the other tutorials.
+<PRE CLASS="verbatim">
+ifdef CCURED
+ CC:=/home/andypang/cil/bin/ccured
+endif
+ifdef NOCURE
+ CC+= --nocure
+endif
+ifdef NOMERGE
+ CC+= --nomerge
+endif
+</PRE>
+Be sure to insert these ifdefs below the block of variable declarations (below 
+line 60). Otherwise, gcc would be used to compile the files.<BR>
+<BR>
+There will also be more files to clean after CIL/CCured is run, so I added 
+the following to clean up the CIL files and folders that will be generated:
+<PRE CLASS="verbatim">
+CIL =           $(SRC:.c=.i) *cil*
+
+COMB =          *comb*
+</PRE>
+I modified the variable CLEANFILES to include those files.
+<PRE CLASS="verbatim">
+CLEANFILES =    $(ALL) $(OBJ) $(GENSRC) $(GENHDR) $(CIL) $(COMB)
+</PRE>
+Now we are ready to compile using CIL. First, we run <FONT COLOR=blue>configure</FONT> again to 
+update the Makefile.
+<PRE CLASS="verbatim">
+./configure
+make clean
+make CCURED=1 NOCURE=1 NOMERGE=1
+</PRE>
+Ensure the application still works correctly. It should. Now build with 
+merging.
+<PRE CLASS="verbatim">
+make clean
+make CCURED=1 NOCURE=1
+</PRE>
+Again, check for proper functionality.<BR>
+<BR>
+
+<H3 CLASS="subsection"><A NAME="htoc47">6.4.3</A>&nbsp;&nbsp;Step 3: Build with CCured</H3>
+The big moment.
+<PRE CLASS="verbatim">
+make clean
+make CCURED=1
+</PRE>
+You should see a number of errors and warnings. Many of these will involve 
+a warning of a &#8220;malformed format string&#8221; looking something like this:
+<PRE CLASS="verbatim">
+libhttpd.c:226: Warning: Malformed format string [child wait - %m]
+</PRE>
+If you take a look at the string, the warning stems from a call to syslog 
+with a %m. This is safe, and can be safely ignored. ***********<BR>
+<BR>
+Now we see a prototyping warning:
+<PRE CLASS="verbatim">
+thttpd.c:437: Warning: Calling function sigset without proper prototype: will be WILD.
+  sigset has type void * __attribute__((___ptrnode__(1666))) /* /* missing proto */  */()
+</PRE>
+At this point we realize that some files are read-only. We chmod the thttp folder from its 
+parent directory so that we can write to any file in the directory:
+<PRE CLASS="verbatim">
+chmod -R u+w thttpd-2.23beta1
+</PRE>
+Back to the problem at hand. If one punches in <FONT COLOR=blue>sigset</FONT> on Google, one 
+will that it is a function in <FONT COLOR=blue>signal.h</FONT>. Add the following <FONT COLOR=blue>thttpd.c</FONT> 
+to remedy the warning:
+<PRE CLASS="verbatim">
+extern void *sigset(int, void*);
+</PRE>
+Although the warning also appeared for the file <FONT COLOR=blue>libhttpd.c</FONT>, the 
+prototype in <FONT COLOR=blue>thttpd.c</FONT> will work for all files in the project.<BR>
+<BR>
+The next most prevalent warning should be a sscanf error, where CCured 
+warns that it does not expect the type <FONT COLOR=blue>char *</FONT>. CCured does not accept 
+strings in sscanf because one could potentially read in an unbounded 
+string. This characteristic could be used for malicious intentions. <BR>
+<BR>
+Although <FONT COLOR=blue>%400[a-zA-Z]</FONT> is used and hence strings that are accepted by 
+sscanf will be limited to 400 bytes, CCured currently does not support this. 
+This may change in the future, because this method of scanning strings is 
+not suspectible to the same problems as simply using <FONT COLOR=blue>%s</FONT>.<BR>
+<BR>
+To fix this error, use CCured's sscanf/fscanf functions in place of 
+the ones in <FONT COLOR=blue>stdio.h</FONT>. Please refer to Section&nbsp;<A HREF="ccured009.html#sec-scanf-like">9.6.3</A> 
+for more details. As an example, the following is how I modified the code 
+at Line 213 in <FONT COLOR=blue>tdate_parse.c</FONT>.
+<PRE CLASS="verbatim">
+    /* DD-mth-YY HH:MM:SS GMT */
+    if ( 
+        (resetSScanfCount(cp), 
+         tm_mday = ccured_fscanf_int(ccured_sscanf_file, "$d-"),
+         ccured_fscanf_string(ccured_sscanf_file, "%400[a-zA-Z]-", str_mon),
+         tm_year = ccured_fscanf_int(ccured_sscanf_file, "$d "),
+         tm_hour = ccured_fscanf_int(ccured_sscanf_file, "$d:"),
+         tm_min = ccured_fscanf_int(ccured_sscanf_file, "$d:"),
+         tm_sec = ccured_fscanf_int(ccured_sscanf_file, "$d GMT"),
+         getScanfCount()) == 6 &amp;&amp;
+        /*
+        sscanf( cp, "%d-%400[a-zA-Z]-%d %d:%d:%d GMT",
+                &amp;tm_mday, str_mon, &amp;tm_year, &amp;tm_hour, &amp;tm_min,
+                &amp;tm_sec ) == 6 &amp;&amp;
+        */
+            scan_mon( str_mon, &amp;tm_mon ) )
+        {
+</PRE>
+Then we see several warnings regarding the use of sizeof:
+<PRE CLASS="verbatim">
+libhttpd.c:2782: Warning: Encountered sizeof(char */* __attribute__((___ptrnode__(5491))) */) when type contains pointers. Use sizeof expression. Type has a disconnected node.
+</PRE>
+We take a look at this line and find that it is a function call to <FONT COLOR=blue>RENEW</FONT>. 
+<PRE CLASS="verbatim">
+nameptrs = RENEW( nameptrs, char*, maxnames );
+</PRE>
+The definition of <FONT COLOR=blue>RENEW</FONT> can be found in <FONT COLOR=blue>libhttpd.h</FONT>. 
+<PRE CLASS="verbatim">
+#define RENEW(o,t,n) ((t*) realloc( (void*) o, sizeof(t) * (n) ))
+</PRE>
+The warning arises from the fact that the CCured inferencer cannot make
+the connection between <FONT COLOR=blue>nameptrs</FONT> and <FONT COLOR=blue>char *</FONT>'s. See Section&nbsp;<A HREF="ccured009.html#sec-sizeof">9.5</A> 
+for more details.<BR>
+<BR>
+To fix the warning, we let CCured inference the argument in <FONT COLOR=blue>sizeof</FONT> 
+to <FONT COLOR=blue>nameptr</FONT> by modifying the code in the following way:<BR>
+<BR>
+In libhttpd.c
+<PRE CLASS="verbatim">
+nameptrs = RENEW( nameptrs, nameptr*, maxnames );
+</PRE>
+In libhttpd.h
+<PRE CLASS="verbatim">
+#define RENEW(o,t,n) (realloc( (void*) o, sizeof(t) * (n) ))
+</PRE>
+Now CCured will know that we are allocating memory based on the size of 
+the pointers to <FONT COLOR=blue>nameptr</FONT>. <BR>
+<BR>
+The macro <FONT COLOR=blue>NEW</FONT> is defined one line before <FONT COLOR=blue>RENEW</FONT>, and we fix a couple 
+of calls to <FONT COLOR=blue>NEW</FONT> in the same way. <BR>
+<BR>
+We now face a number of warnings of the following form:
+<PRE CLASS="verbatim">
+libhttpd.c:2519: Warning: Solver: changing User Specified SAFE node 5283 (an unnamed location (often an inserted cast)) to FSEQ
+</PRE>
+A quick look at <FONT COLOR=blue>libhttpd.c</FONT> shows that a call to <FONT COLOR=blue>qsort</FONT> is made. 
+The wrapper for qsort can be found in <FONT COLOR=blue>stdlib_wrappers.h</FONT>, and there 
+appears to be two versions of <FONT COLOR=blue>qsort</FONT>. One versions supports polymorphism 
+and the other does not. Add <FONT COLOR=blue>-DUSE_POLYMORPHIC_QSORT</FONT> in <FONT COLOR=blue>Makefile.in</FONT> 
+after we make the call to <FONT COLOR=blue>cil/bin/ccured</FONT>, so that CCured will know to 
+use the polymorphic qsort. <BR>
+<BR>
+This fixes the problems in <FONT COLOR=blue>libhttpd.c</FONT> but not <FONT COLOR=blue>tdate_parse.c</FONT>. We go 
+to Line 113 and find a call to qsort. At first it looks like a problem with 
+sizeof, but fixing the calls to sizeof proves to be fruitless (although still 
+a good programming practice). <BR>
+<BR>
+Let's turn to the browser to track down the bad cast for us. Looking at the 
+problematic node will show us that it is in the arguments passed into the 
+comparator for qsort. The arguments of the comparator are declared as <FONT COLOR=blue>char *</FONT>, 
+but they are also cast to <FONT COLOR=blue>struct strlong *</FONT> in the function. This is a 
+bad cast. Change the types of the accepted arguments to <FONT COLOR=blue>void *</FONT> and 
+the problem is solved. <BR>
+<BR>
+Next we tackle a similar problem in <FONT COLOR=blue>tdate_parse.c</FONT>:
+<PRE CLASS="verbatim">
+** 1: Bad cast (seq) at tdate_parse.c:202 (struct tm  *7100 -&gt;char  *7136)
+</PRE>
+Once again, we use the browser to track down the problem, and find a cast 
+from a <FONT COLOR=blue>struct tm *</FONT> to a <FONT COLOR=blue>char *</FONT>. We change the <FONT COLOR=blue>char *</FONT> to a 
+<FONT COLOR=blue>void *</FONT> and the bad cast disappears.
+<PRE CLASS="verbatim">
+    (void) memset( (void*) &amp;tm, 0, sizeof(struct tm) );
+</PRE>
+The last bad cast:
+<PRE CLASS="verbatim">
+** 1: Bad cast at timers.h:41 (void */* __NODE(346)  */ *347 -&gt;long  *349)
+</PRE>
+Going to Line 41 reveals a union of <FONT COLOR=blue>void *</FONT>, <FONT COLOR=blue>int</FONT>, and <FONT COLOR=blue>long</FONT>. This 
+cannot possibly be safe because <FONT COLOR=blue>i</FONT> could later be used as a pointer 
+with <FONT COLOR=blue>p</FONT>. We change this union to a tagged union as instructed in 
+Section&nbsp;<A HREF="ccured009.html#sec-taggedunion">9.7</A>.
+<PRE CLASS="verbatim">
+union ClientData {
+    void* p;
+    int i;
+    long l;
+} __TAGGED;
+typedef union ClientData ClientData;
+</PRE>
+<HR>
+<A HREF="ccured005.html"><IMG SRC ="previous_motif.gif" ALT="Previous"></A>
+<A HREF="ccuredtoc.html"><IMG SRC ="contents_motif.gif" ALT="Up"></A>
+<A HREF="ccured007.html"><IMG SRC ="next_motif.gif" ALT="Next"></A>
+</BODY>
+</HTML>

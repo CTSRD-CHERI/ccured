@@ -1,0 +1,204 @@
+
+
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+
+<HEAD>
+
+<TITLE>Setting Up cygwin and OCaml</TITLE>
+
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META name="GENERATOR" content="hevea 1.08">
+<STYLE type="text/css">
+.toc{list-style:none;}
+.title{margin:auto;text-align:center}
+.center{text-align:center;margin-left:auto;margin-right:auto;}
+.flushleft{text-align:left;margin-left:0ex;margin-right:auto;}
+.flushright{text-align:right;margin-left:auto;margin-right:0ex;}
+DIV TABLE{margin-left:inherit;margin-right:inherit;}
+PRE{text-align:left;margin-left:0ex;margin-right:auto;}
+BLOCKQUOTE{margin-left:4ex;margin-right:4ex;text-align:left;}
+.part{margin:auto;text-align:center}
+</STYLE>
+</HEAD>
+
+<BODY >
+<!--HEVEA command line is: /usr/bin/hevea -exec xxdate.exe ../../setup -->
+<!--HTMLHEAD-->
+<!--ENDHTML-->
+<!--PREFIX <ARG ></ARG>-->
+<!--CUT DEF section 1 -->
+
+
+<TABLE CLASS="title">
+<TR><TD>
+<H1 CLASS="titlemain">Setting Up cygwin and OCaml</H1>
+<H3 CLASS="titlerest">Scott McPeak &nbsp;&nbsp;George Necula</H3></TD>
+</TR></TABLE><BR>
+ This document is intended to get you started with OCAML and the other tools
+that are necessary for CCured and other projects of ours. These tools work on
+Linux and Windows (NT4.0, 2000, XP and also less reliably on 95/98/Me).<BR>
+<BR>
+If you use Linux then you can go directly to Section&nbsp;<A HREF="#sec-ocaml">2</A>.<BR>
+<BR>
+<!--TOC section If you want to use Windows-->
+
+<H2 CLASS="section"><A NAME="htoc1">1</A>&nbsp;&nbsp;If you want to use Windows</H2><!--SEC END -->
+
+<!--TOC subsection Get <TT>cygwin</TT>-->
+
+<H3 CLASS="subsection"><A NAME="htoc2">1.1</A>&nbsp;&nbsp;Get <TT>cygwin</TT></H3><!--SEC END -->
+
+You must have a bunch of Unix tools installed on your machine. (In the future
+we might be able to avoid these but for now you are better off with them.).
+Here is what I (George) do to install Cygwin. You need a good network
+connection for this. 
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Create a directory <TT>C:\Download\cygwin</TT>
+<LI CLASS="li-itemize">Go to <A HREF="http://sources.redhat.com/cygwin"><TT>http://sources.redhat.com/cygwin</TT></A> and click <TT>Install
+cygwin</TT> icon. Download <TT>setup.exe</TT> to the directory you just created.
+<LI CLASS="li-itemize">Run <TT>setup.exe</TT> and select &#8220;Download to local directory&#8221;. Select all
+the packages. This will take a while (&nbsp; 30 minutes)
+<LI CLASS="li-itemize">Run <TT>setup.exe</TT> again and not select to &#8220;Install from local
+directory&#8221;. It is best to <B>deselect</B> the <TT>tetex</TT> package since I found
+it to interfere with other installations of Latex.
+<LI CLASS="li-itemize">I choose <TT>C:\Programs\cygwin</TT> 
+as the home for <TT>cygwin</TT>, I use <TT>DOS</TT> as the default text file and I
+choose &#8220;Install for All&#8221;. 
+<LI CLASS="li-itemize">Add <TT>C:\Programs\cygwin\bin</TT> to your
+PATH. You must put it first in the &#8220;System Variables&#8221; PATH (In Control Panel/System/Advanced/Environment
+Variables&#8221; and <B>put it first</B> so that it comes before the default
+c:/WinNT/system32. You can verify that you got it right if you get
+<TT>/usr/bin/find</TT> when you run <TT>which find</TT>. 
+<LI CLASS="li-itemize">Verify that you can run <TT>/usr/bin/perl</TT> from the command line within
+<TT>bash</TT>. 
+</UL>
+<!--TOC section Get OCaml-->
+
+<H2 CLASS="section"><A NAME="htoc3">2</A>&nbsp;&nbsp;Get OCaml</H2><!--SEC END -->
+<A NAME="sec-ocaml"></A>
+The next step for most people is to download and install the Ocaml
+compiler system. This is available at:<BR>
+<BR>
+<A HREF="http://caml.inria.fr/ocaml/"><TT>http://caml.inria.fr/ocaml/</TT></A><BR>
+<BR>
+At the time of writing, the current version is 3.07. The following
+instructions assume that you will build from sources even on Windows (instead
+of using the Native compiler provided). Here the rough sequence of steps:
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+Download and unpack the sources
+<LI CLASS="li-itemize">Go in that directory, start <TT>bash</TT> if on Windows, and run
+<PRE CLASS="verbatim">
+% ./configure
+% make world
+% make opt
+% make install
+</PRE>
+ The first command might fail to configure some libraries but that's Ok. 
+</UL>
+To test your ocaml distribution, try:
+<PRE CLASS="verbatim">
+  % which ocaml
+  /usr/local/bin/ocaml
+
+  % ocaml
+        Objective Caml version 3.07
+
+  # exit 0;;    &lt;-- you type "exit 0;;", and press enter
+</PRE>
+ If you intend to program in Ocaml then you should also install the emacs
+support files for ocaml. This will give you nice fontification and
+indentation. If you check in code that is not indented nicely some members of
+the project will not be pleased!<BR>
+<BR>
+<!--TOC subsection Debugging Support Ocaml-->
+
+<H3 CLASS="subsection"><A NAME="htoc4">2.1</A>&nbsp;&nbsp;Debugging Support Ocaml</H3><!--SEC END -->
+
+If you expect to need to run the debugger our projects are set up in such a
+way that they will invoke the debugger for you. How to do that is described in
+each project's documentation. But for that support to work you must add the
+following code to your .emacs file. Also, if you are using GNU-emacs then you
+must set the Coding style for your files to &#8220;unix&#8221; (CTRL-X RET F).
+<PRE CLASS="verbatim">
+(defvar ocamldebug-history nil)
+(defun my-camldebug (command-line)
+  "Run camldebug on program FILE in buffer *camldebug-FILE*.
+The directory containing FILE becomes the initial working directory
+and source-file directory for camldebug.  If you wish to change this, use
+the camldebug commands `cd DIR' and `directory'."
+  (interactive
+   (list (read-from-minibuffer "Run ocamldebug (like this): "
+          (if (consp ocamldebug-history)
+       (car ocamldebug-history)
+     "ocamldebug")
+                                 nil
+                               nil
+          '(ocamldebug-history . 1))))
+  ; call something from camldebug.el to make sure it is loaded
+  (camldebug-numeric-arg 1)
+
+  ; We must override the camldebug-display-line
+  (if (not (fboundp 'original-camldebug-display-line))
+      (fset 'original-camldebug-display-line 
+            (symbol-function 'camldebug-display-line)))
+  (defun camldebug-display-line (true-file character kind)
+    ; See if true-file exists
+    (if (not (file-exists-p true-file))
+        ; Try to run cygpath to convert the file name
+        (with-temp-buffer
+          (if (equal 0 
+                     (call-process "cygpath" nil t t "-m" true-file))
+              (progn
+                ; Drop the end of line
+                (when (bolp)
+                  (backward-delete-char 1))
+                (setq true-file (buffer-string))))))
+    (original-camldebug-display-line true-file character kind))
+
+
+  (pop-to-buffer (concat "*camldebug*"))
+  (setq words (split-string command-line)) 
+  (message "Current directory is %s" default-directory)
+  (apply 'make-comint (cons "camldebug"
+                      (cons (car words)
+                      (cons nil (cdr words)))))
+  (set-process-filter (get-buffer-process (current-buffer))
+                      'camldebug-filter)
+  (set-process-sentinel (get-buffer-process (current-buffer))
+                        'camldebug-sentinel)
+  (camldebug-mode)
+  (camldebug-set-buffer))
+</PRE>
+<!--TOC section Set the environment variables-->
+
+<H2 CLASS="section"><A NAME="htoc5">3</A>&nbsp;&nbsp;Set the environment variables</H2><!--SEC END -->
+
+Make sure that /usr/local/lib in in your path. If you are on Windows this
+ means &#8220;C:/Programs/cygwin/usr/local/lib&#8221;. <BR>
+<BR>
+<!--TOC section If you need CVS access-->
+
+<H2 CLASS="section"><A NAME="htoc6">4</A>&nbsp;&nbsp;If you need CVS access</H2><!--SEC END -->
+ 
+See the <A HREF="cvssetup.html">separate instructions</A>.<BR>
+<BR>
+<!--TOC section Useful Links-->
+
+<H2 CLASS="section"><A NAME="htoc7">5</A>&nbsp;&nbsp;Useful Links</H2><!--SEC END -->
+
+<UL CLASS="itemize"><LI CLASS="li-itemize">
+ Tutorial on ML: 
+ <A HREF="http://www.dcs.napier.ac.uk/course-notes/sml/manual.html"><TT>http://www.dcs.napier.ac.uk/course-notes/sml/manual.html</TT></A>
+ <LI CLASS="li-itemize">Documentation and sources for Ocaml: 
+ <A HREF="http://caml.inria.fr/ocaml/"><TT>http://caml.inria.fr/ocaml/</TT></A> 
+ <LI CLASS="li-itemize">Manual for GNU make:
+ <A HREF="http://www.gnu.org/manual/make/html_chapter/make_toc.html"><TT>http://www.gnu.org/manual/make/html_chapter/make_toc.html</TT></A></UL>
+<!--HTMLFOOT-->
+<!--ENDHTML-->
+<!--FOOTER-->
+<HR SIZE=2><BLOCKQUOTE CLASS="quote"><EM>This document was translated from L<sup>A</sup>T<sub>E</sub>X by
+</EM><A HREF="http://pauillac.inria.fr/~maranget/hevea/index.html"><EM>H<FONT SIZE=2><sup>E</sup></FONT>V<FONT SIZE=2><sup>E</sup></FONT>A</EM></A><EM>.</EM></BLOCKQUOTE></BODY>
+</HTML>
