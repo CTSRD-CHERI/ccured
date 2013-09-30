@@ -121,7 +121,6 @@ $(OBJDIR)/cilly$(EXE) : $(CILLY_MODULES:%=$(OBJDIR)/%.$(CMO)) \
 	@$(NARRATIVE) "Linking $(COMPILETOWHAT) $@ $(LINKMSG)"
 	$(AT)$(CAMLLINK) -verbose -o $@ \
                     $(CILLY_LIBS:%=%.$(CMXA)) \
-                    $(CILLY_LIBS:%=-cclib -l%) \
                     $^
 
 
@@ -137,7 +136,7 @@ setup: cilversion machdep
 	$(MAKE) cilly NATIVECAML= 
 	$(MAKE) cilly NATIVECAML=1
 	$(MAKE) cillib NATIVECAML=
-	$(MAKE) cillib NATIVECAML=1
+#	$(MAKE) cillib NATIVECAML=1
 
 # Create the machine dependency module
 # If the cl command cannot be run then the MSVC part will be identical to GCC
