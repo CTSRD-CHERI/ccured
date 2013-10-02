@@ -114,62 +114,24 @@ extern int _get__ctype_b(int);
 
 
 <<< file=ctype.h , system=linux
-# if defined __OPTIMIZE__ && !defined __OPTIMIZE_SIZE__ \
- && defined __USE_EXTERN_INLINES
-extern __inline int
-tolower (int __c) __THROW
-{
-  return __c >= -128 && __c < 256 ? __ctype_tolower[__c] : __c;
-}
-
-extern __inline int
-toupper (int __c) __THROW
-{
-  return __c >= -128 && __c < 256 ? __ctype_toupper[__c] : __c;
-}
-# endif
-|||
 # ifdef __USE_EXTERN_INLINES
-extern __inline int
-tolower (int __c) __THROW
-{
-  return __c >= -128 && __c < 256 ? __ctype_tolower[__c] : __c;
-}
-
-extern __inline int
-toupper (int __c) __THROW
-{
-  return __c >= -128 && __c < 256 ? __ctype_toupper[__c] : __c;
-}
-# endif
-|||
-# ifdef __USE_EXTERN_INLINES
-extern __inline int
-tolower (int __c) __THROW
+__extern_inline int
+    __NTH (tolower (int __c))
 {
   return __c >= -128 && __c < 256 ? (*__ctype_tolower_loc ())[__c] : __c;
 }
 
-extern __inline int
-toupper (int __c) __THROW
-{
-  return __c >= -128 && __c < 256 ? (*__ctype_toupper_loc ())[__c] : __c;
-}
-# endif
-|||
-# ifdef __USE_EXTERN_INLINES
-extern __inline int
-__NTH (tolower (int __c))
-{
-  return __c >= -128 && __c < 256 ? (*__ctype_tolower_loc ())[__c] : __c;
-}
-
-extern __inline int
+__extern_inline int
 __NTH (toupper (int __c))
 {
   return __c >= -128 && __c < 256 ? (*__ctype_toupper_loc ())[__c] : __c;
 }
 # endif
+
+# if __GNUC__ >= 2 && defined __OPTIMIZE__ && !defined __cplusplus
+#  define tolower(c)    __tobody (c, tolower, *__ctype_tolower_loc (), (c))
+#  define toupper(c)    __tobody (c, toupper, *__ctype_toupper_loc (), (c))
+# endif /* Optimizing gcc */
 ===
 #ifndef CCURED
 @__pattern__@
