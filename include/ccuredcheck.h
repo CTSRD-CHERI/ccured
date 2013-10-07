@@ -130,7 +130,7 @@ void *   __scalar2pointer(unsigned long  l , int  fid , int  lid ) ;
 
 // libc prototypes (we avoid pulling in entire headers; sm: I no longer
 // remember why)
-extern unsigned int strlen(const char *);
+extern size_t strlen(const char *);
 
 // ---------------- check function return value --------------
 // CHECK_GETFRAME: return the frame pointer of the current function;
