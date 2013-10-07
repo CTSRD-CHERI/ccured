@@ -201,7 +201,9 @@ void __logScalar(int id, unsigned long l);
 #define __SEQR       CCURED_ANNOT(__attribute__((seqr)))
 #define __FSEQR      CCURED_ANNOT(__attribute__((fseqr)))
 #define __ROSTRING   CCURED_ANNOT(__attribute__((rostring)))
-#define __STRING     CCURED_ANNOT(__attribute__((string)))
+// Comment out __STRING since this is now used in cdefs, and doesn't
+// seem to be used elsewhere in the CCured source.
+//#define __STRING     CCURED_ANNOT(__attribute__((string)))
 //__RWSTRING is an old name for __STRING
 #define __RWSTRING   CCURED_ANNOT(__attribute__((string)))
 
