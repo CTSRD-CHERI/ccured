@@ -17,7 +17,7 @@ setup:
 ifdef BUILD_RELEASEPG
 	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML=1 RELEASELIB=1 USE_PG=1
 endif
-	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML=1 RELEASELIB=1
+#	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML=1 RELEASELIB=1
 ifeq ($(HAS_MSVC), yes)
 	$(MAKE) libraries _MSVC=1 NATIVECAML=
 	$(MAKE) libraries _MSVC=1 NATIVECAML=1 RELEASELIB=1
