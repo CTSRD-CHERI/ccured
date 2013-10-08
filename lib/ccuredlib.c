@@ -70,6 +70,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <ctype.h>       // __ctype_b
+#include <stdint.h>      // intptr_t, uintptr_t
 #include <time.h>        // time, time_t
 #include <stdarg.h>      // various varargs-related
 #include <errno.h>

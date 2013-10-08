@@ -213,7 +213,7 @@ void __CHECK_STOREPTR(void **where,
   // the following check assumes the stack grows towards smaller
   // addresses; that's an ABI feature not a compiler issue, but
   // we're pretending it is anyway
-    if ((unsigned)p - (unsigned)where < 0x100000U) {
+    if ((uintptr_t)p - (uintptr_t)where < 0x100000U) {
       // sm: if the check below fails, it means that 'p'
       // is a stack address; however, since 'where' is only a little
       // (<1M) smaller than 'p', it too must be a stack address;
@@ -227,7 +227,7 @@ void __CHECK_STOREPTR(void **where,
 
     // matth: If where is less than and within a stone's throw of the frame 
     // pointer, then it is in the current stack frame.  Allow all writes.
-    if ((unsigned)pTopOfFrame - (unsigned)where < 0x100000U) {
+    if ((uintptr_t)pTopOfFrame - (uintptr_t)where < 0x100000U) {
       return;
     }
 
@@ -300,9 +300,9 @@ void __CHECK_FUNCTIONPOINTER(void *p, void *b, int nrActualArgs
   // the function accepts, because the usual calling convention will
   // harmlessly ignore extra arguments (and our type system has no notion
   // of obligated use)
-  if( ((U32*)b)[-1] != 0         ||      // length field is 0 for fn pointers
-      ((U32*)b)[ 0] != (U32)p    ||      // first word is actual code pointer
-      ((U32*)b)[+1] > (U32)nrActualArgs ) {// second word is # args fn requires
+  if( ((U32*)b)[-1] != 0              ||      // length field is 0 for fn pointers
+      ((U32*)b)[ 0] != (uintptr_t)p   ||      // first word is actual code pointer
+      ((U32*)b)[+1] > (U32)nrActualArgs ) {   // second word is # args fn requires
     CCURED_FAIL(FAIL_FUNCTIONPOINTER  CCURED_FAIL_EXTRA_ARGS);
   }
 }
@@ -380,7 +380,7 @@ void __CHECK_FSEQ2SAFE(void *bend, void *p,
     }
 #endif    
     // bend - p does not underflow because of previous check
-    if(((unsigned)bend - (unsigned)p) < destlen) {
+    if(((uintptr_t)bend - (uintptr_t)p) < destlen) {
       CCURED_FAIL(FAIL_UBOUND CCURED_FAIL_EXTRA_ARGS);
     }
   }
@@ -454,10 +454,10 @@ void __CHECK_SEQ2SAFE(void *base, void *bend,
   // A new way to check SEQ2SAFE with only 3 conditionals
   // Note that now we do not allow casting of a non-pointer SEQ into
   // SAFE, unless this is not an access and the value is NULL
-  unsigned int pmb = (unsigned int)p - (unsigned int)base;
+  uintptr_t pmb = (uintptr_t)p - (uintptr_t)base;
 
   // We know the bend >= base always, so no overflow here
-  unsigned int emb = (unsigned int)bend - (unsigned int)base;
+  uintptr_t emb = (uintptr_t)bend - (uintptr_t)base;
 
 #ifndef OMIT_NULL_CHECK // Unsafe. For experimentation only
   if(!noint && ! bend) { // bend != 0
@@ -480,7 +480,7 @@ void __CHECK_SEQ2SAFE(void *base, void *bend,
   // Now we know that p >= base and p < e, thus p + src_element_len <= e
   if(src_element_len < destlen) { // This is a constant!!
     // We know p < e, so no overflow
-    if(((unsigned int)bend - (unsigned int)p) < destlen) {
+    if(((uintptr_t)bend - (uintptr_t)p) < destlen) {
       LBOUND_OR_UBOUND_FAIL(base, p CCURED_FAIL_EXTRA_ARGS);
     }
   }
@@ -706,7 +706,7 @@ void __CHECK_FSEQARITH(void *p,
                        int checkAlign
                        CCURED_FAIL_EXTRA_PARAMS)
 {
-  if ((unsigned)p_x < (unsigned)p) {
+  if ((uintptr_t)p_x < (uintptr_t)p) {
     CCURED_FAIL(FAIL_DECR_FSEQ  CCURED_FAIL_EXTRA_ARGS);
   }
   //Even if p_x > p, we still could have wrapped around.  Recheck the alignment
@@ -1072,8 +1072,8 @@ unsigned CHECK_FETCHTAGBIT(void *base,            // start of memory area.
 INLINE_STATIC_CHECK
 int CHECK_NRTAGBITS(char* startAddr, char* nextAddr)
 {
-  int startWord = ((int)startAddr) >> 2; // Round down
-  int nextWord  = ((int)nextAddr + 3) >> 2; // Round up
+  int startWord = ((intptr_t)startAddr)    >> 2; // Round down
+  int nextWord  = ((intptr_t)nextAddr + 3) >> 2; // Round up
   return (nextWord - startWord) * TAGBITS;
 }
 
@@ -1170,7 +1170,7 @@ void __CHECK_WILDPOINTERREAD(void *base, /* The base of the tagged area */
   U32 memTag;
   
   // We do not support unaligned reads of pointers
-  if((U32)where_b & 0x3) { 
+  if((uintptr_t)where_b & 0x3) { 
     CCURED_FAIL(FAIL_UNALIGNED  CCURED_FAIL_EXTRA_ARGS);
   }
 
@@ -1227,7 +1227,7 @@ void __CHECK_WILDPOINTERWRITE_NOSTACKCHECK(
 
 #ifndef NO_CHECKS
   // sm: maybe this alignment check should go first?
-  if((U32)where & 0x3) {
+  if((uintptr_t)where & 0x3) {
     CCURED_FAIL(FAIL_UNALIGNED  CCURED_FAIL_EXTRA_ARGS);
   }
 #endif /* NO_CHECKS */
