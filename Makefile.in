@@ -173,6 +173,7 @@ testgc:
 ccuredversion: $(OBJDIR)/ccuredversion.ml
 $(OBJDIR)/ccuredversion.ml: configure.in Makefile.in
 	rm -f $@
+	mkdir -p $(OBJDIR)
 	echo "(* This module was generated automatically by code in Makefile *)" >$@
 # Generate here the version information
 	echo "let ccuredVersionMajor = @CCURED_VERSION_MAJOR@" >>$@
