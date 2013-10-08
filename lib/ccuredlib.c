@@ -4731,8 +4731,8 @@ void CHECK_FORMATARGS_f(fseqp_char format) {
 }
 
 #ifndef CCURED_NO_MALLOC
-unsigned int wrapperAlloc(unsigned int sz) {
-  return (unsigned int)malloc(sz);
+void *wrapperAlloc(unsigned int sz) {
+  return malloc(sz);
 }
 void  wrapperFree(void* x) { free(x); }
 char* wrapperStrdup(char *str) {
