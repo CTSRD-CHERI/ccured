@@ -1081,7 +1081,7 @@ __inline static void wildp_verify_nul(wildp_char ptr)
 // starting from its _p field
 __inline static int seqp_length(seqp_char ptr)
 {
-  return (int)ptr._e - (int)ptr._p;
+  return (intptr_t)ptr._e - (intptr_t)ptr._p;
 }
 
 // fail unless there are >=n bytes read/writable after ptr
@@ -1107,13 +1107,13 @@ __inline static void seqp_verify_atleast(seqp_char ptr, int n)
 // starting from its _p field
 __inline static int fseqp_length(fseqp_char ptr)
 {
-  return (int)ptr._e - (int)ptr._p;
+  return (intptr_t)ptr._e - (intptr_t)ptr._p;
 }
 
 // same for a meta-fseq
 __inline static int fseqcp_length(fseqcp_char ptr)
 {
-  return (int)ptr._e - (int)ptr._p;
+  return (intptr_t)ptr._e - (intptr_t)ptr._p;
 }
 
 // fail unless there are >=n bytes read/writable after ptr
@@ -1150,8 +1150,8 @@ void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
 {
   TAGADDR stag, dtag;
   // Word starting address
-  char    *alignSrc      = (char*)((U32)psrc & (~ 3));
-  char    *alignDest     = (char*)((U32)pdst & (~ 3));
+  char    *alignSrc      = (char*)((uintptr_t)psrc & (~ 3));
+  char    *alignDest     = (char*)((uintptr_t)pdst & (~ 3));
   char    *nextDestByte  = pdst + size; // Byte after the last copied
   int     bitsToCopy     = CHECK_NRTAGBITS(psrc, psrc + size);
   U32     srcTags   = 0;  // Keep some srcTags in here (always at LSB)
@@ -1160,7 +1160,7 @@ void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
 
   /* If the alignment of the destination is different from that of the
    * source then we just zero out all of the destination tags  */
-  if(((U32)psrc ^ (U32)pdst) & 3) {
+  if(((uintptr_t)psrc ^ (uintptr_t)pdst) & 3) {
     CHECK_ZEROTAGS(bdst, lendst, pdst, size/*, 0*/);
     return;
   }
@@ -1176,7 +1176,7 @@ void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
       if(first) { // The first batch of bits
         first = 0;
         // If we are doing partial word read and write
-        if(((U32)pdst & 3)) {
+        if(((uintptr_t)pdst & 3)) {
           // We know that source and destination have the same alignment
           srcTags &= (~ TAGBITSMASK); // Zero out the tag for the first word
         }
@@ -1200,7 +1200,7 @@ void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
 //        } 
       }
       if(bitsToCopy == nrSrcTags) { // This is the last batch
-        if(((U32)nextDestByte & 3)  ||
+        if(((uintptr_t)nextDestByte & 3)  ||
            // We are ending the copy with the first half of a fat pointer
            ((srcTags >> (nrSrcTags - TAGBITS)) & TAGBITSMASK)) {
           // Zero out the tag for the last word
@@ -1250,10 +1250,10 @@ void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
   // Word starting address
   //  char    *alignSrc      = (char*)((U32)psrc & (~ 3)); 
   char    *nextSrcByte   = psrc + size; // Byte after the last copied
-  char    *nextSrcWord   = (char*)((U32)(nextSrcByte + 3) & (~ 3));
+  char    *nextSrcWord   = (char*)((uintptr_t)(nextSrcByte + 3) & (~ 3));
   //char    *alignDest     = (char*)((U32)pdst & (~ 3));
   char    *nextDestByte  = pdst + size; // Byte after the last copied
-  char    *nextDestWord  = (char*)((U32)(nextDestByte + 3) & (~ 3));
+  char    *nextDestWord  = (char*)((uintptr_t)(nextDestByte + 3) & (~ 3));
   int     bitsToCopy     = CHECK_NRTAGBITS(psrc, psrc + size);
   U32     srcTags   = 0;  // Keep some srcTags in here (always at LSB)
   int     nrSrcTags = 0;  // How many live bits we have in srcTags
@@ -1261,7 +1261,7 @@ void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
 
   /* If the alignment of the destination is different from that of the 
    * source then we just zero out all of the destination tags  */
-  if(((U32)psrc ^ (U32)pdst) & 3) {
+  if(((uintptr_t)psrc ^ (uintptr_t)pdst) & 3) {
     CHECK_ZEROTAGS(bdst, lendst, pdst, size/*, 0*/);
     return;
   }
@@ -1597,11 +1597,11 @@ fseqp_void realloc_ff(fseqp_void ptr, size_t newsize)
   // play it safe; GC should clean up after me
   fseqp_void ret;
 
-  size_t oldsize = (int)ptr._e - (int)ptr._p;
+  size_t oldsize = (intptr_t)ptr._e - (intptr_t)ptr._p;
   if (oldsize >= newsize) {
     // just give them back the same pointer, and don't release any memory
     ret._p = ptr._p;
-    ret._e = (void*)( (int)(ptr._p) + newsize );
+    ret._e = (void*)( (intptr_t)(ptr._p) + newsize );
     return ret;
   }
 
@@ -1611,13 +1611,13 @@ fseqp_void realloc_ff(fseqp_void ptr, size_t newsize)
     CCURED_FAIL(FAIL_MALLOC  FILE_AND_LINE);
     abort(); // If we continue after failureq
   }
-  ret._e = (void*)( (int)(ret._p) + newsize );
+  ret._e = (void*)( (intptr_t)(ret._p) + newsize );
 
   // copy the original data into this new buffer
   memcpy(ret._p, ptr._p, oldsize);
 
   // zero out the remainder
-  memset((void*)( (int)(ret._p) + oldsize ), 0, newsize-oldsize);
+  memset((void*)( (intptr_t)(ret._p) + oldsize ), 0, newsize-oldsize);
 
   // finally give back this pointer
   return ret;
@@ -2170,7 +2170,7 @@ int qsort_regular_tags(wildp_char base, size_t nelts, size_t size)
   U32 *firstElt = (U32*)base._p;
 
   // do this check after declaring the variables...
-  if (((int)base._p & 3) || (size & 3)) {
+  if (((intptr_t)base._p & 3) || (size & 3)) {
     return 0;   // unaligned
   }
 
@@ -3121,7 +3121,7 @@ void __assert_fail_www(wildp_char assertion, wildp_char file,
 __inline static int __ccured_strlen(const char *start, const char *end)
 {
   const char * current = start;
-  int max = (int)end - (int)start;
+  int max = (intptr_t)end - (intptr_t)start;
 
   for(; max > 0; max--) {
     if (*current == 0) {
@@ -3144,7 +3144,7 @@ __inline static int __ccured_strlen(const char *start, const char *end)
 __inline static int __ccured_strlen_n(const char *start, const char *end, int n)
 {
   const char * current = start;
-  int max = (int)end - (int)start;
+  int max = (intptr_t)end - (intptr_t)start;
   if (n < max) { max = n; }
 
   for(; max > 0; max--) {
@@ -3412,7 +3412,7 @@ void* __ptrof_nocheck_sq(seqp_void p){
 }
 void * __ptrof_size_sq(seqp_void ptr, unsigned int n) {
   if(n > 0) { __bounds_check_q(ptr); }
-  __CCURED_ASSERT(n <= (U32)ptr._e - (U32)ptr._p, FAIL_UBOUND);
+  __CCURED_ASSERT(n <= (uintptr_t)ptr._e - (uintptr_t)ptr._p, FAIL_UBOUND);
   return ptr._p;
 }
 void* __ptrof_file_sq(seqp_void p){
@@ -3497,7 +3497,7 @@ char* __stringof_ornull_sq(seqp_char p){
 void __read_at_least_q(seqp_void ptr, unsigned int n){
   if(n > 0) { __bounds_check_q(ptr); }
   //n is treated as an unsigned number so that we fail if it's negative
-  __CCURED_ASSERT(n <= (U32)ptr._e - (U32)ptr._p, FAIL_UBOUND);
+  __CCURED_ASSERT(n <= (uintptr_t)ptr._e - (uintptr_t)ptr._p, FAIL_UBOUND);
 }
 void __write_at_least_q(seqp_void ptr, unsigned int n){
   __read_at_least_q(ptr, n);
@@ -3534,7 +3534,7 @@ void* __ptrof_sf(fseqp_void p){
 }
 void * __ptrof_size_sf(fseqp_void ptr, unsigned int n) {
   if(n > 0) { __bounds_check_f(ptr); }
-  __CCURED_ASSERT(n <= (U32)ptr._e - (U32)ptr._p, FAIL_UBOUND);
+  __CCURED_ASSERT(n <= (uintptr_t)ptr._e - (uintptr_t)ptr._p, FAIL_UBOUND);
   return ptr._p;
 }
 void * __ptrof_size_sF(fseqp_void ptr, unsigned int n) {
@@ -3635,7 +3635,7 @@ int __strlen_n_f(fseqp_void p, int n){
 
 void __read_at_least_f(fseqp_void ptr, unsigned int n){
   if(n > 0) { __bounds_check_f(ptr); }
-  __CCURED_ASSERT(n <= (U32)ptr._e - (U32)ptr._p, FAIL_UBOUND);
+  __CCURED_ASSERT(n <= (uintptr_t)ptr._e - (uintptr_t)ptr._p, FAIL_UBOUND);
 }
 void __write_at_least_f(fseqp_void ptr, unsigned int n){
   __read_at_least_f(ptr, n);
@@ -3905,7 +3905,7 @@ seqcp_void __mkptr_mqsmq(void* ptr, seqcp_void phome)
 void __read_at_least_mq(seqcp_void ptr, unsigned int n){
   if(n > 0) { __bounds_check_mq(ptr); }
   //n is treated as an unsigned number so that we fail if it's negative
-  __CCURED_ASSERT(n <= (U32)ptr._e - (U32)ptr._p, FAIL_UBOUND);
+  __CCURED_ASSERT(n <= (uintptr_t)ptr._e - (uintptr_t)ptr._p, FAIL_UBOUND);
 }
 void __write_at_least_mq(seqcp_void ptr, unsigned int n){
   __read_at_least_mq(ptr, n);
@@ -3976,7 +3976,7 @@ void __verify_nul_mf(fseqcp_char p){
 
 void __read_at_least_mf(fseqcp_void ptr, unsigned int n){
   if(n > 0) { __bounds_check_mf(ptr); }
-  __CCURED_ASSERT(n <= (U32)ptr._e - (U32)ptr._p, FAIL_UBOUND);
+  __CCURED_ASSERT(n <= (uintptr_t)ptr._e - (uintptr_t)ptr._p, FAIL_UBOUND);
 }
 void __write_at_least_mf(fseqcp_void ptr, unsigned int n){
   __read_at_least_mf(ptr, n);
@@ -4038,7 +4038,7 @@ void* __ptrof_file_si(indexp_void p){
 void __write_at_least_i(indexp_void ptr, unsigned int n){
   __bounds_check_i(ptr);
   //n is treated as an unsigned number so that we fail if it's negative
-  __CCURED_ASSERT(n <= (U32)__endof_si(ptr) - (U32)ptr._p, FAIL_UBOUND);
+  __CCURED_ASSERT(n <= (uintptr_t)__endof_si(ptr) - (uintptr_t)ptr._p, FAIL_UBOUND);
 }
 
 
@@ -4065,13 +4065,13 @@ int vsprintf_fsvs(fseqp_char buffer, const char *format,
 {
   int res;
   //matth: This used to be "(int)buffer._e - (int)buffer._p - 1".  Why?
-  int size = (int)buffer._e - (int)buffer._p;
+  int size = (intptr_t)buffer._e - (intptr_t)buffer._p;
   if(!buffer._e || (void*)buffer._p >= buffer._e) {
     CCURED_FAIL(FAIL_UBOUND  FILE_AND_LINE);
   }
 
   res = __ccured_vsnprintf_ssvs(buffer._p, size, format, args);
-  if(res < 0 || res >= ((int)buffer._e - (int)buffer._p)) {
+  if(res < 0 || res >= ((intptr_t)buffer._e - (intptr_t)buffer._p)) {
     //If vsnprintf tries to write more than size bytes, it will either
     //return -1 or the number of bytes it tried to write, depending on the
     //version of glibc.
@@ -4544,7 +4544,7 @@ seqp_void __align_seq_qq(seqp_void p, size_t size) {
   res._p = p._p;
   res._b = p._b;
   res._e = (void*)((char*)p._e -
-                   ((unsigned)p._e - (unsigned)p._p) % size);
+                   ((uintptr_t)p._e - (uintptr_t)p._p) % size);
   return res;
 }
 
@@ -4554,7 +4554,7 @@ fseqp_void __align_seq_ff(fseqp_void p, size_t size) {
   // take the floor of the length wrt size being the unit value
   res._p = p._p;
   res._e = (void*)((char*)p._e -
-                   ((unsigned)p._e - (unsigned)p._p) % size);
+                   ((uintptr_t)p._e - (uintptr_t)p._p) % size);
   return res;
 }
 
