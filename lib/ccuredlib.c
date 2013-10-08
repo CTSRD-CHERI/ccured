@@ -2819,7 +2819,7 @@ void __ccured_va_init_vs(CCURED_VAINFO *vainfo) {
   memcpy(vainfo->tags, __ccured_va_tags, sizeof(__ccured_va_tags));
 
   vainfo->next  = -1;
-  vainfo->nextp = (va_list)0;
+  // FIX_VARARGS: vainfo->nextp = (va_list)0;
 }
 
 //Calls to va_start are replaced by this.  The vainfo should already have been
@@ -2827,7 +2827,7 @@ void __ccured_va_init_vs(CCURED_VAINFO *vainfo) {
 void __ccured_va_start_vs(CCURED_VAINFO *vainfo,
                           void *pNextArg) {
   vainfo->next  = 0;
-  vainfo->nextp = (va_list)pNextArg;
+  // FIX_VARARGS: vainfo->nextp = (va_list)pNextArg;
 }
 
 void __ccured_va_end_vs(CCURED_VAINFO *vainfo) {
@@ -2853,7 +2853,7 @@ CCURED_VAINFO * __ccured_va_copy_vsvs(CCURED_VAINFO *src) {
 void *__ccured_va_arg_svs(CCURED_VAINFO *vainfo,
                           unsigned int thisTypeSize,
                           int thisTypeIndex) {
-  void* lastp = vainfo->nextp;
+  void* lastp = NULL; // FIX_VARARGS: vainfo->nextp;
 
   if(vainfo->next == -1) {
     CCURED_FAIL(FAIL_VA_NOSTART  FILE_AND_LINE);
@@ -2868,7 +2868,7 @@ void *__ccured_va_arg_svs(CCURED_VAINFO *vainfo,
       CCURED_FAIL(FAIL_VA_BADTYPE  FILE_AND_LINE);
     }
   }
-  our_advance_va_arg(vainfo->nextp, thisTypeSize);
+  // FIX_VARARGS: our_advance_va_arg(vainfo->nextp, thisTypeSize);
 
   vainfo->next ++;
   return lastp;
@@ -2885,7 +2885,7 @@ void __ccured_va_start(CCURED_VAINFO *vainfo,
 //    vainfo->count = __ccured_va_count;
 //    memcpy(vainfo->tags, __ccured_va_tags, sizeof(__ccured_va_tags));
 
-  vainfo->nextp = (va_list)pNextArg;
+  // FIX_VARARGS: vainfo->nextp = (va_list)pNextArg;
   return;
 }
 
@@ -2898,7 +2898,7 @@ void __ccured_va_end(CCURED_VAINFO *vainfo) {
 void *__ccured_va_arg(CCURED_VAINFO *vainfo,
                           unsigned int thisTypeSize,
                           int thisTypeIndex) {
-  void* lastp = vainfo->nextp;
+  void* lastp = NULL;  // FIX_VARARGS: vainfo->nextp;
 
 //    if(vainfo->next == -1) {
 //      CCURED_FAIL(FAIL_VA_NOSTART);
@@ -2913,7 +2913,7 @@ void *__ccured_va_arg(CCURED_VAINFO *vainfo,
 //        CCURED_FAIL(FAIL_VA_BADTYPE);
 //      }
 //    }
-  our_advance_va_arg(vainfo->nextp, thisTypeSize);
+  // FIX_VARARGS: our_advance_va_arg(vainfo->nextp, thisTypeSize);
 
 //    vainfo->next ++;
   return lastp;
