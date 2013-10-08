@@ -212,6 +212,10 @@
 #    define X86_64
 #    define mach_type_known
 # endif
+# if defined(FREEBSD) && defined(__x86_64__)
+#    define X86_64
+#    define mach_type_known
+# endif
 # if defined(LINUX) && (defined(__ia64__) || defined(__ia64))
 #    define IA64
 #    define mach_type_known
