@@ -2466,7 +2466,7 @@ void __logScalar(int id, unsigned long l)  {
 /* Scan the log and apply the given function to all entries. Stop when the 
  * log is over or when the match function returns true. Scan log returns 
  * true if it terminated because match returned true  */
-int scanLog(int (*match)(int, LOG_ENTRY *), int closure) {
+int scanLog(int (*match)(uintptr_t, LOG_ENTRY *), uintptr_t closure) {
   flushLog();
   if(logFid < 0) {
     // Log is empty
@@ -2500,7 +2500,7 @@ int scanLog(int (*match)(int, LOG_ENTRY *), int closure) {
 }
 
 int foundOne = 0;
-int printMatches(int tomatch, LOG_ENTRY *le) {
+int printMatches(uintptr_t tomatch, LOG_ENTRY *le) {
   if(le->l == (unsigned)tomatch) {
     foundOne = 1;
     fprintf(stderr, "\tSame value as at ID=%d in the scalar log\n",
@@ -2510,7 +2510,7 @@ int printMatches(int tomatch, LOG_ENTRY *le) {
 }
 
 // Print the contents of the log
-int printAll(int where, LOG_ENTRY *le) {
+int printAll(uintptr_t where, LOG_ENTRY *le) {
   fprintf((FILE*)where, "0x%08lx  %d\n",
           le->l, le->id);
   return 0;
@@ -2523,7 +2523,7 @@ void non_pointer_fail(unsigned long p  CCURED_FAIL_EXTRA_PARAMS)
   if(__ccuredLogNonPointers && p >= MIN_POINTER && p <= MAX_POINTER) {
     fprintf(stderr, "Dereferencing a non-pointer (0x%08lx)\n", p);
     foundOne = 0;
-    scanLog(& printMatches, (int)p);
+    scanLog(& printMatches, (uintptr_t)p);
     if(! foundOne) {
       // Dump the entire log to a file
       char *theFileName = "__ccured_scalar.log";
@@ -2535,7 +2535,7 @@ void non_pointer_fail(unsigned long p  CCURED_FAIL_EXTRA_PARAMS)
       fprintf(stderr,
               "Cannot find the cast in log. Dumping the entire log to %s\n",
               theFileName);
-      scanLog(& printAll, (int)txtLog);
+      scanLog(& printAll, (uintptr_t)txtLog);
       fclose(txtLog);
     } else {
       fflush(stderr);
