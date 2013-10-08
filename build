@@ -1,0 +1,3 @@
+#!/bin/bash
+(cd cil && autoconf && autoheader && ./configure && gmake)
+autoconf && ./configure && gmake
