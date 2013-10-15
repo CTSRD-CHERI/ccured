@@ -96,9 +96,25 @@ void *   __scalar2pointer(unsigned long  l , int  fid , int  lid ) ;
    ( CHECK_WILDP_WRITE_ATLEAST(fatpbuf._p, fatpbuf._b, sizeof(jmp_buf)),    \
      __sigsetjmp(fatpbuf._p, savemask) )
 #endif
-    
-// a lot of CCrured's implementation is dependent on the assumption
-// that pointers are represented in 32 bits..
+
+// defines to fix the 32-bit assumption below, for x86_64 only currently.
+#if defined __x86_64__
+# define CC_64_BIT
+# define CC_BYTES_PER_WORD       8
+# define CC_LOG_BYTES_PER_WORD   3
+#else
+# define CC_32_BIT
+# define CC_BYTES_PER_WORD       4
+# define CC_LOG_BYTES_PER_WORD   2
+#endif
+
+#define CC_LOG_BITS_PER_WORD    (CC_BYTES_PER_WORD + 3)
+#define CC_BITS_PER_WORD        (8 * CC_BYTES_PER_WORD)
+#define CC_ALIGNED_PTR_MASK     ((0x1 << CC_LOG_BYTES_PER_WORD) - 1)
+
+// a lot of CCured's implementation was dependent on the assumption
+// that pointers are represented in 32 bits.  We leave these defines
+// here for now.
 #define I32 int
 #define U32 unsigned I32
 
@@ -587,7 +603,7 @@ void __CHECK_BOUNDS_LEN(void *base,
                         unsigned int src_element_len,
                         unsigned int plen  CCURED_FAIL_EXTRA_PARAMS)
 {
-  __CHECK_SEQ2SAFE(base, (char*)base + (bwords << 2),      // compute end
+  __CHECK_SEQ2SAFE(base, (char*)base + (bwords << CC_LOG_BYTES_PER_WORD),      // compute end
                    p, src_element_len,
                    plen, 1, 1  CCURED_FAIL_EXTRA_ARGS);
 }
@@ -595,8 +611,8 @@ void __CHECK_BOUNDS_LEN(void *base,
 
 // ---------------- queries on b,p fat pointers -----------------
 // given a b,p fat pointer that's going to be dereferenced, retrieve
-// the length field; the length is the number of 32-bit words the
-// program is allowed to read/write
+// the length field; the length is the number of platform (32-bit or
+// 64-bit) words the program is allowed to read/write
 #define CHECK_FETCHLENGTH(p,b,noint) \
       __CHECK_FETCHLENGTH(p,b,noint  FILE_AND_LINE)
 INLINE_STATIC_CHECK
@@ -622,7 +638,7 @@ void * __CHECK_FETCH_WILD_END(void *p, void *b,
                               int noint CCURED_FAIL_EXTRA_PARAMS)
 {
   unsigned int len = __CHECK_FETCHLENGTH(p, b, noint  CCURED_FAIL_EXTRA_ARGS);
-  return (void*)((char*)b + (len << 2));
+  return (void*)((char*)b + (len << CC_LOG_BYTES_PER_WORD));
 }
 
 #define CHECK_FETCH_INDEX_END(p,b,noint) \
@@ -632,7 +648,7 @@ void * __CHECK_FETCH_INDEX_END(void *p, void *b,
                                int noint CCURED_FAIL_EXTRA_PARAMS)
 {
   unsigned int len = __CHECK_FETCHLENGTH(p, b, noint  CCURED_FAIL_EXTRA_ARGS);
-  return (void*)((char*)b + (len << 2));
+  return (void*)((char*)b + (len << CC_LOG_BYTES_PER_WORD));
 }
 
 // Check that we create an aligned sequence
@@ -649,7 +665,7 @@ void __CHECK_INDEXALIGN(unsigned int sz,
   if(base) {
     unsigned int nrWords =
       __CHECK_FETCHLENGTH(p, base, 1  CCURED_FAIL_EXTRA_ARGS);
-    long diff = (long)base + (nrWords << 2) - (long)p;
+    long diff = (long)base + (nrWords << CC_LOG_BYTES_PER_WORD) - (long)p;
     if((diff / sz) * sz != diff) {
       CCURED_FAIL(FAIL_SEQUENCE_ALIGN CCURED_FAIL_EXTRA_ARGS);
     }
@@ -928,7 +944,7 @@ unsigned int __CHECK_STRINGMAX(void *p, void* b  CCURED_FAIL_EXTRA_PARAMS)
   }
 #endif /* NO_CHECKS */
   nrWords = *(((U32*)b) - 1);
-  max     =  ((char*)b - (char*)p) + (nrWords << 2);
+  max     =  ((char*)b - (char*)p) + (nrWords << CC_LOG_BYTES_PER_WORD);
 #ifndef NO_CHECKS
   if(max <= 0) {
     CCURED_FAIL(FAIL_STRINGBOUND  CCURED_FAIL_EXTRA_ARGS);
@@ -976,11 +992,11 @@ void CHECK_INITUNIONFIELD(int selected, void* p, unsigned int size) {
  * writing structures containing pointers and non-pointers) we just set 
  * those particular bits. An exception is made when we write just pointers.*/
 /* Bits are counted from 0 starting with the least-significant bit in the 
- * first tag word. The tag words (4 bytes each) are written in little-endian 
+ * first tag word. The tag words (4 or 8 bytes each) are written in little-endian 
  * notation. So, if I have a block of memory containing one fat pointer, with
  * a valid base and ptr, it looks like: */
 /*
- *  <-- 32 --> <-- 32 --> <-- 32 --> <--------------- 32 -------------------->
+ *  <-- word -><-- word -><-- word -><-------------- word -------------------->
  *  +---------+----------+----------+-----------------------------------------+
  *  | size: 2 |    ptr   |   base   | 0000 0000 0000 0000 0000 0000 0000 0010 |
  *  +---------+----------+----------+-----------------------------------------+
@@ -994,15 +1010,15 @@ void CHECK_INITUNIONFIELD(int selected, void* p, unsigned int size) {
 
 // The number of tags bits per data word
 #define TAGBITS          1
-#define TAGBITSMASK      ((1 << TAGBITS) - 1)    // 1
+#define TAGBITSMASK      ((1 << TAGBITS) - 1)                       // 1
 
-// How many tags fit into a 32-bit word
-#define TAGSPERWORD_LOG  (5 - TAGBITS + 1)       //  5
-#define TAGSPERWORD      (1 << TAGSPERWORD_LOG)  //  0x20
+// How many tags fit into a  word                                      32-bit, 64-bit
+#define TAGSPERWORD_LOG  (CC_LOG_BITS_PER_WORD - TAGBITS + 1)       // 5     , 6
+#define TAGSPERWORD      (1 << TAGSPERWORD_LOG)                     // 0x20  , 0x40
 
 // The tags for a fat pointer
 #define WILDPTR_TAG       2  // a 0 followed by a 1
-#define WILDPTR_MASK      (TAGBITSMASK | (TAGBITSMASK << TAGBITS))   // 3
+#define WILDPTR_MASK      (TAGBITSMASK | (TAGBITSMASK << TAGBITS))  // 3
 
 
 typedef struct tagAddr
@@ -1011,7 +1027,7 @@ typedef struct tagAddr
                                * the tag lives */
   int bit;                    /* This is the index of the bit where the tag
                                * starts. 0 means the LSB. Will always be
-                               * less or equal 32 - TAGBITS (at least one
+                               * less or equal WORDSIZE - TAGBITS (at least one
                                * tag still fits)  */
 } TAGADDR;
 
@@ -1043,7 +1059,7 @@ TAGADDR __CHECK_FETCHTAGADDR(void *base,            // Base
                              CCURED_FAIL_EXTRA_PARAMS)
 {
   TAGADDR res;
-  int wrdIdx    = ((char*)p - (char*)base) >> 2;
+  int wrdIdx    = ((char*)p - (char*)base) >> CC_LOG_BYTES_PER_WORD;
   res.word      = (U32*)base + bwords + (wrdIdx >> TAGSPERWORD_LOG);
   res.bit       = TAGBITS * (wrdIdx & (TAGSPERWORD - 1));
   return res;
@@ -1060,7 +1076,7 @@ unsigned CHECK_FETCHTAGBIT(void *base,            // start of memory area.
                                                    * interested in  */
 {
   // composition of READ_TAG and CHECK_FETCHTAGADDR, above
-  int wrdIdx    = ((char*)p - (char*)base) >> 2;
+  int wrdIdx    = ((char*)p - (char*)base) >> CC_LOG_BYTES_PER_WORD;
   U32 *word     = (U32*)base + bwords + (wrdIdx >> TAGSPERWORD_LOG);
   int bit       = TAGBITS * (wrdIdx & (TAGSPERWORD - 1));
   return (*word >> bit) & 1;
@@ -1072,8 +1088,9 @@ unsigned CHECK_FETCHTAGBIT(void *base,            // start of memory area.
 INLINE_STATIC_CHECK
 int CHECK_NRTAGBITS(char* startAddr, char* nextAddr)
 {
-  int startWord = ((intptr_t)startAddr)    >> 2; // Round down
-  int nextWord  = ((intptr_t)nextAddr + 3) >> 2; // Round up
+  int startWord = ((intptr_t)startAddr) >> CC_LOG_BYTES_PER_WORD;   // Round down
+  int nextWord  = (((intptr_t)nextAddr + (CC_BYTES_PER_WORD - 1))
+		   >> CC_LOG_BYTES_PER_WORD);                       // Round up
   return (nextWord - startWord) * TAGBITS;
 }
 
@@ -1105,17 +1122,17 @@ void CHECK_ZEROTAGS(void *base,  /* The base of the tagged area */
     int nrBits      = CHECK_NRTAGBITS(wherec, wherec + size);
 
     if(stag.bit > 0) { // First tag word is only partially written
-      if(stag.bit + nrBits < 32) { // Don't zero to the end
+      if(stag.bit + nrBits < CC_BITS_PER_WORD) { // Don't zero to the end
         *(stag.word++) &= (~ (((1 << nrBits) - 1) << stag.bit));
         nrBits = 0;
       } else { // First tag word is written to the end
         *(stag.word++) &= (~ ((0 - 1) << stag.bit));
-        nrBits -= (32 - stag.bit);
+        nrBits -= (CC_BITS_PER_WORD - stag.bit);
       }
     }
-    while(nrBits >= 32) {
+    while(nrBits >= CC_BITS_PER_WORD) {
       *(stag.word++) = (U32)0;
-      nrBits -= 32;
+      nrBits -= CC_BITS_PER_WORD;
     }
     if(nrBits > 0) { // Some leftover in the last word
       *stag.word &= (~ ((1 << nrBits) - 1));
@@ -1170,7 +1187,7 @@ void __CHECK_WILDPOINTERREAD(void *base, /* The base of the tagged area */
   U32 memTag;
   
   // We do not support unaligned reads of pointers
-  if((uintptr_t)where_b & 0x3) { 
+  if((uintptr_t)where_b & CC_ALIGNED_PTR_MASK) { 
     CCURED_FAIL(FAIL_UNALIGNED  CCURED_FAIL_EXTRA_ARGS);
   }
 
@@ -1227,7 +1244,7 @@ void __CHECK_WILDPOINTERWRITE_NOSTACKCHECK(
 
 #ifndef NO_CHECKS
   // sm: maybe this alignment check should go first?
-  if((uintptr_t)where & 0x3) {
+  if((uintptr_t)where & CC_ALIGNED_PTR_MASK) {
     CCURED_FAIL(FAIL_UNALIGNED  CCURED_FAIL_EXTRA_ARGS);
   }
 #endif /* NO_CHECKS */
@@ -1246,7 +1263,7 @@ void __CHECK_WILDPOINTERWRITE_NOSTACKCHECK(
   }
   #endif // 0
 
-  if (tag.bit < 32 - TAGBITS) {
+  if (tag.bit < CC_BITS_PER_WORD - TAGBITS) {
     // Both fit in the same word
   }
   else {
@@ -1335,7 +1352,7 @@ void __CHECK_WILDP_WRITE_ATLEAST(
   }
   {
     // bytes available between 'p' and the end
-    int nbytes = (int)(nwords << 2) - ((char*)p - (char*)b);
+    int nbytes = (int)(nwords << CC_LOG_BYTES_PER_WORD) - ((char*)p - (char*)b);
 
     if (n > nbytes)
       CCURED_FAIL(FAIL_UBOUND CCURED_FAIL_EXTRA_ARGS);
