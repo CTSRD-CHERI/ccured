@@ -71,8 +71,8 @@ CCURED_MODULES  := ccuredversion ptrnode globinit cxxpp \
                    solveutil unionfind type typecheck solver optim seoptim \
                    choptim \
                    elimabc intset \
-                   dominator annot astslicer simplemem \
-                   heap partial verify main
+                   dominator annot astslicer \
+                   verify main
 
 MODULES        = $(CCURED_MODULES)
 SOURCEDIRS     := src
