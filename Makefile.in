@@ -67,7 +67,7 @@ CCURED_MODULES  := ccuredversion ptrnode globinit cxxpp \
                    markutil \
                    poly wrappers dependent depfunc taggedunion vararg \
                    curesplit curestats stackoverflow \
-                   optutil curechecks cure markcxx markptr cfg \
+                   optutil curechecks cure markcxx markptr \
                    solveutil unionfind type typecheck solver optim seoptim \
                    choptim \
                    elimabc intset \
