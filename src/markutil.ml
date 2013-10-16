@@ -154,7 +154,7 @@ let isImported (vn: string) =
     let defn = H.find allGlobals vn in
     defn = None (* if defn is None, then imported (no definition) *)
   with Not_found ->
-    if Util.hasPrefix "__globinit_" vn then
+    if Ccutil.hasPrefix "__globinit_" vn then
       false
     else begin
       ignore (E.warn "isImported for %s, which is not even declared\n" vn);

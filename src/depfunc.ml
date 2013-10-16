@@ -49,7 +49,7 @@ let processFunction (f: fundec) : unit =
   (* Step 1: For all formals f with a SIZE/COUNT annotation, replace f in the
      parameter list with a new "f___in". *)
   let formals' = 
-    Util.mapNoCopy
+    Ccutil.mapNoCopy
       (fun v -> 
          if hasSizeAttr (typeAttrs v.vtype) then
            copyFormal f v

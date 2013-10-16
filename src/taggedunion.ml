@@ -11,7 +11,7 @@ module E = Errormsg
 module N = Ptrnode
 
 module MU = Markutil
-module U = Util
+module U = Ccutil
 
 let hasPointers (t: typ) : bool = 
   existsType (function TPtr _ -> ExistsTrue | _ -> ExistsMaybe) t

@@ -370,7 +370,7 @@ let getShortestChain (nfrom: node) (nto: node) : pathEntry * bool =
         nto.id, nfrom.id, true
     in
     let pe = 
-      Util.findOrAdd shortestPath (from', to')
+      Ccutil.findOrAdd shortestPath (from', to')
         (fun _ -> { peLen = inftyLen; peChain = RIdent }) in
     pe, sym
 
@@ -478,7 +478,7 @@ let rec chainToList (c: chain) : (bool * edge) list =
              * use a shorter tail *)
             let f = if sym then e.eto.id else e.efrom.id in
             let res = (sym, e) :: tail in
-            Util.findOrAdd tails f (fun _ -> res)
+            Ccutil.findOrAdd tails f (fun _ -> res)
         end
     end
     | RSym c -> loop (not sym) c tail
@@ -1838,7 +1838,7 @@ and attrsId al =
 
 (************ Print statistics about the graph ******************)
 let addToHisto (histo: ('a, int ref) H.t) (much: int) (which: 'a) : unit = 
-  let r = Util.findOrAdd histo which (fun _ -> ref 0) in
+  let r = Ccutil.findOrAdd histo which (fun _ -> ref 0) in
   r := !r + much
 
 let getHisto (histo: ('a, int ref) H.t) (which: 'a) : int = 
@@ -1902,7 +1902,7 @@ let reportIncompats (incompats: (int * int, incompat) H.t) =
         if n.id <> n1.id && n.id <> n2.id then begin
           try
             let cls = H.find nodeClass n.id in
-            ignore (Util.findOrAdd classes cls.icId (fun _ -> cls))
+            ignore (Ccutil.findOrAdd classes cls.icId (fun _ -> cls))
           with Not_found -> 
             ()
         end
@@ -1926,7 +1926,7 @@ let reportIncompats (incompats: (int * int, incompat) H.t) =
             H.iter 
               (fun nid (nd, pCount) -> 
                 let _, pCount' = 
-                  Util.findOrAdd cls'.icNodes nid (fun _ -> (nd, ref 0)) in
+                  Ccutil.findOrAdd cls'.icNodes nid (fun _ -> (nd, ref 0)) in
                 H.replace nodeClass nid cls';
                 pCount' := !pCount' + !pCount) 
               cls.icNodes) 
@@ -1952,7 +1952,7 @@ let reportIncompats (incompats: (int * int, incompat) H.t) =
       if n.id <> n1.id && n.id <> n2.id then begin
         H.replace nodeClass n.id theReprClass;
         let _, pCount = 
-          Util.findOrAdd theReprClass.icNodes n.id (fun _ -> (n, ref 0)) in
+          Ccutil.findOrAdd theReprClass.icNodes n.id (fun _ -> (n, ref 0)) in
         incr pCount
       end
     in
@@ -1993,9 +1993,9 @@ let reportIncompats (incompats: (int * int, incompat) H.t) =
           end else begin
             let _, e1 = List.nth c 0 in
             let _, e2 = List.nth (List.rev c) 0 in
-            ignore (Util.findOrAdd extremes (n1.id, e1.eid) 
+            ignore (Ccutil.findOrAdd extremes (n1.id, e1.eid) 
                       (fun _ -> (n1, e1)));
-            ignore (Util.findOrAdd extremes (n2.id, e2.eid) 
+            ignore (Ccutil.findOrAdd extremes (n2.id, e2.eid) 
                       (fun _ -> (n2, e2)))
           end)
         cls.icCompats;
@@ -2193,7 +2193,7 @@ let printInfer (f: string) (file: Cil.file) =
       try open_out f  (* Might throw an exception *)
       with e -> E.s (E.error "Cannot open infer output file %s" f)
     in
-    Util.tryFinally
+    Ccutil.tryFinally
       (fun _ -> 
         dumpFile ccuredInferPrinter c f file;
         (trace "sm" (dprintf "printing pointer graph\n"));
@@ -3674,7 +3674,7 @@ let printBrowser (outdir: string) file =
   collectInterestingFeatures file;
   if !E.verboseFlag then 
     ignore (E.log "browser: 1\n");
-  if !Cilutil.libDir = "" then 
+  if !Cc_args.libDir = "" then 
     E.s (error "The browser data can be printed only if the --libdir argument is also given\n");
   (* We split the printout into several files. We decide when to split by 
    * calculating an approximate size of globals: for functions we count the 
@@ -3931,7 +3931,7 @@ let printBrowser (outdir: string) file =
     let indexHash = H.create 13 in
     H.add indexHash "liburl" ".";
     (* Store in the top-level file the name of the first html chunk *)
-    copyFileToOutput (!Cilutil.libDir ^ "/browser_index.html") oc indexHash;
+    copyFileToOutput (!Cc_args.libDir ^ "/browser_index.html") oc indexHash;
     close_out oc
   end;
 
@@ -3964,7 +3964,7 @@ let printBrowser (outdir: string) file =
             (fun i -> dprintf "<option value='%d'>%d" i i))
          (mkListToMax [] lastSourceFile)) in
   H.add formHash "selectfiles" selFiles;
-  copyFileToOutput (!Cilutil.libDir ^ "/browser_form.html") 
+  copyFileToOutput (!Cc_args.libDir ^ "/browser_form.html") 
     !currentOutChannel formHash;
 
   (* pre-Allocate the arrays *)
