@@ -1473,7 +1473,7 @@ let markFile fl =
   let newglobals = List.rev !MU.theFile in
 
   (* Now, after we have added the nodes we fix the overrides *)
-  if !Cilutil.doCxxPP then 
+  if !Cc_args.doCxxPP then 
     Markcxx.fixOverrides ();
 
      
