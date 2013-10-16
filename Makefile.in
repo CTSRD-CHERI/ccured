@@ -243,7 +243,9 @@ endif
 
 # we need to know what the patcher will think the compiler's version is
 
-PATCHER := LANG=C perl $(CCUREDHOME)/cil/bin/patcher --mode=$(COMPILERNAME)
+PATCHER_EXE := $(CCUREDHOME)/cil/lib/perl5/patcher
+#PATCHER_EXE := $(CCUREDHOME)/cil/bin/patcher
+PATCHER := LANG=C perl $(PATCHER_EXE) --mode=$(COMPILERNAME)
 COMPILERVERSION := $(shell $(PATCHER) --dumpversion)
 
 # names all of the patched include files, so we can have a proper dependency
@@ -258,7 +260,7 @@ PATCHTEMPLATE := $(CCUREDHOME)/include/ccured_$(COMPILERNAME).patch
 .PHONY: patched-headers
 patched-headers: $(PATCHEDHEADERS)
 $(PATCHEDHEADERS): $(PATCHEDHEADERSDIR)/stamp
-$(PATCHEDHEADERSDIR)/stamp: $(CCUREDHOME)/cil/bin/patcher $(PATCHTEMPLATE)
+$(PATCHEDHEADERSDIR)/stamp: $(PATCHER_EXE) $(PATCHTEMPLATE)
 #       throw away all the existing patched includes
 	$(PATCHER) --dest=$(CCUREDHOME)/include --clean
 #       now re-regenerate them
