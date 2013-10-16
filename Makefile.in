@@ -75,12 +75,12 @@ CCURED_MODULES  := ccuredversion ptrnode globinit cxxpp \
                    heap partial verify main
 
 MODULES        = $(CCURED_MODULES)
-SOURCEDIRS     := src cil/src/ext cil/ocamlutil
+SOURCEDIRS     := src
 MLLS           := 
 MLYS           := 
 
-COMPILEFLAGS = -I cil/obj/$(ARCHOS)
-LINKFLAGS    = -I cil/obj/$(ARCHOS)
+COMPILEFLAGS = -I cil/lib/cil
+LINKFLAGS    = -I cil/lib/cil
 
 # Include now the common set of rules for OCAML
 include mk/Makefile.ocaml
