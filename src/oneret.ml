@@ -157,9 +157,9 @@ let oneret (f: Cil.fundec) : unit =
   f.sbody <- scanBlock true f.sbody
         
       
-let feature : featureDescr = 
-  { fd_name = "oneRet";
-    fd_enabled = Cilutil.doOneRet;
+let feature : Feature.t = 
+  { Feature.fd_name = "oneRet";
+    fd_enabled = Cc_args.doOneRet;
     fd_description = "make each function have at most one 'return'" ;
     fd_extraopt = [];
     fd_doit = (function (f: file) -> 
