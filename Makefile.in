@@ -5,7 +5,7 @@
 # toplevel Makefile for CCured project
 # authors: George Necula, Scott McPeak
 # 
-include cil/config.mk
+include mk/config.mk
 
 # tweak to provoke commit..
 
@@ -83,7 +83,7 @@ COMPILEFLAGS = -I cil/obj/$(ARCHOS)
 LINKFLAGS    = -I cil/obj/$(ARCHOS)
 
 # Include now the common set of rules for OCAML
-include cil/ocamlutil/Makefile.ocaml
+include mk/Makefile.ocaml
 
    # Now the rule to make ccured
 

@@ -82,7 +82,27 @@ binaryExists() {
 # overrides this below
 CCUREDHOME=`pwd`
 
+DEFAULT_COMPILER=_GNUCC
 
+# is the microsoft compiler available?
+# hmm.. I think we should check the version or something, because
+# sometimes people have Common Lisp's interpreter called 'cl' ..
+AC_MSG_CHECKING(for msvc cl.exe (optional))
+# See if CC points to the MS compiler
+if "$CC" 2>&1 | grep "Microsoft" >/dev/null; then
+  AC_MSG_RESULT([found, set as default])
+  HAS_MSVC=yes
+  DEFAULT_COMPILER=_MSVC
+  CFLAGS="-WX"
+else
+  if cl 2>&1 | grep "Microsoft" >/dev/null ;then
+     AC_MSG_RESULT(found)
+     HAS_MSVC=yes
+  else
+     AC_MSG_RESULT(not found)
+     HAS_MSVC=no
+  fi
+fi
 
 #
 # -------------------- GCC --------------
@@ -202,6 +222,8 @@ AC_SUBST(CCURED_VERSION_MAJOR)
 AC_SUBST(CCURED_VERSION_MINOR)
 AC_SUBST(CCURED_VERSION_REV)
 AC_SUBST(CCURED_VERSION)
+AC_SUBST(DEFAULT_COMPILER)
+AC_SUBST(HAS_MSVC)
 
 # finish the configure script and generate various files; ./configure
 # will apply variable substitutions to <filename>.in to generate <filename>;
@@ -232,6 +254,7 @@ define([MY_AC_CONFIG_EXE_FILES],
 }])
 
 MY_AC_CONFIG_FILES(Makefile)
+MY_AC_CONFIG_FILES(mk/config.mk)
 MY_AC_CONFIG_FILES(lib/gc/GNUCC/Makefile)
 MY_AC_CONFIG_EXE_FILES(bin/ccured.bat)
 
@@ -241,6 +264,9 @@ AC_OUTPUT()
 cat <<EOF
 
 CCured configuration:
+  arch/os                     ARCHOS             $ARCHOS
   source tree root:           CCUREDHOME         $CCUREDHOME
+  CCured version:             CCUREDVERSION      $CCUREDVERSION
+  default compiler            DEFAULT_COMPILER   $DEFAULT_COMPILER
+  (optional) cl.exe found:    HAS_MSVC           $HAS_MSVC
 EOF
-
