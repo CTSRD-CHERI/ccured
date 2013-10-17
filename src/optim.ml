@@ -39,6 +39,10 @@
 
 (* sfg: warning: this file may modify, or at least look at, some of the
    internals in module Cfg *)
+(* pm: those internals have now moved into file-local globals
+   below. *)
+let nodeList = ref []
+let numNodes = ref 0
 
 (* Optimizes the placement of boxing checks *)
 
@@ -154,10 +158,10 @@ and dfs s =
 *)
 
 and dfsMarkAll (color : int) = 
-  List.iter (fun s -> s.sid <- color) !Cfg.nodeList
+  List.iter (fun s -> s.sid <- color) !nodeList
   
 and dfs (start:stmt) =
-  assert ((List.length !Cfg.nodeList) == !Cfg.numNodes);
+  assert ((List.length !nodeList) == !numNodes);
   dfsMarkAll dfsMarkWhite;
   dfsLoop start
 
@@ -346,28 +350,28 @@ let nullChecksOptim f =
   end;
 
   (* Order nodes by reverse depth-first postorder *)
-  sCount := !Cfg.numNodes-1;
-  nodes := Array.create !Cfg.numNodes dummyStmt; (* allocate space *)
+  sCount := !numNodes-1;
+  nodes := Array.create !numNodes dummyStmt; (* allocate space *)
   orderBlock f.sbody.bstmts; (* assign sid *)
   (* sCount+1 was the largest sid assigned *)
   
 
   (* Create gen and kill for all nodes *)
-  gen := Array.create !Cfg.numNodes [];  (* allocate space *)
-  kill := Array.create !Cfg.numNodes false; (* allocate space *)
+  gen := Array.create !numNodes [];  (* allocate space *)
+  kill := Array.create !numNodes false; (* allocate space *)
   createGenKill ();
 
   (* Now carry out the actual data flow *)
 
   (* Set IN = [] for the start node. All other IN's and OUT's are TOP *)
-  inNode := Array.create !Cfg.numNodes !allVals;
+  inNode := Array.create !numNodes !allVals;
   (!inNode).(0) <- [];
-  outNode := Array.create !Cfg.numNodes !allVals;
+  outNode := Array.create !numNodes !allVals;
 
   let changed = ref true in  (* to detect if fix-point has been reached *)
   while !changed do
     changed := false;
-    for i = (!sCount + 1) to (!Cfg.numNodes-1) do
+    for i = (!sCount + 1) to (!numNodes-1) do
       if (!nodes).(i).sid != -1 then begin
         let old = (!outNode).(i) in
         let tmpIn = intersectAll (List.map (function s -> if (s.sid = -1) then !allVals else (!outNode).(s.sid)) (!nodes).(i).preds) in
@@ -735,9 +739,9 @@ let rec numberNodesAndPeephole f =
 
   (* An array of all the CHECK instructions. They're all Call's *)
   (* Right now, there is no good way to lookup the index of a known instr *)
-  checkInstrs := Array.of_list (filterChecks !Cfg.nodeList);
+  checkInstrs := Array.of_list (filterChecks !nodeList);
 
-  if amandebug then pr "------- Function %s contains %d nodes\n" f.svar.vname !Cfg.numNodes;
+  if amandebug then pr "------- Function %s contains %d nodes\n" f.svar.vname !numNodes;
 
     (* Do peephole optimization *)
   if amandebug then pr "Trying peephole ... \n";
@@ -760,10 +764,10 @@ and eliminateRedundancy (f : fundec) : fundec =
     ignore (numberNodesAndPeephole f);
 
     (* The cin values corresponding to the nodes array *)
-    let cin = Array.make !Cfg.numNodes latUnknown in   
+    let cin = Array.make !numNodes latUnknown in   
 
     (* The cout values as above *)
-    let cout = Array.make !Cfg.numNodes latUnknown in  
+    let cout = Array.make !numNodes latUnknown in  
     
     (* The number of CHECK instructions *)
     let countCheckInstrs = Array.length !checkInstrs in
@@ -850,7 +854,7 @@ and eliminateRedundancy (f : fundec) : fundec =
 	    reachedFixedPoint := true;
 
 	    (* Update the cin and cout for each node and see if nothing changes *)
-	    for i=0 to (!Cfg.numNodes - 1) do
+	    for i=0 to (!numNodes - 1) do
 	      let newCin = evalCin !nodes.(i) cout cin.(i) in
 	      if newCin <> cin.(i) then reachedFixedPoint := false;
 	      cin.(i) <- newCin;
@@ -1147,8 +1151,8 @@ and numberNodes () =
 	
 	numberNodesRec (i - 1) rest
   in 
-  nodes := Array.make !Cfg.numNodes dummyStmt;
-  numberNodesRec (!Cfg.numNodes - 1) !Cfg.nodeList 
+  nodes := Array.make !numNodes dummyStmt;
+  numberNodesRec (!numNodes - 1) !nodeList 
 
 
 (* filterChecks:
@@ -1354,7 +1358,8 @@ let optimFun (f : fundec) (isGlobinit : bool) =
   end;
 
   (* Fill in the CFG information (succs and pred only)*)
-  ignore (Cfg.cfgFun f);
+  numNodes := Cfg.cfgFun f;
+  nodeList := f.sallstmts;
 
   let optimizedF = ref f in
   (* Carry out the optimizations, one at a time *)
