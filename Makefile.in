@@ -63,7 +63,7 @@ DEPENDDIR   := obj/.depend
 
 # First stuff that makes the executable 
 
-CCURED_MODULES  := ccuredversion ptrnode globinit cxxpp \
+CCURED_MODULES  := ccuredversion cc_args ccutil ptrnode globinit cxxpp \
                    markutil \
                    poly wrappers dependent depfunc taggedunion vararg \
                    curesplit curestats stackoverflow \
@@ -90,7 +90,7 @@ include mk/Makefile.ocaml
 PROJECT_EXECUTABLE = $(OBJDIR)/ccured$(EXE)
 PROJECT_MODULES    = $(CCURED_MODULES)
 PROJECT_CMODULES   = 
-PROJECT_LIBS       = unix str cil
+PROJECT_LIBS       = unix nums str cil
 .PHONY: ccured
 ifneq ($(ARCHOS), ppc_DARWIN)
 ccured: $(PROJECT_EXECUTABLE)
