@@ -79,7 +79,7 @@ SOURCEDIRS     := src
 MLLS           := 
 MLYS           := 
 
-COMPILEFLAGS = -I cil/lib/cil
+COMPILEFLAGS = -annot -I cil/lib/cil
 LINKFLAGS    = -I cil/lib/cil
 
 # Include now the common set of rules for OCAML
