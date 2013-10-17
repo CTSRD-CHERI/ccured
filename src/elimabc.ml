@@ -2112,7 +2112,7 @@ class elimChecksVisitorClass = object (self)
         let cfgfilename = !currentFileName ^ "cfg." ^ !currentFnName ^ ".dot" in
 	
         ignore(Cfg.cfgFun fd); (* fill out the cfg *)
-        stmts := !Cfg.nodeList; (* all stmts in fd *)
+        stmts := fd.sallstmts; (* all stmts in fd *)
         if (!printcfgs) then Cfg.printCfgFilename cfgfilename fd;
         
         let res = ref SkipChildren in
