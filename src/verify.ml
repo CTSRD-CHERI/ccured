@@ -512,7 +512,7 @@ class annotationVisitor
             else if ci.cstruct then begin
               (* ignore (E.log "printing struct \"%s\"\n" ci.cname ); *)
               let annstr = ref (text(quoted ci.cname)) in
-              let isMetaStruct = Util.hasPrefix "meta_" ci.cname in
+              let isMetaStruct = Ccutil.hasPrefix "meta_" ci.cname in
               List.iter
                 (fun fi ->
                    if fi.fname = Cil.missingFieldName then
