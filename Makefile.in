@@ -90,7 +90,7 @@ include mk/Makefile.ocaml
 PROJECT_EXECUTABLE = $(OBJDIR)/ccured$(EXE)
 PROJECT_MODULES    = $(CCURED_MODULES)
 PROJECT_CMODULES   = 
-PROJECT_LIBS       = unix nums str cil
+PROJECT_LIBS       = unix nums str dynlink cil oneret pta simplemem logcalls logwrites partial
 .PHONY: ccured
 ifneq ($(ARCHOS), ppc_DARWIN)
 ccured: $(PROJECT_EXECUTABLE)
@@ -102,7 +102,8 @@ endif
 $(PROJECT_EXECUTABLE) : $(PROJECT_MODULES:%=$(OBJDIR)/%.$(CMO)) \
                         $(PROJECT_CMODULES:%=$(OBJDIR)/%.$(CMC))
 	@$(NARRATIVE) "Linking $(COMPILETOWHAT) $@ $(LINKMSG)"
-	$(AT)$(CAMLLINK) -verbose -o $@ \
+	$(AT)ocamlfind $(CAMLLINK) -verbose -o $@ \
+                    -linkpkg -package findlib -package dynlink \
                     $(PROJECT_LIBS:%=%.$(CMXA)) \
                     $^
 
