@@ -44,7 +44,7 @@ use lib "$FindBin::Bin/../cil/lib"; # The libraries are in the lib directory
 
 # Read the configuration script. Must be in the same directory as the 
 # top-level script
-use CilConfig;
+use App::Cilly::CilConfig;
 
 $::ccuredhome="$::cilhome/..";
 if($::archos eq "x86_WIN32") {

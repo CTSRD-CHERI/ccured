@@ -46,8 +46,7 @@ use File::Copy;
 use File::Basename;
 use Data::Dumper;
 
-use CilConfig;
-use Cilly;
+use App::Cilly::CilConfig;
 $::ccuredhome="$::cilhome/..";
 
 $::default_is_merge = 1;
