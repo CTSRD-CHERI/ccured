@@ -71,6 +71,10 @@ val show_progress : bool ref
 (** Treat undefined functions conservatively *)
 val conservative_undefineds : bool ref
 
+(** client can specify particular external functions that
+ *  have no side effects *)
+val callHasNoSideEffects : (Cil.exp -> bool) ref
+
 (***********************************************************************)
 (*                                                                     *)
 (* Building the Points-to Graph                                        *)
@@ -153,4 +157,4 @@ val compute_alias_frequency : unit -> unit
 val compute_aliases : bool  -> unit
 
 
-val feature: Cil.featureDescr
+val feature: Feature.t

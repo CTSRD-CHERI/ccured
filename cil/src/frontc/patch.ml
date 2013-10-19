@@ -40,6 +40,7 @@
 (* CABS file patching *)
 
 open Cabs
+open Cabshelper
 open Trace
 open Pretty
 open Cabsvisit
@@ -208,7 +209,7 @@ class substitutor (bindings : binding list) = object(self)
       (trace "patchDebug" (dprintf "at least one spec pattern\n"));
       ChangeTo
         (List.flatten
-          (List.map
+          (Util.list_map
             (* for each specifier element, yield the specifier list *)
             (* to which it maps; then we'll flatten the final result *)
             (fun elt ->
@@ -338,7 +339,7 @@ begin
 
   (trace "patchTime" (dprintf "applyPatch start: %f\n" (gettime ())));
   if (traceActive "patchDebug") then
-    Cprint.out := stdout      (* hack *)
+    Whitetrack.setOutput  stdout      (* hack *)
   else ();
 
   (* more hackery *)
@@ -362,7 +363,7 @@ begin
           (trace "patch" (dprintf "defn match: patch line %d, src %a\n"
                                   loc.lineno d_loc (get_definitionloc d)));
 
-          (List.map (fun destElt -> (substDefn bindings destElt)) destpattern)
+          (Util.list_map (fun destElt -> (substDefn bindings destElt)) destpattern)
         )
 
         with NoMatch -> (
@@ -390,7 +391,7 @@ begin
         (* since visitCabsDefinition might return a list, I'll try my *)
         (* addtional patches on every yielded definition, then collapse *)
         (* all of them into a single list *)
-        (List.flatten (List.map (fun d -> (patchDefn rest d)) dList))
+        (List.flatten (Util.list_map (fun d -> (patchDefn rest d)) dList))
       )
 
     | _ :: rest -> (
@@ -405,7 +406,7 @@ begin
 
   (* transform all the definitions *)
   let result : definition list =
-    (List.flatten (List.map (fun d -> (patchDefn patch d)) src)) in
+    (List.flatten (Util.list_map (fun d -> (patchDefn patch d)) src)) in
 
   (*Cprint.print_defs result;*)
 

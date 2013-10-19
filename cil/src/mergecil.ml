@@ -192,7 +192,7 @@ let union (nd1: 'a node) (nd2: 'a node) : 'a node * (unit -> unit) =
                * some client source; I'm disabling the warning since it supposedly
                * is harmless anyway, so is useless noise *)
               (* sm: re-enabling on claim it now will probably not happen *)
-              ignore (warn "Merging two undefined elements in the same file: %s and %s\n" nd1.nname nd2.nname);
+              ignore (warn "Merging two undefined elements in the same file: %s and %s" nd1.nname nd2.nname);
               nd1, nd2
         end
       else (* One is defined, the other is not. Choose the defined one *)
@@ -419,6 +419,7 @@ let intEnumInfo =
     eitems = [];
     eattr = [];
     ereferenced = false;
+    ekind = IInt;
   }
 (* And add it to the equivalence graph *)
 let intEnumInfoNode =
@@ -856,7 +857,7 @@ let rec oneFilePass1 (f:file) : unit =
           (* Save the names of the formal arguments *)
           let _, args, _, _ = splitFunctionTypeVI fdec.svar in
           H.add formalNames (!currentFidx, fdec.svar.vname) 
-            (List.map (fun (fn, _, _) -> fn) (argsToList args));
+            (Util.list_map (fun (fn, _, _) -> fn) (argsToList args));
           fdec.svar.vreferenced <- false;
           (* Force inline functions to be static. *) 
           (* GN: This turns out to be wrong. inline functions are external, 
@@ -1145,6 +1146,7 @@ begin
     | Instr(l) -> 13 + 67*(List.length l)
     | Return(_) -> 17
     | Goto(_) -> 19
+    | ComputedGoto(_) -> 131
     | Break(_) -> 23
     | Continue(_) -> 29
     | If(_,b1,b2,_) -> 31 + 37*(stmtListSum b1.bstmts) 
@@ -1156,7 +1158,7 @@ begin
     | TryExcept (b, (il, e), h, _) -> 
         67 + 83*(stmtListSum b.bstmts) + 97*(stmtListSum h.bstmts)
     | TryFinally (b, h, _) -> 
-        103 + 113*(stmtListSum b.bstmts) + 119*(stmtListSum h.bstmts)
+        103 + 113*(stmtListSum b.bstmts) + 127*(stmtListSum h.bstmts)
   in
   
   (* disabled 2nd and 3rd measure because they appear to get different
@@ -1222,9 +1224,7 @@ begin
     (
       (* CIL changes (unsigned)0 into 0U during printing.. *)
       match xc,yc with
-      | CInt64(xv,_,_),CInt64(yv,_,_) ->
-          (Int64.to_int xv) = 0   &&     (* ok if they're both 0 *)
-          (Int64.to_int yv) = 0
+      | CInt64(0L,_,_),CInt64(0L,_,_) -> true  (* ok if they're both 0 *)
       | _,_ -> false
     )
   | Lval(xl), Lval(yl) ->          (equalLvals xl yl)
@@ -1371,7 +1371,7 @@ let oneFilePass2 (f: file) =
               )
               else ( 
                 (* Both GVars have initializers. *)
-                (E.s (error "global var %s at %a has different initializer than %a\n"
+                (E.s (error "global var %s at %a has different initializer than %a"
                               vi'.vname  d_loc l  d_loc prevLoc));
               )
             with Not_found -> (
@@ -1536,7 +1536,7 @@ let oneFilePass2 (f: file) =
                     (* the checksums differ, so print a warning but keep the
                      * older one to avoid a link error later.  I think this is 
 		     * a reasonable approximation of what ld does. *)
-                    (ignore (warn "def'n of func %s at %a (sum %d) conflicts with the one at %a (sum %d); keeping the one at %a.\n"
+                    (ignore (warn "def'n of func %s at %a (sum %d) conflicts with the one at %a (sum %d); keeping the one at %a."
                                fdec'.svar.vname  d_loc l  curSum  d_loc prevLoc
 			       prevSum d_loc prevLoc))
                   end
@@ -1602,7 +1602,7 @@ let oneFilePass2 (f: file) =
                 (* And we must rename the items to using the same name space 
                  * as the variables *)
                 ei.eitems <- 
-                   List.map
+                   Util.list_map
                      (fun (n, i, loc) -> 
                        let newname, _ = 
                          A.newAlphaName vtAlpha None n !currentLoc in
@@ -1660,8 +1660,8 @@ let oneFilePass2 (f: file) =
     let globStr:string = (P.sprint 1000 (P.dprintf 
       "error when merging global %a: %s"
       d_global g  (Printexc.to_string e))) in
-    ignore (E.log "%s\n" globStr);
-    (*"error when merging global: %s\n" (Printexc.to_string e);*)
+    ignore (E.log "%s" globStr);
+    (*"error when merging global: %s" (Printexc.to_string e);*)
     mergePushGlobal (GText (P.sprint 80 
                               (P.dprintf "/* error at %t:" d_thisloc)));
     mergePushGlobal g;
@@ -1702,7 +1702,7 @@ let oneFilePass2 (f: file) =
     (* Now check if we have inlines that we could not remove
     H.iter (fun name _ -> 
       if not (H.mem inlinesRemoved name) then 
-        ignore (warn "Could not remove inline %s. I have no idea why!\n"
+        ignore (warn "Could not remove inline %s. I have no idea why!"
                   name))
       inlinesToRemove *)
   end

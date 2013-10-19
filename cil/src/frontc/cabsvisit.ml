@@ -39,6 +39,7 @@
 (* tree visitor and rewriter for cabs *)
 
 open Cabs
+open Cabshelper
 open Trace
 open Pretty
 module E = Errormsg
@@ -94,7 +95,8 @@ end
     
 let visitorLocation = ref { filename = ""; 
 			    lineno = -1; 
-			    byteno = -1;}
+			    byteno = -1;
+                            ident = 0}
     
         (* a default visitor which does nothing to the tree *)
 class nopCabsVisitor : cabsVisitor = object
@@ -432,7 +434,7 @@ and childrenStatement vis s =
           [d'] when d' == d -> s
         | [d'] -> DEFINITION d'
         | dl -> let l = get_definitionloc d in
-          let dl' = List.map (fun d' -> DEFINITION d') dl in
+          let dl' = Util.list_map (fun d' -> DEFINITION d') dl in
           BLOCK ({blabels = []; battrs = []; bstmts = dl' }, l)
     end
   | ASM (sl, b, details, l) -> 
@@ -495,6 +497,9 @@ and childrenExpression vis e =
       let el' = mapNoCopy ve el in
       if el' != el then COMMA (el') else e
   | CONSTANT _ -> e
+  | PAREN e1 -> 
+      let e1' = ve e1 in
+      if e1' != e1 then PAREN (e1') else e 
   | VARIABLE s -> 
       let s' = vis#vvar s in
       if s' != s then VARIABLE s' else e
@@ -543,7 +548,7 @@ and childrenInitExpression vis ie =
     | ATINDEXRANGE_INIT (e1, e2) -> 
         let e1' = visitCabsExpression vis e1 in
         let e2' = visitCabsExpression vis e2 in
-        if e1' != e1 || e2' != e2 then ATINDEXRANGE_INIT (e1, e2) else iw
+        if e1' != e1 || e2' != e2 then ATINDEXRANGE_INIT (e1', e2') else iw
   in
   match ie with 
     NO_INIT -> ie

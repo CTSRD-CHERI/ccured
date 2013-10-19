@@ -38,6 +38,7 @@ exception Bad_function
 
 
 open Cil
+open Feature
 
 module H = Hashtbl
 
@@ -112,6 +113,13 @@ let alloc_names = [
   "kmalloc"
 ]
 
+(* This function should be set by the client if it
+ * knows of functions returning a result that have
+ * no side effects. If the result is not used, then
+ * the call will be eliminated. *)
+let callHasNoSideEffects : (exp -> bool) ref =
+  ref (fun _ -> false)
+
 let all_globals : varinfo list ref = ref []
 let all_functions : fundec list ref = ref []
 
@@ -153,7 +161,8 @@ let is_effect_free_fun = function
         match lh with
             Var v ->
               begin
-                try ("CHECK_" = String.sub v.vname 0 6)
+                try ("CHECK_" = String.sub v.vname 0 6 ||
+		!callHasNoSideEffects (Lval(lh,o)))
                 with Invalid_argument _ -> false
               end
           | _ -> false
@@ -236,11 +245,13 @@ and analyze_expr (e : exp ) : A.tau =
       | AlignOf _ -> A.bottom ()
       | UnOp (op, e, t) -> analyze_expr e
       | BinOp (op, e, e', t) -> A.join (analyze_expr e) (analyze_expr e')
+      | Question (_, e, e', _) -> A.join (analyze_expr e) (analyze_expr e')
       | CastE (t, e) -> analyze_expr e
       | AddrOf l ->
           if !fun_ptrs_as_funs && isFunctionType (typeOfLval l) then
             A.rvalue (analyze_lval l)
           else A.address (analyze_lval l)
+      | AddrOfLabel _ -> failwith "not implemented yet" (* XXX *)
       | StartOf l -> A.address (analyze_lval l)
       | AlignOfE _ -> A.bottom ()
       | SizeOfE _ -> A.bottom ()
@@ -254,7 +265,7 @@ let rec analyze_init (i : init ) : A.tau =
   match i with
       SingleInit e -> analyze_expr e
     | CompoundInit (t, oi) ->
-        A.join_inits (List.map (function (_, i) -> analyze_init i) oi)
+        A.join_inits (Util.list_map (function (_, i) -> analyze_init i) oi)
 
 let analyze_instr (i : instr ) : unit =
   match i with
@@ -274,10 +285,10 @@ let analyze_instr (i : instr ) : unit =
           List.iter (fun e -> ignore (analyze_expr e)) actuals
         else (* todo : check to see if the thing is an undefined function *)
           let fnres, site =
-            if is_undefined_fun fexpr & !conservative_undefineds then
-              A.apply_undefined (List.map analyze_expr actuals)
+            if is_undefined_fun fexpr && !conservative_undefineds then
+              A.apply_undefined (Util.list_map analyze_expr actuals)
             else
-              A.apply (analyze_expr fexpr) (List.map analyze_expr actuals)
+              A.apply (analyze_expr fexpr) (Util.list_map analyze_expr actuals)
           in
             begin
               match res with
@@ -305,6 +316,7 @@ let rec analyze_stmt (s : stmt ) : unit =
             | None -> ()
         end
     | Goto (s', l) -> () (* analyze_stmt(!s') *)
+    | ComputedGoto (e, l) -> ()
     | If (e, b, b', l) ->
         (* ignore the expression e; expressions can't be side-effecting *)
         analyze_block b;
@@ -331,7 +343,7 @@ and analyze_block (b : block ) : unit =
 let analyze_function (f : fundec ) : unit =
   let oldlv = analyze_var_decl f.svar in
   let ret = A.make_fresh (f.svar.vname ^ "_ret") in
-  let formals = List.map analyze_var_decl f.sformals in
+  let formals = Util.list_map analyze_var_decl f.sformals in
   let newf = A.make_function f.svar.vname formals ret in
     if !show_progress then
       Printf.printf "Analyzing function %s\n" f.svar.vname;
@@ -421,7 +433,7 @@ let compute_may_aliases (b : bool) : unit =
     match exps with
         [] -> ()
       | h :: t ->
-          ignore (List.map (may_alias h) t);
+          ignore (Util.list_map (may_alias h) t);
           compute_may_aliases_aux t
   and exprs : exp list ref = ref [] in
     H.iter (fun e -> fun _ -> exprs := e :: !exprs) expressions;
@@ -533,7 +545,7 @@ let absloc_lval_aliases lv =
 let absloc_e_transitive_points_to (e : Cil.exp) : absloc list =
   let rec lv_trans_ptsto (worklist : varinfo list) (acc : varinfo list) : absloc list =
     match worklist with
-        [] -> List.map absloc_of_varinfo acc
+        [] -> Util.list_map absloc_of_varinfo acc
       | vi :: wklst'' ->
           if List.mem vi acc then lv_trans_ptsto wklst'' acc
           else
@@ -550,34 +562,33 @@ let absloc_eq a b = A.absloc_eq (a, b)
 let d_absloc: unit -> absloc -> Pretty.doc = A.d_absloc
 
 
-let ptrAnalysis = ref false
 let ptrResults = ref false
 let ptrTypes = ref false
 
 
 
 (** Turn this into a CIL feature *)
-let feature : featureDescr = {
+let feature = {
   fd_name = "ptranal";
-  fd_enabled = ptrAnalysis;
+  fd_enabled = false;
   fd_description = "alias analysis";
   fd_extraopt = [
     ("--ptr_may_aliases",
      Arg.Unit (fun _ -> debug_may_aliases := true),
-     "Print out results of may alias queries");
+     " Print out results of may alias queries");
     ("--ptr_unify", Arg.Unit (fun _ -> no_sub := true),
-     "Make the alias analysis unification-based");
+     " Make the alias analysis unification-based");
     ("--ptr_model_strings", Arg.Unit (fun _ -> model_strings := true),
-     "Make the alias analysis model string constants");
+     " Make the alias analysis model string constants");
     ("--ptr_conservative",
      Arg.Unit (fun _ -> conservative_undefineds := true),
-     "Treat undefineds conservatively in alias analysis");
+     " Treat undefineds conservatively in alias analysis");
     ("--ptr_results", Arg.Unit (fun _ -> ptrResults := true),
-     "print the results of the alias analysis");
+     " print the results of the alias analysis");
     ("--ptr_mono", Arg.Unit (fun _ -> analyze_mono := true),
-     "run alias analysis monomorphically");
+     " run alias analysis monomorphically");
     ("--ptr_types",Arg.Unit (fun _ -> ptrTypes := true),
-     "print inferred points-to analysis types")
+     " print inferred points-to analysis types")
   ];
   fd_doit = (function (f: file) ->
                analyze_file f;
@@ -585,3 +596,5 @@ let feature : featureDescr = {
                if !ptrTypes then print_types ());
   fd_post_check = false (* No changes *)
 }
+
+let () = Feature.register feature

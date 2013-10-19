@@ -1,0 +1,2 @@
+$::cc        = "@CC@";
+$::default_mode = "@DEFAULT_CIL_MODE@";

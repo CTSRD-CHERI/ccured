@@ -42,6 +42,7 @@
 */
 %{
 open Cabs
+open Cabshelper
 module E = Errormsg
 
 let parse_error msg : unit =       (* sm: c++-mode highlight hack: -> ' <- *)
@@ -60,15 +61,10 @@ let getComments () =
       r
 *)
 
-let currentLoc () = 
-  let l, f, c = E.getPosition () in
-  { lineno   = l; 
-    filename = f; 
-    byteno   = c;}
-
 let cabslu = {lineno = -10; 
 	      filename = "cabs loc unknown"; 
-	      byteno = -10;}
+	      byteno = -10;
+              ident = 0;}
 
 (* cabsloc -> cabsloc *)
 (*
@@ -238,14 +234,14 @@ let transformOffsetOf (speclist, dtype) member =
   in
   let memberExpr = replaceBase member in
   let addrExpr = UNARY (ADDROF, memberExpr) in
-  (* slight cheat: hard-coded assumption that size_t == unsigned int *)
-  let sizeofType = [SpecType Tunsigned], JUSTBASE in
+  let sizeofType = [SpecType Tsizet], JUSTBASE in
   let resultExpr = CAST (sizeofType, SINGLE_INIT addrExpr) in
   resultExpr
 
 %}
 
 %token <string * Cabs.cabsloc> IDENT
+%token <string * Cabs.cabsloc> QUALIFIER
 %token <int64 list * Cabs.cabsloc> CST_CHAR
 %token <int64 list * Cabs.cabsloc> CST_WCHAR
 %token <string * Cabs.cabsloc> CST_INT
@@ -258,7 +254,7 @@ let transformOffsetOf (speclist, dtype) member =
 %token <int64 list * Cabs.cabsloc> CST_WSTRING
 
 %token EOF
-%token<Cabs.cabsloc> CHAR INT DOUBLE FLOAT VOID INT64 INT32
+%token<Cabs.cabsloc> CHAR INT BOOL DOUBLE FLOAT VOID INT64 INT32
 %token<Cabs.cabsloc> ENUM STRUCT TYPEDEF UNION
 %token<Cabs.cabsloc> SIGNED UNSIGNED LONG SHORT
 %token<Cabs.cabsloc> VOLATILE EXTERN STATIC CONST RESTRICT AUTO REGISTER
@@ -470,7 +466,7 @@ primary_expression:                     /*(* 6.5.1. *)*/
 |        	constant
 		        {CONSTANT (fst $1), snd $1}
 |		paren_comma_expression  
-		        {smooth_expression (fst $1), snd $1}
+		        {PAREN (smooth_expression (fst $1)), snd $1}
 |		LPAREN block RPAREN
 		        { GNU_BODY (fst3 $2), $1 }
 
@@ -496,7 +492,7 @@ postfix_expression:                     /*(* 6.5.2 *)*/
                           CALL (VARIABLE "__builtin_types_compatible_p", 
                                 [TYPE_SIZEOF(b1,d1); TYPE_SIZEOF(b2,d2)]), $1 }
 |               BUILTIN_OFFSETOF LPAREN type_name COMMA offsetof_member_designator RPAREN
-                        { transformOffsetOf $3 (fst $5), $1 }
+                        { transformOffsetOf $3 $5, $1 }
 |		postfix_expression DOT id_or_typename
 		        {MEMBEROF (fst $1, $3), snd $1}
 |		postfix_expression ARROW id_or_typename   
@@ -511,12 +507,12 @@ postfix_expression:                     /*(* 6.5.2 *)*/
 ;
 
 offsetof_member_designator:	/* GCC extension for __builtin_offsetof */
-|		IDENT
-		        { VARIABLE (fst $1), snd $1 }
+|		id_or_typename
+		        { VARIABLE ($1) }
 |		offsetof_member_designator DOT IDENT
-			{ MEMBEROF (fst $1, fst $3), snd $1 }
+			{ MEMBEROF ($1, fst $3) }
 |		offsetof_member_designator bracket_comma_expression
-			{ INDEX (fst $1, smooth_expression $2), snd $1 }
+			{ INDEX ($1, smooth_expression $2) }
 ;
 
 unary_expression:   /*(* 6.5.3 *)*/
@@ -736,9 +732,9 @@ wstring_list:
 
 one_string: 
     CST_STRING				{$1}
-|   FUNCTION__                          {(Cabs.explodeStringToInts 
+|   FUNCTION__                          {(Cabshelper.explodeStringToInts 
 					    !currentFunctionName), $1}
-|   PRETTY_FUNCTION__                   {(Cabs.explodeStringToInts 
+|   PRETTY_FUNCTION__                   {(Cabshelper.explodeStringToInts 
 					    !currentFunctionName), $1}
 ;    
 
@@ -880,14 +876,18 @@ statement:
 |   FOR LPAREN for_clause opt_expression
 	        SEMICOLON opt_expression RPAREN statement
 	                         {FOR ($3, $4, $6, $8, (*handleLoc*) $1)}
-|   IDENT COLON statement
-		                 {LABEL (fst $1, $3, (*handleLoc*) (snd $1))}
+|   IDENT COLON attribute_nocv_list statement
+		                 {(* The only attribute that should appear here
+                                     is "unused". For now, we drop this on the
+                                     floor, since unused labels are usually
+                                     removed anyways by Rmtmps. *)
+                                  LABEL (fst $1, $4, (snd $1))}
 |   CASE expression COLON statement
 	                         {CASE (fst $2, $4, (*handleLoc*) $1)}
 |   CASE expression ELLIPSIS expression COLON statement
 	                         {CASERANGE (fst $2, fst $4, $6, (*handleLoc*) $1)}
-|   DEFAULT COLON
-	                         {DEFAULT (NOP $1, (*handleLoc*) $1)}
+|   DEFAULT COLON statement
+	                         {DEFAULT ($3, (*handleLoc*) $1)}
 |   RETURN SEMICOLON		 {RETURN (NOTHING, (*handleLoc*) $1)}
 |   RETURN comma_expression SEMICOLON
 	                         {RETURN (smooth_expression (fst $2), (*handleLoc*) $1)}
@@ -972,6 +972,7 @@ decl_spec_list_opt_no_named:
 type_spec:   /* ISO 6.7.2 */
     VOID            { Tvoid, $1}
 |   CHAR            { Tchar, $1 }
+|   BOOL            { Tbool, $1 }
 |   SHORT           { Tshort, $1 }
 |   INT             { Tint, $1 }
 |   LONG            { Tlong, $1 }
@@ -1309,6 +1310,12 @@ attribute_nocv:
 |   MSATTR                              { (fst $1, []), snd $1 }
                                         /* ISO 6.7.3 */
 |   THREAD                              { ("__thread",[]), $1 }
+|   QUALIFIER                     {("__attribute__",[VARIABLE(fst $1)]),snd $1}
+;
+
+attribute_nocv_list:
+    /* empty */				{ []}
+|   attribute_nocv attribute_nocv_list  { fst $1 :: $2 }
 ;
 
 /* __attribute__ plus const/volatile */
