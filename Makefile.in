@@ -33,7 +33,7 @@ OCAMLBUILD=ocamlbuild
 # Byte-code only for now.
 ifneq ($(ARCHOS), ppc_DARWIN)
 ccured:
-	cd src && $(OCAMLBUILD) -use-ocamlfind main.byte
+	cd src && $(OCAMLBUILD) -use-ocamlfind all.otarget
 else
 ccured:
 	@echo "CCured does not currently build on powerpc-darwin systems."
