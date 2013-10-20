@@ -1,0 +1,6 @@
+(* This module was generated automatically by configure *)
+
+let ccuredVersionMajor = @CCURED_VERSION_MAJOR@
+let ccuredVersionMinor = @CCURED_VERSION_MINOR@
+let ccuredVersionRev   = @CCURED_VERSION_REV@
+let ccuredVersion      = "@CCURED_VERSION@"

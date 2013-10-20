@@ -1,19 +1,21 @@
 # -*- Mode: makefile -*-
-# Makefile.in for building and using the CCured compiler 
-# @do_not_edit@ Makefile.in
-#  
+# Makefile.in for building and using the CCured compiler
+#
 # toplevel Makefile for CCured project
 # authors: George Necula, Scott McPeak
-# 
+#          modified by Prashanth Mundkur
+
 include mk/config.mk
 
-# tweak to provoke commit..
+ifndef CCUREDHOME
+  CCUREDHOME=@CCUREDHOME@
+endif
 
 # Just a target to be used by default
 .PHONY: setup quickbuild all doc distrib ccured libraries
-setup: 
-	$(MAKE) -C cil 
-	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML= 
+
+setup:
+	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML=
 ifdef BUILD_RELEASEPG
 	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML=1 RELEASELIB=1 USE_PG=1
 endif
@@ -23,94 +25,26 @@ ifeq ($(HAS_MSVC), yes)
 	$(MAKE) libraries _MSVC=1 NATIVECAML=1 RELEASELIB=1
 endif
 
+quickbuild: ccuredversion ccured libraries
 
+.PHONY: ccured
 
-# sfg: I think I need "make all" to do "make cil_setup" for automake purposes
-all: cil_setup
-
-
-quickbuild: cil_setup ccuredversion ccured libraries
-
-cil_setup:
-	$(MAKE) -C cil setup
-
-# look out for outdated Makefile; if it's out of date, this will automatically
-# re-run ./config.status, then re-exec make with the same arguments
-Makefile: config.status Makefile.in
-	./$<
-
-config.status: configure
-	./$@ --recheck
-
-configure: configure.in
-	autoconf
-
-####
-#### OCAML stuff
-####
-# Debugging. Set ECHO= to debug this Makefile 
-ECHO := @
-
-ifdef RELEASE
-  NATIVECAML := 1
-  UNSAFE     := 1
+OCAMLBUILD=ocamlbuild
+# Byte-code only for now.
+ifneq ($(ARCHOS), ppc_DARWIN)
+ccured:
+	cd src && $(OCAMLBUILD) -use-ocamlfind main.byte
+else
+ccured:
+	@echo "CCured does not currently build on powerpc-darwin systems."
 endif
 
+cleancaml:
+	cd src && $(OCAMLBUILD) -clean
 
 # Put here all the byproducts of make
 OBJDIR      := obj/$(ARCHOS)
 DEPENDDIR   := obj/.depend
-
-# First stuff that makes the executable 
-
-CCURED_MODULES  := ccuredversion cc_args ccutil ptrnode globinit cxxpp \
-                   markutil \
-                   poly wrappers dependent depfunc taggedunion vararg \
-                   curesplit curestats stackoverflow \
-                   optutil curechecks cure markcxx markptr \
-                   solveutil unionfind type typecheck solver optim seoptim \
-                   choptim \
-                   elimabc intset \
-                   dominator annot astslicer \
-                   verify main
-
-MODULES        = $(CCURED_MODULES)
-SOURCEDIRS     := src
-MLLS           := 
-MLYS           := 
-
-COMPILEFLAGS = -annot -I cil/lib/cil
-LINKFLAGS    = -I cil/lib/cil
-
-# Include now the common set of rules for OCAML
-include mk/Makefile.ocaml
-
-   # Now the rule to make ccured
-
-PROJECT_EXECUTABLE = $(OBJDIR)/ccured$(EXE)
-PROJECT_MODULES    = $(CCURED_MODULES)
-PROJECT_CMODULES   = 
-PROJECT_LIBS       = unix nums str dynlink cil oneret pta simplemem logcalls logwrites partial
-.PHONY: ccured
-ifneq ($(ARCHOS), ppc_DARWIN)
-ccured: $(PROJECT_EXECUTABLE)
-else
-ccured:
-	@echo "CCured does not currently bulid on powerpc-darwin systems."
-endif
-#include ocamlutil/Makefile.ocaml.build
-$(PROJECT_EXECUTABLE) : $(PROJECT_MODULES:%=$(OBJDIR)/%.$(CMO)) \
-                        $(PROJECT_CMODULES:%=$(OBJDIR)/%.$(CMC))
-	@$(NARRATIVE) "Linking $(COMPILETOWHAT) $@ $(LINKMSG)"
-	$(AT)ocamlfind $(CAMLLINK) -verbose -o $@ \
-                    -linkpkg -package findlib -package dynlink \
-                    $(PROJECT_LIBS:%=%.$(CMXA)) \
-                    $^
-
-
-ifndef CCUREDHOME
-  CCUREDHOME=@CCUREDHOME@
-endif
 
 # Now do the user-specific customization
 # It is Ok if this file does not exist
@@ -120,7 +54,7 @@ endif
 
 # Set the compiler
 ifndef _MSVC
-  ifndef _GNUCC 
+  ifndef _GNUCC
      @DEFAULT_COMPILER@=1
   endif
 endif
@@ -148,8 +82,8 @@ endif
 
 GCDIR := $(CCUREDHOME)/lib/gc/$(COMPILERNAME)
 GCLIB := $(GCDIR)/gc.$(LIBEXT)
-GCMAKE := $(MAKE) -C $(GCDIR) 
-ifdef _MSVC 
+GCMAKE := $(MAKE) -C $(GCDIR)
+ifdef _MSVC
   GCMAKE += -f Makefile.msvc srcdir=..
 endif
 # pretend it's only dependent on one file; that's not true of course,
@@ -158,29 +92,12 @@ endif
 $(GCLIB): $(CCUREDHOME)/lib/gc/mark.c
 	$(GCMAKE)
 	cd $(CCUREDHOME)/lib/gc/$(COMPILERNAME); \
-            rm -f gc.log; ./gctest; if test -f gc.log ;then cat gc.log; fi
-
+	    rm -f gc.log; ./gctest; if test -f gc.log ;then cat gc.log; fi
 
 testgc:
 	rm -f $(GCLIB)
 	$(MAKE)
 	objdump --syms $(CCUREDLIB) | grep GC_
-
-
-
-#
-# Create the version information module
-.PHONY: ccuredversion 
-ccuredversion: $(OBJDIR)/ccuredversion.ml
-$(OBJDIR)/ccuredversion.ml: configure.in Makefile.in
-	rm -f $@
-	mkdir -p $(OBJDIR)
-	echo "(* This module was generated automatically by code in Makefile *)" >$@
-# Generate here the version information
-	echo "let ccuredVersionMajor = @CCURED_VERSION_MAJOR@" >>$@
-	echo "let ccuredVersionMinor = @CCURED_VERSION_MINOR@" >>$@
-	echo "let ccuredVersionRev   = @CCURED_VERSION_REV@"   >>$@
-	echo "let ccuredVersion      = \"@CCURED_VERSION@\""  >>$@ 
 
 ###
 ###
@@ -229,23 +146,22 @@ endif
 # we build the library from source each time, so that we don't end up
 # with .o files built with Makefile arguments that have changed
 $(CCUREDLIB): lib/ccuredlib.c include/ccured.h include/ccuredannot.h \
-                              include/ccuredcheck.h $(GCLIB) 
+			      include/ccuredcheck.h $(GCLIB)
 	@echo "Trying to build $(CCUREDLIB)"
 	@true "CCUREDLIBARG is $(CCUREDLIBARG)"
 	@true "CFLAGS is $(CFLAGS)"
 	$(CC) $(CFLAGS) $(INC)./include $(CONLY) $(CCUREDLIBARG) \
-                    $(OBJOUT)$(OBJDIR)/ccuredlib.$(OBJEXT) lib/ccuredlib.c
+		    $(OBJOUT)$(OBJDIR)/ccuredlib.$(OBJEXT) lib/ccuredlib.c
 ifdef _GNUCC
 	cp -f $(GCLIB) $@
-	ar -rs $@            $(OBJDIR)/ccuredlib.$(OBJEXT) 
+	ar -rs $@            $(OBJDIR)/ccuredlib.$(OBJEXT)
 else
-	$(AR) $(LIBOUT)$@ $(GCLIB) $(OBJDIR)/ccuredlib.$(OBJEXT) 
+	$(AR) $(LIBOUT)$@ $(GCLIB) $(OBJDIR)/ccuredlib.$(OBJEXT)
 endif
 
 # we need to know what the patcher will think the compiler's version is
 
-PATCHER_EXE := $(CCUREDHOME)/cil/lib/perl5/patcher
-#PATCHER_EXE := $(CCUREDHOME)/cil/bin/patcher
+PATCHER_EXE := $(CCUREDHOME)/bin/patcher
 PATCHER := LANG=C perl $(PATCHER_EXE) --mode=$(COMPILERNAME)
 COMPILERVERSION := $(shell $(PATCHER) --dumpversion)
 
@@ -266,8 +182,8 @@ $(PATCHEDHEADERSDIR)/stamp: $(PATCHER_EXE) $(PATCHTEMPLATE)
 	$(PATCHER) --dest=$(CCUREDHOME)/include --clean
 #       now re-regenerate them
 	$(PATCHER) --patch=$(PATCHTEMPLATE) \
-                   --dest=$(CCUREDHOME)/include \
-	           $(foreach file,$(PATCH_SYSINCLUDES), --sfile=$(file))
+		   --dest=$(CCUREDHOME)/include \
+		   $(foreach file,$(PATCH_SYSINCLUDES), --sfile=$(file))
 	touch $@
 
 ifneq ($(ARCHOS), ppc_DARWIN)
@@ -306,14 +222,14 @@ endif
 	-mkdir doc/html/ccured
 	-mkdir doc/html/ccured/examples
 # Create the version document
-# 	cd doc/html/ccured; echo "\def\cilversion{@CIL_VERSION@}" >ccured.version.tex
+#	cd doc/html/ccured; echo "\def\cilversion{@CIL_VERSION@}" >ccured.version.tex
 	cd doc/html/ccured; echo "\def\ccuredversion{@CCURED_VERSION@}" >>ccured.version.tex
 	cd doc; perl ccuredcode.pl ccured.tex ccuredpp.tex
 	cd doc/html/ccured; $(HEVEA) ../../ccuredpp; $(HEVEA) ../../ccuredpp
 	if test -f doc/html/ccured/ccuredpp.image.tex ;then \
-         cp doc/hevea.sty doc/comment.sty doc/*.eps doc/html/ccured; \
-         cd doc/html/ccured; $(IMAGEN) ccuredpp \
-        ;fi
+	 cp doc/hevea.sty doc/comment.sty doc/*.eps doc/html/ccured; \
+	 cd doc/html/ccured; $(IMAGEN) ccuredpp \
+	;fi
 	cp include/ccured.h doc/html/ccured
 	cp include/ccuredcheck.h doc/html/ccured
 	cd doc/html/ccured; mv ccuredpp.html ccured.html
@@ -336,12 +252,12 @@ clean: cleancaml
 	rm -f $(OBJDIR)/ccured_*
 	$(MAKE) -C $(CCUREDHOME)/lib/gc clean
 	cd $(CCUREDHOME)/lib/gc; \
-	     	rm -f $(foreach COMP, GNUCC MSVC, \
-                     $(foreach EXT, exe o a obj lib, $(COMP)/*.$(EXT)))
+		rm -f $(foreach COMP, GNUCC MSVC, \
+		     $(foreach EXT, exe o a obj lib, $(COMP)/*.$(EXT)))
 	-find test \( \
 		-name '*cil.c' -o \
 		-name '*cured.c' -o \
-                -name '*cured.*optim.c' -o \
+		-name '*cured.*optim.c' -o \
 		-name '*.exe' -o \
 		-name '*.i' -o \
 		-name '*_ppp.c' -o \
@@ -385,15 +301,15 @@ distrib: distrib-nocheck checkdistrib
 D_ROOT := configure configure.in config.h.in \
 	  install-sh config.guess config.sub \
 	  Makefile.in LICENSE \
-          Makefile.gcc Makefile.msvc
+	  Makefile.gcc Makefile.msvc
 
 D_CIL_EXT := oneret.ml oneret.mli optutil.ml optutil.mli
 
 D_LIB := Makefile CCured.pm ccuredlib.c \
-        gc \
+	gc \
 	browser_code.js browser_blank.html browser_form.html \
-        browser_index.html bullet.gif pixel.gif browser_help.html \
-        styles.css
+	browser_index.html bullet.gif pixel.gif browser_help.html \
+	styles.css
 
 D_BIN := ccured ccured.bat.in
 
@@ -419,8 +335,8 @@ distrib-nocheck: doc
 	cp -r doc/html/ccured $(DISTRIB_DIR)/ccured/doc
 # Now add the CCured-specific stuff
 	cd $(DISTRIB_DIR)/ccured; mkdir include src lib bin test test/small1
-	cp include/*.h $(DISTRIB_DIR)/ccured/include 
-	cp include/*.patch $(DISTRIB_DIR)/ccured/include 
+	cp include/*.h $(DISTRIB_DIR)/ccured/include
+	cp include/*.patch $(DISTRIB_DIR)/ccured/include
 	mkdir $(DISTRIB_DIR)/ccured/include/functions
 	cp include/functions/*.h $(DISTRIB_DIR)/ccured/include/functions
 	cp $(D_ROOT) $(DISTRIB_DIR)/ccured
@@ -429,19 +345,19 @@ distrib-nocheck: doc
 # Copy the GC sources
 	$(MAKE) -C lib/gc clean
 	cd lib/gc; \
-	     	rm -f $(foreach COMP, GNUCC MSVC, \
-                     $(foreach EXT, exe o a obj lib, $(COMP)/*.$(EXT)))
+		rm -f $(foreach COMP, GNUCC MSVC, \
+		     $(foreach EXT, exe o a obj lib, $(COMP)/*.$(EXT)))
 	cp -r $(patsubst %,lib/%,$(D_LIB)) $(DISTRIB_DIR)/ccured/lib
 	cp -r $(patsubst %,bin/%,$(D_BIN)) $(DISTRIB_DIR)/ccured/bin
 # Now the tests
 	cat test/Makefile \
 	    | sed -e 's|TESTDIR := ../ciltests|TESTDIR := .|g' \
-            > $(DISTRIB_DIR)/ccured/test/Makefile
+	    > $(DISTRIB_DIR)/ccured/test/Makefile
 	cp $(patsubst %,ciltests/small1/%,$(D_TEST_SMALL1)) \
 	  $(DISTRIB_DIR)/ccured/test/small1
 # Delete all CVS directories
 	if find $(DISTRIB_DIR) -name CVS -print >cvss.txt ; then \
-            echo `cat cvss.txt` ;fi
+	    echo `cat cvss.txt` ;fi
 	rm -f cvss.txt
 # Now make the TAR ball
 	cd $(DISTRIB_DIR); tar cfz $(CCURED_TAR_GZ) ccured
@@ -459,29 +375,29 @@ checktestdistrib:
 CCUREDHTMLDEST := /var/www/ccured
 publish_distrib: publish_doc
 	if test -d $(CCUREDHTMLDEST); then \
-           cp -f $(CCURED_TAR_GZ) $(CCUREDHTMLDEST)/distrib; \
-           ln -sf $(CCUREDHTMLDEST)/distrib/$(CCURED_TAR_GZ) $(CCUREDHTMLDEST)/distrib/ccured-latest.tar.gz ; \
+	   cp -f $(CCURED_TAR_GZ) $(CCUREDHTMLDEST)/distrib; \
+	   ln -sf $(CCUREDHTMLDEST)/distrib/$(CCURED_TAR_GZ) $(CCUREDHTMLDEST)/distrib/ccured-latest.tar.gz ; \
 	else \
 	   error "Cannot publish because $(CCUREDHTMLDEST) does not exist" ; \
-        fi
-           # cp -f $(CCUREDTESTS_TAR_GZ) $(CCUREDHTMLDEST)/distrib; \
-           # ln -sf $(CCUREDHTMLDEST)/distrib/$(CCUREDTESTS_TAR_GZ) $(CCUREDHTMLDEST)/distrib/ccured-tests-latest.tar.gz ; \
+	fi
+	   # cp -f $(CCUREDTESTS_TAR_GZ) $(CCUREDHTMLDEST)/distrib; \
+	   # ln -sf $(CCUREDHTMLDEST)/distrib/$(CCUREDTESTS_TAR_GZ) $(CCUREDHTMLDEST)/distrib/ccured-tests-latest.tar.gz ; \
 
 
 .PHONY: publish_doc
 publish_doc: doc
 	if test -d $(CCUREDHTMLDEST); then \
-           cp -rf doc/html/ccured/* $(CCUREDHTMLDEST); \
+	   cp -rf doc/html/ccured/* $(CCUREDHTMLDEST); \
 	else \
 	   error "Cannot publish because $(CCUREDHTMLDIST) does not exist" ; \
-        fi
+	fi
 
 ##
 ## The test cases have been moved to test/Makefile
 ##
 
 ### We still have a quick test
-quicktest: 
+quicktest:
 	$(MAKE) -C test INFERBOX=infer $(patsubst %, test/%, $(QUICKTESTS))
 	$(MAKE) -C test INFERBOX=infer $(patsubst %, testrun/%, $(QUICKTESTS_R))
 
@@ -489,13 +405,13 @@ check: quicktest
 
 # sm: make a file that lists all our sources, for easy grepping
 ALLSRCEXTS=-name '*.c' -o -name '*.h' -o -name '*.pl' -o -name '*.ml' \
-           -o -name '*.mli' -o -name '*.pm'
+	   -o -name '*.mli' -o -name '*.pm'
 .PHONY: allsrcs
 allsrcs:
 	find src $(ALLSRCEXTS) > allsrcs
 	find bin $(ALLSRCEXTS) >> allsrcs
 	find include -name '*_wrappers.h' >> allsrcs
-	find lib $(ALLSRCEXTS) | grep -v '^lib/gc/' >> allsrcs 
+	find lib $(ALLSRCEXTS) | grep -v '^lib/gc/' >> allsrcs
 	ls test/Makefile.in Makefile.in include/*.patch >> allsrcs
 
 
@@ -504,40 +420,38 @@ installweb: setup $(CCUREDHTMLDEST)
 # Copy over the files needed for running CCured
 	mkdir -p $(CCUREDHTMLDEST)/bin
 	cp $(foreach f, ccured, \
-                     bin/$(f)) \
-           $(CCUREDHTMLDEST)/bin
+		     bin/$(f)) \
+	   $(CCUREDHTMLDEST)/bin
 # Now copy over CilConfig.pm but change the directory names
 	cat bin/CilConfig.pm | sed -e 's|@CILHOME@|$(CCUREDHTMLDEST)|g' \
-              >$(CCUREDHTMLDEST)/bin/CilConfig.pm
+	      >$(CCUREDHTMLDEST)/bin/CilConfig.pm
 	mkdir -p $(CCUREDHTMLDEST)/obj/@ARCHOS@
 	cp $(foreach f, ccured.asm.exe ccured_GNUCC_releaselib.a, \
-                     obj/@ARCHOS@/$(f)) \
-           $(CCUREDHTMLDEST)/obj/@ARCHOS@
+		     obj/@ARCHOS@/$(f)) \
+	   $(CCUREDHTMLDEST)/obj/@ARCHOS@
 	mkdir -p $(CCUREDHTMLDEST)/lib
 	cp $(foreach f, $(DISTRIB_LIB) \
-                        Cilly.pm CCured.pm KeptFile.pm \
-                        TempFile.pm OutputFile.pm \
-                        browser_blank.html browser_code.js \
-                        browser_help.html browser_index.html bullet.gif \
-                        browser_form.html pixel.gif styles.css, \
-                     lib/$(f)) \
-          $(CCUREDHTMLDEST)/lib
+			Cilly.pm CCured.pm KeptFile.pm \
+			TempFile.pm OutputFile.pm \
+			browser_blank.html browser_code.js \
+			browser_help.html browser_index.html bullet.gif \
+			browser_form.html pixel.gif styles.css, \
+		     lib/$(f)) \
+	  $(CCUREDHTMLDEST)/lib
 	mkdir -p $(CCUREDHTMLDEST)/include
 	cp -r include $(CCUREDHTMLDEST)
 	mkdir -p $(CCUREDHTMLDEST)/web/tmp
 	chmod a+wx $(CCUREDHTMLDEST)/web/tmp
 	cp $(foreach f, .htaccess web-driver.cgi index.html, \
-                     web/$(f)) \
-           $(CCUREDHTMLDEST)/web
+		     web/$(f)) \
+	   $(CCUREDHTMLDEST)/web
 	mkdir -p $(CCUREDHTMLDEST)/test/small1
 	chmod a+w $(CCUREDHTMLDEST)/test/small1
 	cp $(foreach f, testharness.h testkinds.h hello.c fseq1.c \
-                        array2.c failnull1.c failprintf1.c failprintf2.c \
-                        failprintf4.c failubound1.c func4.c list.c \
-                        polyapply1.c wild2.c , \
-                     test/small1/$(f)) \
-           $(CCUREDHTMLDEST)/test/small1
+			array2.c failnull1.c failprintf1.c failprintf2.c \
+			failprintf4.c failubound1.c func4.c list.c \
+			polyapply1.c wild2.c , \
+		     test/small1/$(f)) \
+	   $(CCUREDHTMLDEST)/test/small1
 
 ### END
-
-
