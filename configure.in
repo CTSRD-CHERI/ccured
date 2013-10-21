@@ -210,9 +210,6 @@ AC_CHECK_FILE(obj/$ARCHOS,, AC_MSG_RESULT(creating obj/$ARCHOS);
 NEWLINE="\\
 "
 
-
-AC_CONFIG_SUBDIRS(cil)
-
 # ----------------- finish up -------------------
 # names of the variables that get substituted in files; for example,
 # write @ARCHOS@ somewhere in a written file to get it substituted
