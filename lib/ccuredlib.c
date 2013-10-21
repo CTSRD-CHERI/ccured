@@ -403,7 +403,7 @@ unsigned __ccured_mult_u32(unsigned x, unsigned y)
   #define GC_REALLOC(p,sz) realloc(p,sz)
   #define GC_FREE(p)    free(p)
 #else
-  #include "gc/include/gc.h"
+  #include <gc/gc.h>
 #endif
 
 // 10/28/01: changed from defining 'malloc' etc to defining

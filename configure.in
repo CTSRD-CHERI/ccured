@@ -143,7 +143,14 @@ AC_HEADER_TIME
 AC_FUNC_MEMCMP
 AC_CHECK_FUNCS(mkdir select socket __sysv_signal)
 
+# ----------- boehm-gc configuration ----------------------
 
+AC_CHECK_HEADER(gc/gc.h,
+    [AC_CHECK_LIB([gc], [GC_get_heap_size], gc_ok=yes, gc_ok=no)],
+    gc_ok=no)
+if test "x$gc_ok" = "xno"; then
+    AC_MSG_ERROR(["Boehm-GC headers and library not found."])
+fi
 
 # ----------- platform-specific code -------------
 # $target is typically processor-vendor-os

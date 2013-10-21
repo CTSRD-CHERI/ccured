@@ -80,29 +80,8 @@ ifdef USE_PG
   COMPILEREXT := $(COMPILEREXT)pg
 endif
 
-GCDIR := $(CCUREDHOME)/lib/gc/$(COMPILERNAME)
-GCLIB := $(GCDIR)/gc.$(LIBEXT)
-GCMAKE := $(MAKE) -C $(GCDIR)
-ifdef _MSVC
-  GCMAKE += -f Makefile.msvc srcdir=..
-endif
-# pretend it's only dependent on one file; that's not true of course,
-# but we rarely (ever?) modify the gc's sources, and one dependency
-# is better than none (which causes recompile every time!)
-$(GCLIB): $(CCUREDHOME)/lib/gc/mark.c
-	$(GCMAKE)
-	cd $(CCUREDHOME)/lib/gc/$(COMPILERNAME); \
-	    rm -f gc.log; ./gctest; if test -f gc.log ;then cat gc.log; fi
-
-testgc:
-	rm -f $(GCLIB)
-	$(MAKE)
-	objdump --syms $(CCUREDLIB) | grep GC_
-
-###
 ###
 ###    # Now the rules to make the library
-###
 ###
 CCUREDLIB := $(OBJDIR)/ccured_$(COMPILEREXT).$(LIBEXT)
 
@@ -146,17 +125,16 @@ endif
 # we build the library from source each time, so that we don't end up
 # with .o files built with Makefile arguments that have changed
 $(CCUREDLIB): lib/ccuredlib.c include/ccured.h include/ccuredannot.h \
-			      include/ccuredcheck.h $(GCLIB)
+			      include/ccuredcheck.h
 	@echo "Trying to build $(CCUREDLIB)"
 	@true "CCUREDLIBARG is $(CCUREDLIBARG)"
 	@true "CFLAGS is $(CFLAGS)"
 	$(CC) $(CFLAGS) $(INC)./include $(CONLY) $(CCUREDLIBARG) \
 		    $(OBJOUT)$(OBJDIR)/ccuredlib.$(OBJEXT) lib/ccuredlib.c
 ifdef _GNUCC
-	cp -f $(GCLIB) $@
 	ar -rs $@            $(OBJDIR)/ccuredlib.$(OBJEXT)
 else
-	$(AR) $(LIBOUT)$@ $(GCLIB) $(OBJDIR)/ccuredlib.$(OBJEXT)
+	$(AR) $(LIBOUT)$@ $(OBJDIR)/ccuredlib.$(OBJEXT)
 endif
 
 # we need to know what the patcher will think the compiler's version is
@@ -250,10 +228,6 @@ endif
 clean: cleancaml
 	$(PATCHER) --dest=$(CCUREDHOME)/include --clean
 	rm -f $(OBJDIR)/ccured_*
-	$(MAKE) -C $(CCUREDHOME)/lib/gc clean
-	cd $(CCUREDHOME)/lib/gc; \
-		rm -f $(foreach COMP, GNUCC MSVC, \
-		     $(foreach EXT, exe o a obj lib, $(COMP)/*.$(EXT)))
 	-find test \( \
 		-name '*cil.c' -o \
 		-name '*cured.c' -o \
@@ -342,13 +316,6 @@ distrib-nocheck: doc
 	cp $(D_ROOT) $(DISTRIB_DIR)/ccured
 	cp src/[a-z]*.ml src/[a-z]*.mli $(DISTRIB_DIR)/ccured/src
 	cp $(patsubst %,cil/src/ext/%,$(D_CIL_EXT)) $(DISTRIB_DIR)/ccured/src
-# Copy the GC sources
-	$(MAKE) -C lib/gc clean
-	cd lib/gc; \
-		rm -f $(foreach COMP, GNUCC MSVC, \
-		     $(foreach EXT, exe o a obj lib, $(COMP)/*.$(EXT)))
-	cp -r $(patsubst %,lib/%,$(D_LIB)) $(DISTRIB_DIR)/ccured/lib
-	cp -r $(patsubst %,bin/%,$(D_BIN)) $(DISTRIB_DIR)/ccured/bin
 # Now the tests
 	cat test/Makefile \
 	    | sed -e 's|TESTDIR := ../ciltests|TESTDIR := .|g' \
@@ -411,7 +378,7 @@ allsrcs:
 	find src $(ALLSRCEXTS) > allsrcs
 	find bin $(ALLSRCEXTS) >> allsrcs
 	find include -name '*_wrappers.h' >> allsrcs
-	find lib $(ALLSRCEXTS) | grep -v '^lib/gc/' >> allsrcs
+	find lib $(ALLSRCEXTS) >> allsrcs
 	ls test/Makefile.in Makefile.in include/*.patch >> allsrcs
 
 
