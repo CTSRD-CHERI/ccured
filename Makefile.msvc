@@ -1,4 +1,4 @@
-#
+# -*-makefile-*-
 # Makefile for CCured. The Microsoft Visual C part
 #
 COMPILERNAME=MSVC
@@ -32,11 +32,9 @@ CPP:=$(CPPSTART) /FI fixup.h %i $(CPPOUT)
 
 PATCHECHO:=echo
 
-AR:=lib 
+AR:=lib
 LIBOUT:=/OUT:
 
 # The system include files to be patched
 PATCH_SYSINCLUDES:=stdio.h ctype.h string.h io.h stdarg.h crtdbg.h \
-                   varargs.h stdlib.h time.h malloc.h
-
-
+		   varargs.h stdlib.h time.h malloc.h

@@ -27,9 +27,9 @@ OBJOUT := -o
 OBJEXT := o
 LIBEXT := a
 EXEOUT := -o
-LDEXT := 
+LDEXT :=
 DEF := -D
-ASMONLY := -S -o 
+ASMONLY := -S -o
 WARNALL := -Wall
 # sm: shuffled around a couple things so I could use CPPSTART for patch2
 CPPSTART := gcc -E -x c -Dx86_LINUX -D_GNUCC  -I/usr/include/sys
@@ -43,15 +43,15 @@ ifndef PATCHECHO
   PATCHECHO := echo
 endif
 
-AR := ar 
-LIBOUT := -rs 
+AR := ar
+LIBOUT := -rs
 
 # The system include files to be patched
 PATCH_SYSINCLUDES := crypt.h ctype.h fcntl.h glob.h grp.h malloc.h netdb.h \
-                     pthread.h pwd.h signal.h stdarg.h stdio.h stdlib.h \
-                     string.h time.h unistd.h varargs.h arpa/inet.h \
+		     pthread.h pwd.h signal.h stdarg.h stdio.h stdlib.h \
+		     string.h time.h unistd.h varargs.h arpa/inet.h \
 		     sys/cdefs.h sys/fcntl.h sys/ioctl.h sys/socket.h \
-                     sys/stat.h sys/types.h sys/uio.h malloc.h setjmp.h
+		     sys/stat.h sys/types.h sys/uio.h malloc.h setjmp.h
 
 ifneq ($(ARCHOS), x86_WIN32)
 PATCH_SYSINCLUDES += sys/shm.h
@@ -60,7 +60,7 @@ endif
 # dsw & sm: DON'T DO THIS.  See comment in ccured_GNUCC.patch, search for 'sys/io.h'.
 # PATCH_SYSINCLUDES += sys/io.h
 
-# matth: reent.h is only in Cygwin, and Cygwin defines struct sigaction 
+# matth: reent.h is only in Cygwin, and Cygwin defines struct sigaction
 # in sys/signal.h:
 ifeq ($(ARCHOS), x86_WIN32)
 PATCH_SYSINCLUDES += sys/reent.h sys/signal.h
@@ -71,5 +71,3 @@ ifeq ($(ARCHOS), x86_LINUX)
 PATCH_SYSINCLUDES +=  nl_types.h bits/sigaction.h bits/select.h sys/prctl.h \
 	libgen.h shadow.h
 endif
-
-
