@@ -61,10 +61,10 @@ endif
 
 # Now include the compiler specific stuff
 ifdef _MSVC
-  include Makefile.msvc
+  include mk/Makefile.msvc
 else
   ifdef _GNUCC
-    include Makefile.gcc
+    include mk/Makefile.gcc
   endif
 endif
 
