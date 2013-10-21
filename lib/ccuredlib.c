@@ -1,11 +1,11 @@
-/* 
+/*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -163,7 +163,7 @@
 //        safe    s
 //        seq     q
 //        seqN    Q    (null-terminated)
-//        fseq    f                     
+//        fseq    f
 //        fseqN   F    (null-terminated)
 //        wild    w
 //      e.g.,
@@ -326,23 +326,23 @@ typedef struct wildp_time_t1 {
 #define __CCURED_ASSERT(what, code) \
   { if(! (what)) CCURED_FAIL(code FILE_AND_LINE); }
 
-/* The value of this variable is set from the cured code. If this variable 
- * is SET then the ccured_fail has the __NORETURN attribute, so it should 
+/* The value of this variable is set from the cured code. If this variable
+ * is SET then the ccured_fail has the __NORETURN attribute, so it should
  * NOT RETURN !!! */
 int __ccuredAlwaysStopOnError = 0;
 
-/* If this variable is set then we should not look for the file and line 
+/* If this variable is set then we should not look for the file and line
  * number arguments in ccured_fail functions */
 int __ccuredFailIsTerse       = 0;
 
 
-/* We use some variables to store the values of some environment variables 
+/* We use some variables to store the values of some environment variables
  * before the program messes with them ! */
 static int __ccuredSleepOnError      = 0;
 static int __ccuredContinueOnError   = 0;
 static FILE* __ccuredErrorLog = NULL;
 
-/* A variable that controls whether we have used strings in CCured. This 
+/* A variable that controls whether we have used strings in CCured. This
  * means tht we have null-termination issues */
 int __ccuredUseStrings = 0;
 
@@ -432,9 +432,9 @@ unsigned __ccured_mult_u32(unsigned x, unsigned y)
   {
     if (allocTraffic) {
       fprintf(allocTraffic, "%ld %ld %ld\n",
-              totalAllocated,
-              totalAllocated - totalFreed,      // size of heap with malloc/free
-              (long)GC_get_heap_size());        // size of heap with gc only
+	      totalAllocated,
+	      totalAllocated - totalFreed,      // size of heap with malloc/free
+	      (long)GC_get_heap_size());        // size of heap with gc only
       fflush(allocTraffic);
     }
   }
@@ -466,7 +466,7 @@ void* __cdecl ccured_malloc(unsigned sz)
 }
 
 void* __cdecl ccured_calloc(size_t x, size_t y)
-{       
+{
   // ccured_malloc already zeroes, because GC_malloc does
   return ccured_malloc(x*y);
 }
@@ -474,7 +474,7 @@ void* __cdecl ccured_calloc(size_t x, size_t y)
 void __cdecl ccured_free(void *p)
 {
   DP(("free(%p)\n", p));
-  
+
   #if LOG_ALLOC_TRAFFIC
     totalFreed += GC_size(p);
     reportAllocTraffic();
@@ -503,7 +503,7 @@ void* ccured_realloc(void *p, unsigned int sz)
   // that was zeroed during allocation (I'm not sure if GC_size is
   // just wrong or what), so instead I've modified GC_realloc so it
   // does not call GC_free internally
-  
+
   void *ret = GC_REALLOC(p, sz);
   DP(("realloc(%p, %d) yielded %p\n", p, sz, (unsigned int)ret));
   return ret;
@@ -520,7 +520,7 @@ int ccured_explicit_gc()
   int before = GC_get_free_bytes();
   GC_gcollect();
   return GC_get_free_bytes() - before;
-#endif  
+#endif
 }
 
 #endif
@@ -600,9 +600,9 @@ struct failMessageData
   { "CUSTOM", ""}, // 30
 };
 
-//matth: if needed, break_env could be implemented for Windows using Sleep() 
+//matth: if needed, break_env could be implemented for Windows using Sleep()
 //  instead of sleep() and GetCurrentProcessId() instead of getpid()
-#ifndef _MSVC  
+#ifndef _MSVC
 
 // dsw: Break if a specified environment variable is set.
 void break_env(const char *env_var_name) {
@@ -616,13 +616,13 @@ void break_env(const char *env_var_name) {
     }
   } else {
     printf("**************** skipping break_env on name '%s', (pid %d), since name not set\n",
-           env_var_name, getpid());
+	   env_var_name, getpid());
   }
   // 2) set breakpoint here.
 }
 #endif //ndef MSVC
 
-/* If CCured fails, it checks to see if you have specified special handling 
+/* If CCured fails, it checks to see if you have specified special handling
  * for this failed check */
 enum handlerKind {
   HANDLE_DEFAULT, // no handler specified
@@ -643,12 +643,12 @@ static int handlersInitialized = 0; // If this was initialized
 static struct handler * errorHandlers[NUM_FAIL_CODES];
 
 __inline
-enum handlerKind checkHandler(int code, 
-                              char const *file, int line, char const *function)
+enum handlerKind checkHandler(int code,
+			      char const *file, int line, char const *function)
 {
   struct handler *h = errorHandlers[code];
   while(h) { // See if it matches
-    while(1) { 
+    while(1) {
       if(h->line && h->line != line) break;
       if(h->file && strcmp(h->file, file)) break;
       if(h->function && strcmp(h->function, function)) break;
@@ -670,7 +670,7 @@ void initErrorHandlers(char *fname) {
   struct handler *h;
   if(!f) {
     SNPRINTF(buffer, sizeof(buffer), "Cannot open error handler file \"%s\"",
-             fname);
+	     fname);
     CCURED_FAIL_STR(buffer FILE_AND_LINE);
     abort();
   }
@@ -678,7 +678,7 @@ void initErrorHandlers(char *fname) {
   while(fgets(buffer, sizeof(buffer), f)) {
     char *token, *theEnd, *why = "unknown";
     int code;
-    
+
     line ++;
     // Is this an empty line
     if(! *buffer || *buffer == '\n') continue;
@@ -689,7 +689,7 @@ void initErrorHandlers(char *fname) {
     h = (struct handler*)malloc(sizeof(*h));
     if(! h) {
       CCURED_FAIL_STR("Cannot allocated memory for error handlers"
-                      FILE_AND_LINE);
+		      FILE_AND_LINE);
       abort();
     }
     // Must be one of our friends: ignore, stop, warn
@@ -719,16 +719,16 @@ void initErrorHandlers(char *fname) {
     }
     if(code == NUM_FAIL_CODES) {
       if(*token == '*') { // This is a message for all codes
-        code = -1;
+	code = -1;
       } else {
-        why = " invalid code";
-        goto parseError;
+	why = " invalid code";
+	goto parseError;
       }
     }
     // Prepare for the defaults
     h->file = h->function = NULL; h->line = 0;
-                                             
-    // Now skip the "at" and get the 
+
+    // Now skip the "at" and get the
     token = strtok(NULL, " :\n");
     if(! token) { // We are done. Keep the defaults
       goto finishedLine;
@@ -760,24 +760,24 @@ void initErrorHandlers(char *fname) {
     if(code == -1) {
       int i;
       for(i=0;i<NUM_FAIL_CODES;i++) {
-        struct handler *copy;
-        h->next = errorHandlers[i];
-        errorHandlers[i] = h;
-        // Make a copy for the next one
-        copy = (struct handler*)malloc(sizeof(*copy));
-        memcpy(copy, h, sizeof(*copy));
-        h = copy;
+	struct handler *copy;
+	h->next = errorHandlers[i];
+	errorHandlers[i] = h;
+	// Make a copy for the next one
+	copy = (struct handler*)malloc(sizeof(*copy));
+	memcpy(copy, h, sizeof(*copy));
+	h = copy;
       }
     } else {
       h->next = errorHandlers[code];
       errorHandlers[code] = h;
     }
     continue;
-    
+
   parseError:
     SNPRINTF(buffer, sizeof(buffer),
-             "Error parsing error handler file %s:%d (%s)\n",
-             fname, line, why);
+	     "Error parsing error handler file %s:%d (%s)\n",
+	     fname, line, why);
     CCURED_FAIL_STR(buffer FILE_AND_LINE); // go on
     continue;
   }
@@ -802,20 +802,20 @@ void initErrorHandlers(char *fname) {
       if(! h) continue;
       fprintf(stderr, " %s:\n", failMessages[i].name);
       while(h) {
-        char *action = NULL;
-        switch(h->knd) {
-        case HANDLE_DEFAULT: action = "default"; break;
-        case HANDLE_STOP: action = "stop"; break;
-        case HANDLE_WARN: action = "warn"; break;
-        case HANDLE_IGNORE: action = "ignore"; break;
-        case HANDLE_SLEEP: action = "sleep"; break;
-        }
-        fprintf(stderr, "   %s at %s:%d: %s()\n",
-                action,
-                (h->file ? h->file : "*"),
-                (h->line ? h->line : 0),
-                (h->function ? h->function : "*"));
-        h = h->next;
+	char *action = NULL;
+	switch(h->knd) {
+	case HANDLE_DEFAULT: action = "default"; break;
+	case HANDLE_STOP: action = "stop"; break;
+	case HANDLE_WARN: action = "warn"; break;
+	case HANDLE_IGNORE: action = "ignore"; break;
+	case HANDLE_SLEEP: action = "sleep"; break;
+	}
+	fprintf(stderr, "   %s at %s:%d: %s()\n",
+		action,
+		(h->file ? h->file : "*"),
+		(h->line ? h->line : 0),
+		(h->function ? h->function : "*"));
+	h = h->next;
       }
     }
   }
@@ -836,7 +836,7 @@ void ccured_fail_str(char const *str  CCURED_FAIL_EXTRA_PARAMS)  {
   // And reset it, in case we come next time directly here
   // without going through ccured_fail
   ccured_last_error = FAIL_CUSTOM;
-  
+
   if(file == NULL) { // This means we are called from a terse version
     file = "<unknown>";
     line = 0;
@@ -847,25 +847,25 @@ void ccured_fail_str(char const *str  CCURED_FAIL_EXTRA_PARAMS)  {
     checkHandler(code, file, line, function) : HANDLE_DEFAULT;
 
   if(!__ccuredAlwaysStopOnError && how == HANDLE_IGNORE) return;
-  
+
   // obscure C: juxtaposed string constants are implicitly concatenated
   fprintf(stderr, MSGFMT "\n", codename CCURED_FAIL_EXTRA_ARGS, str);
   fflush(stderr);
   if (__ccuredErrorLog != 0){
-#ifndef CCURED_NO_CTIME    
+#ifndef CCURED_NO_CTIME
     time_t t = time(NULL);
-#endif    
+#endif
     fprintf(__ccuredErrorLog,
-#ifndef CCURED_NO_CTIME            
-            "%s" MSGFMT "\n\n",
+#ifndef CCURED_NO_CTIME
+	    "%s" MSGFMT "\n\n",
 	    ctime(&t),
-#else            
-            MSGFMT "\n\n",
-#endif            
-            codename CCURED_FAIL_EXTRA_ARGS, str);
+#else
+	    MSGFMT "\n\n",
+#endif
+	    codename CCURED_FAIL_EXTRA_ARGS, str);
     fflush(__ccuredErrorLog);
   }
-  
+
 #if defined(_GNUCC)
   if(getenv("CCURED_SYSLOGFAIL")) {
     syslog(LOG_ERR, MSGFMT,  codename CCURED_FAIL_EXTRA_ARGS, str);
@@ -879,18 +879,18 @@ void ccured_fail_str(char const *str  CCURED_FAIL_EXTRA_PARAMS)  {
   if(__ccuredSleepOnError || how == HANDLE_SLEEP) {
 #if defined(_MSVC)
     // On windows this will fire the just-in=time debugger
-    _asm { int 3 } 
-#else    
+    _asm { int 3 }
+#else
     // dsw: To allow debugging of multithreaded code, we use Ben
     // Liblit's trick.
     if (__ccuredSleepOnError) {
       volatile int stopped = 1; // 3) in the debugger,set this to 0 to jump out
       printf("**************** ccured_fail_str, my pid is %d\n", getpid());
       while (stopped) {
-        sleep(1);               // 1) will stop here when attached.
+	sleep(1);               // 1) will stop here when attached.
       }
-                                // 2) set breakpoint here.
-      stopped ++; // Just a place to put a breakpoint after we awake 
+				// 2) set breakpoint here.
+      stopped ++; // Just a place to put a breakpoint after we awake
     }
 #endif
   }
@@ -916,19 +916,19 @@ void ccured_fail_str(char const *str  CCURED_FAIL_EXTRA_PARAMS)  {
       // on windows a debug trap is desired in debug mode
       _asm { int 3 }
 #else
-#if ! defined(__CYGWIN__) && defined(_DEBUG)      
+#if ! defined(__CYGWIN__) && defined(_DEBUG)
       { // Try to print a backtrace. At the moment, not very useful
-        #define SIZE_BACKTRACE 128
-        void * backtrace_buffer[SIZE_BACKTRACE];
-        int much = backtrace(backtrace_buffer, SIZE_BACKTRACE);
-        backtrace_symbols_fd(backtrace_buffer, much, 2);
+	#define SIZE_BACKTRACE 128
+	void * backtrace_buffer[SIZE_BACKTRACE];
+	int much = backtrace(backtrace_buffer, SIZE_BACKTRACE);
+	backtrace_symbols_fd(backtrace_buffer, much, 2);
       }
-#endif      
+#endif
       abort();
-#endif    
+#endif
     }
   }
-#undef MSGFMT  
+#undef MSGFMT
 }
 
 void ccured_fail_str_terse(char const *str) {
@@ -946,7 +946,7 @@ void ccured_fail_terse(int msgId) {
 }
 
 void lbound_or_ubound_fail(void *base,
-                           void *p  CCURED_FAIL_EXTRA_PARAMS) {
+			   void *p  CCURED_FAIL_EXTRA_PARAMS) {
     //what kind of failure was this?
   if (p < base){
     CCURED_FAIL(FAIL_LBOUND CCURED_FAIL_EXTRA_ARGS);
@@ -963,7 +963,7 @@ void lbound_or_ubound_fail_terse(void *base, void *p) {
 // main check because that gets inlined everywhere
 // use this as a replacement for ccured_fail
 void ubound_or_non_pointer_fail(void *p,
-                                void *bend  CCURED_FAIL_EXTRA_PARAMS) {
+				void *bend  CCURED_FAIL_EXTRA_PARAMS) {
   if (bend == 0) {
     // sm: George wants this to be classified as non-pointer (which is
     // a better description), so we'll special-case it
@@ -981,7 +981,7 @@ void ubound_or_non_pointer_fail_terse(void *base, void *p) {
 
   //we need this for wrappers when INFERBOX=wild
 void ccured_fail_ww(int msgId, wildp_char file,
-                     int line, wildp_char function) {
+		     int line, wildp_char function) {
   ccured_fail(msgId, file._p, line, function._p);
 }
 
@@ -997,7 +997,7 @@ __inline static int wildp_length(wildp_char ptr)
 {
   unsigned nwords = CHECK_FETCHLENGTH(ptr._p, ptr._b,0);
   __CCURED_ASSERT((void*)ptr._p >= ptr._b, FAIL_LBOUND);
-  __CCURED_ASSERT((void*)ptr._p < CHECK_FETCH_WILD_END(ptr._p, ptr._b, 0), 
+  __CCURED_ASSERT((void*)ptr._p < CHECK_FETCH_WILD_END(ptr._p, ptr._b, 0),
 		  FAIL_UBOUND);
 
   // the code that was in memset_ww had a -1, but I think that's
@@ -1025,7 +1025,7 @@ __inline static void wildp_clear_tags(wildp_char ptr, int n)
 {
   // no-op when NO_TAGS
   CHECK_ZEROTAGS(ptr._b, CHECK_FETCHLENGTH(ptr._p, ptr._b,0),
-                 ptr._p, n/*, 0*/);
+		 ptr._p, n/*, 0*/);
 }
 
 // copy the tags for the 'n' bytes starting at 'src' to the
@@ -1046,11 +1046,11 @@ __inline static void wildp_copy_tags(wildp_char dest, wildp_char src, int n)
     // a possible micro-optimization is to do a more careful check
     // for nonoverlapping and use forward in that case
     CHECK_COPYTAGSFORW(src._b, srclen, src._p,
-                       dest._b, destlen, dest._p, n);
+		       dest._b, destlen, dest._p, n);
   }
   else if (dest._p > src._p) {
     CHECK_COPYTAGSBACK(src._b, srclen, src._p,
-                       dest._b, destlen, dest._p, n);
+		       dest._b, destlen, dest._p, n);
   }
   else {
     // dest and src are the same place; nothing to do
@@ -1139,14 +1139,14 @@ __inline static void fseqp_verify_atleast(fseqp_char ptr, int n)
  * overlapping correctly we need to copy one tag at a time.) Note that this
  * is used in a somewhat unusual way in realloc.  */
 void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
-                        unsigned int lensrc, /* len of src */
-                        char* psrc, /* pointer of src */
-                        void *bdst, /* base of dest */
-                        unsigned int lendst, /* words in dest*/
-                        char* pdst, /* pointer of dest */
-                        unsigned int size /* Size in bytes
-                                           * of the memory
-                                           * being copied */)
+			unsigned int lensrc, /* len of src */
+			char* psrc, /* pointer of src */
+			void *bdst, /* base of dest */
+			unsigned int lendst, /* words in dest*/
+			char* pdst, /* pointer of dest */
+			unsigned int size /* Size in bytes
+					   * of the memory
+					   * being copied */)
 {
   TAGADDR stag, dtag;
   // Word starting address
@@ -1174,13 +1174,13 @@ void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
       srcTags = (*stag.word) >> stag.bit;
       nrSrcTags = MIN(32 - stag.bit, bitsToCopy);
       if(first) { // The first batch of bits
-        first = 0;
-        // If we are doing partial word read and write
-        if(((uintptr_t)pdst & 3)) {
-          // We know that source and destination have the same alignment
-          srcTags &= (~ TAGBITSMASK); // Zero out the tag for the first word
-        }
-        /* gn: this is not necessary anymore */
+	first = 0;
+	// If we are doing partial word read and write
+	if(((uintptr_t)pdst & 3)) {
+	  // We know that source and destination have the same alignment
+	  srcTags &= (~ TAGBITSMASK); // Zero out the tag for the first word
+	}
+	/* gn: this is not necessary anymore */
 //        if(! (srcTags & TAGBITSMASK) || (void*)alignDest > bdst) {
 //           /* We are starting the write with a tag 0. Must zero the previous
 //            * tag as well */
@@ -1197,23 +1197,23 @@ void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
 //          }
 //          srcTags <<= TAGBITS; // Insert a 0 tag
 //          bitsToCopy += TAGBITS;
-//        } 
+//        }
       }
       if(bitsToCopy == nrSrcTags) { // This is the last batch
-        if(((uintptr_t)nextDestByte & 3)  ||
-           // We are ending the copy with the first half of a fat pointer
-           ((srcTags >> (nrSrcTags - TAGBITS)) & TAGBITSMASK)) {
-          // Zero out the tag for the last word
-          srcTags &= (~ (TAGBITSMASK << (nrSrcTags - TAGBITS))); 
-        }
+	if(((uintptr_t)nextDestByte & 3)  ||
+	   // We are ending the copy with the first half of a fat pointer
+	   ((srcTags >> (nrSrcTags - TAGBITS)) & TAGBITSMASK)) {
+	  // Zero out the tag for the last word
+	  srcTags &= (~ (TAGBITSMASK << (nrSrcTags - TAGBITS)));
+	}
       }
       stag.bit  += nrSrcTags;
       if(stag.bit >= 32) {
-        stag.word ++;
-        stag.bit -= 32;
+	stag.word ++;
+	stag.bit -= 32;
       }
     }
-    // Put some tags in the destination 
+    // Put some tags in the destination
     {
       int tocopy  = MIN(nrSrcTags, 32 - dtag.bit);
       U32 mask    = tocopy < 32 ? (1 << tocopy) - 1 : (U32)-1;
@@ -1225,8 +1225,8 @@ void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
       srcTags     >>= tocopy;
       dtag.bit    += tocopy;
       if(dtag.bit == 32) { // Move on to the next destination pointer
-        dtag.word ++;
-        dtag.bit  = 0;
+	dtag.word ++;
+	dtag.bit  = 0;
       }
     }
   }
@@ -1239,16 +1239,16 @@ void CHECK_COPYTAGSFORW(void *bsrc, /* base of src */
  * model overlapping correctly we need to copy one tag at a time.) Note that
  * this is used in a somewhat unusual way in realloc.  */
 void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
-                        unsigned int lensrc, /* len of src */
-                        char* psrc, /* pointer of src */
-                        void *bdst, /* base of dest */
-                        unsigned int lendst, /* words in dest*/
-                        char* pdst, /* pointer of dest */
-                        unsigned int size)
+			unsigned int lensrc, /* len of src */
+			char* psrc, /* pointer of src */
+			void *bdst, /* base of dest */
+			unsigned int lendst, /* words in dest*/
+			char* pdst, /* pointer of dest */
+			unsigned int size)
 {
   TAGADDR stag, dtag;
   // Word starting address
-  //  char    *alignSrc      = (char*)((U32)psrc & (~ 3)); 
+  //  char    *alignSrc      = (char*)((U32)psrc & (~ 3));
   char    *nextSrcByte   = psrc + size; // Byte after the last copied
   char    *nextSrcWord   = (char*)((uintptr_t)(nextSrcByte + 3) & (~ 3));
   //char    *alignDest     = (char*)((U32)pdst & (~ 3));
@@ -1259,7 +1259,7 @@ void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
   int     nrSrcTags = 0;  // How many live bits we have in srcTags
   int     first = 1;      // A marker that says that we are copying the first
 
-  /* If the alignment of the destination is different from that of the 
+  /* If the alignment of the destination is different from that of the
    * source then we just zero out all of the destination tags  */
   if(((uintptr_t)psrc ^ (uintptr_t)pdst) & 3) {
     CHECK_ZEROTAGS(bdst, lendst, pdst, size/*, 0*/);
@@ -1276,12 +1276,12 @@ void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
       // Maybe all the source tags fit into one word
       nrSrcTags = stag.bit + TAGBITS;
       if(nrSrcTags > bitsToCopy) {
-        srcTags >>= (nrSrcTags - bitsToCopy);
-        nrSrcTags = bitsToCopy;
+	srcTags >>= (nrSrcTags - bitsToCopy);
+	nrSrcTags = bitsToCopy;
       }
       if(first) { // The first batch. Meaning the bits at highest addresses
-        first = 0;
-        // If partial word write
+	first = 0;
+	// If partial word write
 //        if(((U32)nextDestByte & 3) ||
 //           // We end the copy with the first half of a fat pointer
 //           ((srcTags >> (nrSrcTags - TAGBITS)) & TAGBITSMASK)) {
@@ -1290,15 +1290,15 @@ void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
 //        }
       }
       if(nrSrcTags == bitsToCopy) {
-        // Last batch. Meaning the bits at lowest addr
-        // If partial word write, zero out the tag
+	// Last batch. Meaning the bits at lowest addr
+	// If partial word write, zero out the tag
 //        if(((U32)pdst & 3)) {
 //          srcTags &= (~ TAGBITSMASK);
 //        }
       }
       stag.bit  = 32 - TAGBITS;
       stag.word --;
-    }      
+    }
     // Put some tags in the destination
     {
       int tocopy;
@@ -1306,11 +1306,11 @@ void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
       U32 mask, towrite;
     //WriteToDest:
       if(nrSrcTags < dtag.bit + TAGBITS) {
-        tocopy = nrSrcTags;
-        doff   = dtag.bit + TAGBITS - nrSrcTags;
+	tocopy = nrSrcTags;
+	doff   = dtag.bit + TAGBITS - nrSrcTags;
       } else {
-        tocopy = dtag.bit + TAGBITS;
-        doff   = 0;
+	tocopy = dtag.bit + TAGBITS;
+	doff   = 0;
       }
       mask    = tocopy < 32 ? (1 << tocopy) - 1 : (U32)-1;
       towrite = ((srcTags >> (nrSrcTags - tocopy)) & mask) << doff;
@@ -1320,8 +1320,8 @@ void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
       dtag.bit   -= tocopy;
       bitsToCopy  -= tocopy;
       if(dtag.bit < 0) { // Move on to the next destination pointer
-        dtag.word --;
-        dtag.bit  = 32 - TAGBITS;
+	dtag.word --;
+	dtag.bit  = 32 - TAGBITS;
       }
 //      // If we have just copied the tag at the lowest address
 //      // And the first tag is 0, then we must zero the previous tag as well
@@ -1427,7 +1427,7 @@ void free_F(fseqp_void x) { free_f(x); }
 
 // sm: I find it strange that we have free_q but not malloc_q ...
 void free_q(seqp_void x)
-{     
+{
   // sm: we used to fail when x._b was null, but calling free()
   // on a NULL pointer *is* legal according to my man pages, and
   // STLport does so in ios_base::~ios_base (ios.cc:297)
@@ -1493,7 +1493,7 @@ wildp_void calloc_w(unsigned int count, unsigned int osize)
 
 // sm: why isn't this called calloc_f?
 fseqp_void calloc_fseq_f(unsigned int count,
-                        unsigned int osize)
+			unsigned int osize)
 {
   unsigned size = ALIGNBYTES(osize * count);
   fseqp_void res = malloc_fseq_f(size);
@@ -1518,7 +1518,7 @@ fseqp_void calloc_fseq_f(unsigned int count,
 
 #ifndef CCURED_NO_WILD_WRAPPERS
 // ------------------------- realloc ------------------------
-wildp_void realloc_ww(wildp_void orig, unsigned int newsz) 
+wildp_void realloc_ww(wildp_void orig, unsigned int newsz)
 {
   int  nrWords    = BYTESTOWORDS(newsz);
   int  nrTagWords = CHECK_NRTAGWORDS(nrWords);            // 0 if NO_TAGS #defined
@@ -1552,8 +1552,8 @@ wildp_void realloc_ww(wildp_void orig, unsigned int newsz)
     // Shrinking. Move the tags to lower addresses before we realloc.
     // copy left to right for proper overlapping behavior
     CHECK_COPYTAGSFORW(orig._b, origNrWords, (char*)orig._b,
-                       orig._b, nrWords, (char*)orig._b,
-                       nrWords << 2);
+		       orig._b, nrWords, (char*)orig._b,
+		       nrWords << 2);
 
     // Now realloc. The (old) length, data and the surviving tags will be copied
     alloc = (U32*)realloc((U32*)orig._b - 1, newSize);
@@ -1569,8 +1569,8 @@ wildp_void realloc_ww(wildp_void orig, unsigned int newsz)
     }
     // Move the tags from last to first for proper overlapping behavior
     CHECK_COPYTAGSBACK(alloc + 1, origNrWords, (char*)(alloc + 1),
-                       alloc + 1, nrWords, (char*)(alloc + 1),
-                       origNrWords << 2);
+		       alloc + 1, nrWords, (char*)(alloc + 1),
+		       origNrWords << 2);
 
     // sm: bugfix: need to zero out the cleared space, otherwise the tags
     // left behind lead to bad stuff; alternatively, clearing the tags for
@@ -1651,7 +1651,7 @@ seqp_char realloc_qq(seqp_char ptr, size_t newsize)
 {
   seqp_char ret;
   long oldsize = (long)ptr._e - (long)ptr._b;
-  if (ptr._p != ptr._b || oldsize < 0) 
+  if (ptr._p != ptr._b || oldsize < 0)
   {
     CCURED_FAIL(FAIL_REALLOC  FILE_AND_LINE);
   }
@@ -1680,7 +1680,7 @@ seqp_char realloc_QQ(seqp_char ptr, size_t newsize)
     return ret;
   }
 
-  //The buffer should be null-terminated.  
+  //The buffer should be null-terminated.
   //  So add one to the buffer size,
   ret = realloc_qq(ptr, newsize+1);
   if (ret._p != 0)
@@ -2188,8 +2188,8 @@ int qsort_regular_tags(wildp_char base, size_t nelts, size_t size)
       // is the tag for this elt/word equal to the corresponding tag
       // for the first elt?
       if (firstTag != CHECK_FETCHTAGBIT(base._b, areaSize, otherElt)) {
-        // they differ; we fail
-        return 0;
+	// they differ; we fail
+	return 0;
       }
 
       // advance to next element
@@ -2241,7 +2241,7 @@ void qsort_zero_tags_mq(wildp_char base, size_t nelts, size_t size) {}
 
 //matth:  leave these here for INFERBOX=wild test cases
 int strncmp_ww(wildp_char s1,
-               wildp_char s2,  unsigned int size)
+	       wildp_char s2,  unsigned int size)
 {
   // sm: we used to have some code here which worried about
   // nul-termination, but that's irrelevant since strncmp
@@ -2346,7 +2346,7 @@ wildp_char memcpy_www(wildp_char dest, wildp_char src, unsigned int size)
   return dest;
 }
 
-wildp_char memmove_www(wildp_char dest, wildp_char src, unsigned int size) 
+wildp_char memmove_www(wildp_char dest, wildp_char src, unsigned int size)
 {
   wildp_verify_atleast(dest, size);
   wildp_verify_atleast(src, size);
@@ -2356,7 +2356,7 @@ wildp_char memmove_www(wildp_char dest, wildp_char src, unsigned int size)
 }
 
 
-wildp_char memset_ww(wildp_char buffer, int c, size_t size) 
+wildp_char memset_ww(wildp_char buffer, int c, size_t size)
 {
   wildp_write_atleast(buffer, size);
   memset(buffer._p, c, size);
@@ -2424,7 +2424,7 @@ int logFid = -1;
 
 int __ccuredLogNonPointers = 0;
 
-#ifndef CCURED_NOLOG_NONPOINTERS  
+#ifndef CCURED_NOLOG_NONPOINTERS
 
 // Flush the log to a file
 int flushLog()
@@ -2433,11 +2433,11 @@ int flushLog()
   int toWrite = logBufferP * sizeof(LOG_ENTRY);
   if(toWrite <= 0)
     return 0;
-  
+
   if(logFid < 0) {
     logFid = OPEN("__ccured_scalar.log",
-                  O_CREAT  | O_TRUNC | O_RDWR | O_BINARY,
-                  0777);
+		  O_CREAT  | O_TRUNC | O_RDWR | O_BINARY,
+		  0777);
     if(logFid < 0) {
       CCURED_FAIL(FAIL_SCALARLOG  FILE_AND_LINE);
     }
@@ -2463,8 +2463,8 @@ void __logScalar(int id, unsigned long l)  {
 }
 
 
-/* Scan the log and apply the given function to all entries. Stop when the 
- * log is over or when the match function returns true. Scan log returns 
+/* Scan the log and apply the given function to all entries. Stop when the
+ * log is over or when the match function returns true. Scan log returns
  * true if it terminated because match returned true  */
 int scanLog(int (*match)(uintptr_t, LOG_ENTRY *), uintptr_t closure) {
   flushLog();
@@ -2476,20 +2476,20 @@ int scanLog(int (*match)(uintptr_t, LOG_ENTRY *), uintptr_t closure) {
     LOG_ENTRY *le = & logBuffer[0];
     int toGo = LSEEK(logFid, 0, SEEK_END);
     int i = LOG_SIZE;  // Pretend we are at the end of the buffer
-    
+
     LSEEK(logFid, 0, SEEK_SET); // Go to start
     while(toGo > 0) {
       if(i >= LOG_SIZE) {
-        int toRead = sizeof(logBuffer);
-        if(toRead > toGo) toRead = toGo;
-        if(toRead != READ(logFid, & logBuffer[0], toRead)) {
-          CCURED_FAIL(FAIL_SCALARLOG  FILE_AND_LINE);
-        }
-        i = 0;
-        le = & logBuffer[i];
+	int toRead = sizeof(logBuffer);
+	if(toRead > toGo) toRead = toGo;
+	if(toRead != READ(logFid, & logBuffer[0], toRead)) {
+	  CCURED_FAIL(FAIL_SCALARLOG  FILE_AND_LINE);
+	}
+	i = 0;
+	le = & logBuffer[i];
       }
       if((*match)(closure, le)) {
-        return 1;
+	return 1;
       }
       i ++;
       le ++;
@@ -2504,7 +2504,7 @@ int printMatches(uintptr_t tomatch, LOG_ENTRY *le) {
   if(le->l == (unsigned)tomatch) {
     foundOne = 1;
     fprintf(stderr, "\tSame value as at ID=%d in the scalar log\n",
-            le->id);
+	    le->id);
   }
   return 0; // Want all matches
 }
@@ -2512,13 +2512,13 @@ int printMatches(uintptr_t tomatch, LOG_ENTRY *le) {
 // Print the contents of the log
 int printAll(uintptr_t where, LOG_ENTRY *le) {
   fprintf((FILE*)where, "0x%08lx  %d\n",
-          le->l, le->id);
+	  le->l, le->id);
   return 0;
 }
 
 
 // And a function to scan the logs and find the matching
-void non_pointer_fail(unsigned long p  CCURED_FAIL_EXTRA_PARAMS) 
+void non_pointer_fail(unsigned long p  CCURED_FAIL_EXTRA_PARAMS)
 {
   if(__ccuredLogNonPointers && p >= MIN_POINTER && p <= MAX_POINTER) {
     fprintf(stderr, "Dereferencing a non-pointer (0x%08lx)\n", p);
@@ -2533,8 +2533,8 @@ void non_pointer_fail(unsigned long p  CCURED_FAIL_EXTRA_PARAMS)
       theFileName = _fullpath(fullPath, theFileName, _MAX_PATH);
 #endif
       fprintf(stderr,
-              "Cannot find the cast in log. Dumping the entire log to %s\n",
-              theFileName);
+	      "Cannot find the cast in log. Dumping the entire log to %s\n",
+	      theFileName);
       scanLog(& printAll, (uintptr_t)txtLog);
       fclose(txtLog);
     } else {
@@ -2543,9 +2543,9 @@ void non_pointer_fail(unsigned long p  CCURED_FAIL_EXTRA_PARAMS)
   }
   ccured_fail((p ? FAIL_NONPOINTER : FAIL_NULL) CCURED_FAIL_EXTRA_ARGS);
 }
-#else  // CCURED_NOLOG_NONPOINTERS  
+#else  // CCURED_NOLOG_NONPOINTERS
 // And a function to scan the logs and find the matching
-void non_pointer_fail(unsigned long p  CCURED_FAIL_EXTRA_PARAMS) 
+void non_pointer_fail(unsigned long p  CCURED_FAIL_EXTRA_PARAMS)
 {
   ccured_fail((p ? FAIL_NONPOINTER : FAIL_NULL) CCURED_FAIL_EXTRA_ARGS);
 }
@@ -2568,24 +2568,24 @@ static void __ccuredInitHelper(void);
 void __ccuredInit()
 {
   int volatile bottomOfStack = 0;
-  /* Set the stack bottom here. This is called from main, which means that 
-   * the entire stack frame of main is at higher addresses, and nothing 
+  /* Set the stack bottom here. This is called from main, which means that
+   * the entire stack frame of main is at higher addresses, and nothing
    * more. We add 4 bytes, just to be sure. */
   __ccuredStackBottom = (void*)(&bottomOfStack + 1);
-  /* Do everything else in some other helper function, to ensure that the 
-   * stack frame of this function is as small as possible, and thus we are 
+  /* Do everything else in some other helper function, to ensure that the
+   * stack frame of this function is as small as possible, and thus we are
    * getting a value for the __ccuredStackBottom as high as possible */
   __ccuredInitHelper();
 }
 
 static void __ccuredInitHelper(void) {
   char* logFileName = NULL;
-  
+
   if (sizeof(failMessages)/sizeof(failMessages[0]) != NUM_FAIL_CODES) {
     CCURED_FAIL_STR("NUM_FAIL_CODES doesn't agree with failMessages[]"
-                    FILE_AND_LINE);
+		    FILE_AND_LINE);
   }
-#ifndef CCURED_NO_ERROR_HANDLERS_FILE  
+#ifndef CCURED_NO_ERROR_HANDLERS_FILE
   // Now see if we must initialize the failure handlers
   {
     char *fname = getenv("CCURED_ERROR_HANDLERS");
@@ -2593,10 +2593,10 @@ static void __ccuredInitHelper(void) {
       initErrorHandlers(fname);
     }
   }
-#endif  
+#endif
   __ccured_test_ccuredlib();
   /* Read some environment variables, before the program messes with them */
-#ifndef CCURED_NO_GETENV  
+#ifndef CCURED_NO_GETENV
   __ccuredContinueOnError = (0 != getenv("CCURED_CONTINUE_ON_ERROR"));
   __ccuredSleepOnError = (0 != getenv("CCURED_SLEEP_ON_ERROR"));
   logFileName = getenv("CCURED_ERROR_LOG");
@@ -2613,7 +2613,7 @@ static void __ccuredInitHelper(void) {
       time_t t = time(NULL);
       __ccuredErrorLog = tmp;
       fprintf(tmp, "\n================================================\n"
-              "Entered program at %s\n", ctime(&t) );
+	      "Entered program at %s\n", ctime(&t) );
       fflush(tmp);
     }
   }
@@ -2635,15 +2635,15 @@ static void __ccuredInitHelper(void) {
     if (fname) {
       allocTraffic = fopen(fname, "w");
       if (!allocTraffic) {
-        perror("open");
-        abort();
+	perror("open");
+	abort();
       }
     }
   }
   #endif
 
 #endif   // CCURED_NO_GETENV
-    
+
   return;
 }
 
@@ -2758,15 +2758,15 @@ typedef struct {
 //    }
 //
 //    ret = getopt(argc, argv._p, optstring);
-//    
+//
 //    // make optarg available as optarg_f
 //    optarg_f._p = optarg;
 //    optarg_f._e = optarg? optarg + strlen(optarg) : NULL;
-//    
+//
 //    return ret;
 //  }
 
-                     
+
 // For getopt
 extern char* optarg;
 
@@ -2825,7 +2825,7 @@ void __ccured_va_init_vs(CCURED_VAINFO *vainfo) {
 //Calls to va_start are replaced by this.  The vainfo should already have been
 //initialized by __ccured_va_init_vs
 void __ccured_va_start_vs(CCURED_VAINFO *vainfo,
-                          void *pNextArg) {
+			  void *pNextArg) {
   vainfo->next  = 0;
   // FIX_VARARGS: vainfo->nextp = (va_list)pNextArg;
 }
@@ -2851,8 +2851,8 @@ CCURED_VAINFO * __ccured_va_copy_vsvs(CCURED_VAINFO *src) {
 #define GET_VA_TAG(tags, idx) ((tags[idx >> 2] >> ((idx & 0x3) << 3)) & 0xFF)
 
 void *__ccured_va_arg_svs(CCURED_VAINFO *vainfo,
-                          unsigned int thisTypeSize,
-                          int thisTypeIndex) {
+			  unsigned int thisTypeSize,
+			  int thisTypeIndex) {
   void* lastp = NULL; // FIX_VARARGS: vainfo->nextp;
 
   if(vainfo->next == -1) {
@@ -2880,7 +2880,7 @@ void *__ccured_va_arg_svs(CCURED_VAINFO *vainfo,
 // are identical to the above, but they don't do any checking.
 
 void __ccured_va_start(CCURED_VAINFO *vainfo,
-                       void *pNextArg) {
+		       void *pNextArg) {
 //    vainfo->next  = 0;
 //    vainfo->count = __ccured_va_count;
 //    memcpy(vainfo->tags, __ccured_va_tags, sizeof(__ccured_va_tags));
@@ -2896,8 +2896,8 @@ void __ccured_va_end(CCURED_VAINFO *vainfo) {
 //  #define GET_VA_TAG(tags, idx) ((tags[idx >> 2] >> ((idx & 0x3) << 3)) & 0xFF)
 
 void *__ccured_va_arg(CCURED_VAINFO *vainfo,
-                          unsigned int thisTypeSize,
-                          int thisTypeIndex) {
+			  unsigned int thisTypeSize,
+			  int thisTypeIndex) {
   void* lastp = NULL;  // FIX_VARARGS: vainfo->nextp;
 
 //    if(vainfo->next == -1) {
@@ -2922,7 +2922,7 @@ void *__ccured_va_arg(CCURED_VAINFO *vainfo,
 // varargs merge but don't cure stop ****************
 
 //makes sure the ith argument to a printf-like function has type "type".
-__inline static 
+__inline static
 void DO_CHECK(int i, int type)
 {
   if(i >= __ccured_va_count) {
@@ -2949,7 +2949,7 @@ void CHECK_FORMATARGS(const char *format) {
   }
   if(__ccured_va_count == -1) return; // Was checked already
   while(*format) {
-    if(*format == '%') 
+    if(*format == '%')
     {
       format ++;
     KeepLooking:
@@ -2957,20 +2957,20 @@ void CHECK_FORMATARGS(const char *format) {
       case '%': format ++; continue;
       case 's': DO_CHECK(i, STRING_TYPE); i++; continue;
       case 'f': DO_CHECK(i, DOUBLE_TYPE); i++; continue;
-      case 'd': case 'c': case 'x': case 'u': 
+      case 'd': case 'c': case 'x': case 'u':
 	   DO_CHECK(i, INT_TYPE); i++; continue;
       case 'l': case '-': case '.': format ++; goto KeepLooking;
       case '*': //a format specifier whose value is an argument.
-	DO_CHECK(i, INT_TYPE); 
+	DO_CHECK(i, INT_TYPE);
 	i++;
 	format++;
 	goto KeepLooking;
       default:
-        if(*format >= '0' && *format <= '9') {
-          format ++; goto KeepLooking;
-        }
-        // printf("**************** unrecognized format char '%c'\n", *format);
-        CCURED_FAIL(FAIL_UNRECOGNIZEDFORMAT  FILE_AND_LINE);
+	if(*format >= '0' && *format <= '9') {
+	  format ++; goto KeepLooking;
+	}
+	// printf("**************** unrecognized format char '%c'\n", *format);
+	CCURED_FAIL(FAIL_UNRECOGNIZEDFORMAT  FILE_AND_LINE);
       }  // '%'
     }
     format ++;
@@ -3039,16 +3039,16 @@ void CHECK_FORMATARGS_w(wildp_char format) {
 
       // the only way it makes sense for 'start' to be safe is if it's null
       if (start != NULL) {
-        CCURED_FAIL_STR("expected NULL start to mmap"  FILE_AND_LINE);
+	CCURED_FAIL_STR("expected NULL start to mmap"  FILE_AND_LINE);
       }
 
       ret._p = mmap(start, length, prot, flags, fd, offset);
       if (ret._p == MAP_FAILED) {
-        ret._b = ret._e = NULL;
+	ret._b = ret._e = NULL;
       }
       else {
-        ret._b = ret._p;
-        ret._e = ((char*)ret._p) + length;    // ptr to first *invalid* byte
+	ret._b = ret._p;
+	ret._e = ((char*)ret._p) + length;    // ptr to first *invalid* byte
       }
 
       return ret;
@@ -3058,11 +3058,11 @@ void CHECK_FORMATARGS_w(wildp_char format) {
     {
       CHECK_NULL(start._p);
       if (start._p != start._b) {
-        CCURED_FAIL_STR("must pass pointer to start of the region"
-                        FILE_AND_LINE);
+	CCURED_FAIL_STR("must pass pointer to start of the region"
+			FILE_AND_LINE);
       }
       if ((char*)start._e - (char*)start._b  != length) {
-        CCURED_FAIL_STR("must pass correct length to munmap"  FILE_AND_LINE);
+	CCURED_FAIL_STR("must pass correct length to munmap"  FILE_AND_LINE);
       }
 
       // fixme?  this could leave dangling pointers.. it's a form
@@ -3101,7 +3101,7 @@ typedef struct wildp_func {
 
 #ifdef __GLIBC__
 void __assert_fail_www(wildp_char assertion, wildp_char file,
-                       unsigned int line, wildp_char function)
+		       unsigned int line, wildp_char function)
 {
   wildp_verify_nul(assertion);
   wildp_verify_nul(file);
@@ -3114,7 +3114,7 @@ void __assert_fail_www(wildp_char assertion, wildp_char file,
 // ------------------ startof, endof, ptrof, stringof, mkptr  ------------------
 
 
-// Similar to verify_nul, but returns the length of the string 
+// Similar to verify_nul, but returns the length of the string
 // (excluding the NUL).
 //   __ccured_strlen(start, end) <= (end - start - 1)
 //Called by the various (polymorphic) __strlen implementations
@@ -3189,46 +3189,46 @@ FILE* __ptrof_file(FILE* p){
   return p;
 }
 void* __mkptr(void* ptr, void* phome){
-  return ptr;    
+  return ptr;
 }
 void* __mkptr_int(unsigned long ptr, void* phome){
-  return (void*)ptr;    
+  return (void*)ptr;
 }
 //  void* __mksafeptr_int(unsigned long ptr){
 //    return (void*)ptr;
 //  }
 void* __mkptr_ssf(void* ptr, fseqp_void phome){
-  return ptr;    
+  return ptr;
 }
 void* __mkptr_ssq(void* ptr, seqp_void phome){
-  return ptr;    
+  return ptr;
 }
 void* __mkptr_ssF(void* ptr, fseqp_void phome){
-  return ptr;    
+  return ptr;
 }
 void* __mkptr_ssQ(void* ptr, seqp_void phome){
-  return ptr;    
+  return ptr;
 }
 void* __mkptr_int_sf(unsigned long ptr, fseqp_void phome){
-  return (void*)ptr;    
+  return (void*)ptr;
 }
 void* __mkptr_int_sF(unsigned long ptr, fseqp_void phome){
-  return (void*)ptr;    
+  return (void*)ptr;
 }
 void* __mkptr_int_sq(unsigned long ptr, seqp_void phome){
-  return (void*)ptr;    
+  return (void*)ptr;
 }
 void* __mkptr_int_sQ(unsigned long ptr, seqp_void phome){
-  return (void*)ptr;    
+  return (void*)ptr;
 }
 void* __mkptr_size(void* ptr, unsigned int len){
-  return ptr;    
+  return ptr;
 }
 FILE* __mkptr_file(FILE* f){
-  return f;    
+  return f;
 }
 void* __mkptr_string(void* ptr){
-  return ptr;    
+  return ptr;
 }
 
 int __strlen(char* s) {
@@ -3245,7 +3245,7 @@ int __strlen_n(char* s, int n) {
   //look up to n characters away for the nul.
   string_end = memchr(s, '\0', n);
 
-  return string_end == NULL 
+  return string_end == NULL
     ? n // the string is more than n bytes long (if it is a string).  Return n.
     : string_end - s;
 }
@@ -3265,7 +3265,7 @@ void *__endof(void *ptr) {
 //
 
 //helper for other *_w functions.  Fails if NULL or out of bounds.
-void __bounds_check_w(wildp_void p){ 
+void __bounds_check_w(wildp_void p){
   __CCURED_ASSERT(p._p >= p._b, FAIL_LBOUND);
   __CCURED_ASSERT(p._p < CHECK_FETCH_WILD_END(p._p, p._b, 0), FAIL_UBOUND);
 }
@@ -3312,7 +3312,7 @@ wildp_void __mkptr_wsw(void* ptr, wildp_void phome)
   wildp_void res;
   res._p = ptr;
   res._b = ptr == 0 ? 0 : phome._b;
-  return res;    
+  return res;
 }
 // This should only be necessary in BOX all mode.
 wildp_void __mkptr_string_ww(wildp_void x) {
@@ -3320,12 +3320,12 @@ wildp_void __mkptr_string_ww(wildp_void x) {
 }
 
 //  __mkptr_size_ws isn't possible
-wildp_FILE __mkptr_file_ws(FILE* f){ 
+wildp_FILE __mkptr_file_ws(FILE* f){
   //see fopen_wrapper
   wildp_FILE res;
   res._p = f;
   res._b = 0;
-  return res;    
+  return res;
 }
 int __strlen_w(wildp_void p){
   __bounds_check_w(p);
@@ -3341,7 +3341,7 @@ void __verify_nul_w(wildp_char p){
   wildp_void p1 = *(wildp_void*)&p;
   __bounds_check_w(p1);
   ccured_verify_nul(p1._p,
-                    (unsigned long)__endof_sw(p1) - (unsigned long)p1._p);
+		    (unsigned long)__endof_sw(p1) - (unsigned long)p1._p);
 }
 void __write_at_least_w(wildp_char ptr, unsigned int n){
   wildp_write_atleast(ptr, n);
@@ -3352,11 +3352,11 @@ void __read_at_least_w(wildp_char ptr, unsigned int n){
 void __copytags_ww(wildp_char dest, wildp_char src, unsigned int n){
   __CCURED_ASSERT(n <= (unsigned int)wildp_length(src), FAIL_UBOUND); // checks that src is not an integer.
   __CCURED_ASSERT(n <= (unsigned int)wildp_length(dest), FAIL_UBOUND); // checks that dest is not an integer.
-  wildp_copy_tags(dest, src, n); 
+  wildp_copy_tags(dest, src, n);
 }
 
 
-/* When we use the WILD solver we might need strange versions of these 
+/* When we use the WILD solver we might need strange versions of these
  * wrappers */
 wildp_void __ptrof_ww(wildp_void x) {
   if (x._p != 0){ //allow x to be null
@@ -3378,10 +3378,10 @@ wildp_void __mkptr_www(wildp_void ptr, wildp_void phome)
   wildp_void res;
   res._p = ptr._p;
   res._b = ptr._p == 0 ? 0 : phome._b;
-  return res;    
+  return res;
 }
 wildp_FILE __mkptr_file_ww(wildp_FILE f){
-  return f;    
+  return f;
 }
 
 //
@@ -3389,7 +3389,7 @@ wildp_FILE __mkptr_file_ww(wildp_FILE f){
 //
 
 //helper for other *_q functions.  Fails if NULL or out of bounds.
-void __bounds_check_q(seqp_void p){ 
+void __bounds_check_q(seqp_void p){
   __CCURED_ASSERT(p._e != 0, (p._p ? FAIL_NONPOINTER : FAIL_NULL));
   __CCURED_ASSERT(p._p >= p._b, FAIL_LBOUND);
   __CCURED_ASSERT(p._p < p._e, FAIL_UBOUND);
@@ -3424,7 +3424,7 @@ seqp_void __mkptr_qsq(void* ptr, seqp_void phome)
   res._p = ptr;
   res._b = ptr == 0 ? 0 : phome._b;
   res._e = ptr == 0 ? 0 : phome._e;
-  return res;    
+  return res;
 }
 seqp_void __mkptr_qsQ(void* ptr, seqp_void phome)
 {
@@ -3445,7 +3445,7 @@ seqp_void __mkptr_size_qs(void* ptr, unsigned int len)
   res._p = ptr;
   res._b = ptr == 0 ? 0 : ptr;
   res._e = ptr == 0 ? 0 : (void*)((char*)ptr + len);
-  return res;    
+  return res;
 }
 // note that the NULL is part of the area
 seqp_void __mkptr_string_qs(char* ptr)
@@ -3454,11 +3454,11 @@ seqp_void __mkptr_string_qs(char* ptr)
   res._p = ptr;
   res._b = ptr == 0 ? 0 : ptr;
   res._e = ptr == 0 ? 0 : (void*)((char*)ptr + strlen(ptr)
-                                  + (__ccuredUseStrings ? 0 : 1));
-  return res;    
+				  + (__ccuredUseStrings ? 0 : 1));
+  return res;
 }
 seqp_void __mkptr_file_qs(FILE* f){
-  return __mkptr_size_qs(f, sizeof(FILE));    
+  return __mkptr_size_qs(f, sizeof(FILE));
 }
 
 void __verify_nul_q(seqp_char p){
@@ -3519,7 +3519,7 @@ void __copytags_Qq(seqp_void dest, seqp_void src, unsigned int n){
 //
 
 //helper for other *_f functions.  Fails if NULL or out of bounds.
-void __bounds_check_f(fseqp_void p){ 
+void __bounds_check_f(fseqp_void p){
   __CCURED_ASSERT(p._e != 0, (p._p ? FAIL_NONPOINTER : FAIL_NULL));
   __CCURED_ASSERT(p._p < p._e, FAIL_UBOUND);
 }
@@ -3552,7 +3552,7 @@ fseqp_void __mkptr_fsf(void* ptr, fseqp_void phome)
   fseqp_void res;
   res._p = ptr;
   res._e = ptr == 0 ? 0 : phome._e;
-  return res;    
+  return res;
 }
 fseqp_void __mkptr_fsF(void* ptr, fseqp_void phome)
 {
@@ -3563,7 +3563,7 @@ fseqp_void __mkptr_fsq(void* ptr, seqp_void phome)
   fseqp_void res;
   res._p = ptr;
   res._e = ptr == 0 ? 0 : phome._e;
-  return res;    
+  return res;
 }
 fseqp_void __mkptr_fsQ(void* ptr, seqp_void phome)
 {
@@ -3584,7 +3584,7 @@ fseqp_void __mkptr_size_fs(void* ptr, unsigned int len)
   fseqp_void res;
   res._p = ptr;
   res._e = ptr == 0 ? 0 : (void*)((char*)ptr + len);
-  return res;    
+  return res;
 }
 // The null is part of the area
 fseqp_void __mkptr_string_fs(char* ptr)
@@ -3592,16 +3592,16 @@ fseqp_void __mkptr_string_fs(char* ptr)
   fseqp_void res;
   res._p = ptr;
   res._e = ptr == 0 ? 0 : (void*)((char*)ptr + strlen(ptr)
-                                  + (__ccuredUseStrings ? 0 : 1));
-  return res;    
+				  + (__ccuredUseStrings ? 0 : 1));
+  return res;
 }
 fseqp_void __mkptr_file_fs(FILE* f){
-  return __mkptr_size_fs(f, sizeof(FILE));    
+  return __mkptr_size_fs(f, sizeof(FILE));
 }
 
 void __verify_nul_f(fseqp_char p){
   __CCURED_ASSERT(p._e != 0, (p._p ? FAIL_NONPOINTER : FAIL_NULL));
-  __CCURED_ASSERT((void*)p._p < p._e, FAIL_UBOUND); 
+  __CCURED_ASSERT((void*)p._p < p._e, FAIL_UBOUND);
   ccured_verify_nul(p._p, fseqp_length(p));
 }
 
@@ -3705,7 +3705,7 @@ seqp_void __mkptr_size_Qs(void* ptr, unsigned int len)
   else {
     res._e = 0;
   }
-  return res;    
+  return res;
 }
 seqp_void __mkptr_string_Qs(char* ptr)
 {
@@ -3715,8 +3715,8 @@ seqp_void __mkptr_string_Qs(char* ptr)
   // Do not count the NULL byte because it is required
   // except if we are not using strings
   res._e = ptr == 0 ? 0 : (void*)((char*)ptr + strlen(ptr)
-                                  + (__ccuredUseStrings ? 0 : 1));
-  return res;    
+				  + (__ccuredUseStrings ? 0 : 1));
+  return res;
 }
 //matth: added 1 to p._e because when dealing with FSeqN/SeqN, we're allowed
 // to look one character beyond the official end to read a nul.
@@ -3780,8 +3780,8 @@ fseqp_void __mkptr_size_Fs(void* ptr, unsigned int len)
   else {
     res._e = 0;
   }
-  return res;    
-} 
+  return res;
+}
 // sm: we were returning seqp here, that's wrong..
 fseqp_void __mkptr_string_Fs(char* ptr)
 {
@@ -3790,8 +3790,8 @@ fseqp_void __mkptr_string_Fs(char* ptr)
   // Do not count the NULL byte because it is required
   // except if we are not using strings
   res._e = ptr == 0 ? 0 : (void*)((char*)ptr + strlen(ptr)
-                                  + (__ccuredUseStrings ? 0 : 1));
-  return res;    
+				  + (__ccuredUseStrings ? 0 : 1));
+  return res;
 }
 //matth: added 1 to p._e because when dealing with FSeqN/SeqN, we're allowed
 // to look one character beyond the official end to read a nul.
@@ -3839,7 +3839,7 @@ void* __ptrof_nocheck_srq(seqp_void p, struct RTTI_ELEMENT *m){
 
 // index
 //helper for other *_i functions.  Fails if NULL or out of bounds.
-void __bounds_check_i(indexp_void p){ 
+void __bounds_check_i(indexp_void p){
   __CCURED_ASSERT(p._b != 0, (p._p ? FAIL_NONPOINTER : FAIL_NULL));
   __CCURED_ASSERT(p._p < CHECK_FETCH_INDEX_END(p._p, p._b, 0), FAIL_UBOUND);
 }
@@ -3858,20 +3858,20 @@ safecp_void __mkptr_mssms(void* ptr, safecp_void phome){
   safecp_void res;
   res._p = ptr;
   res._mp = ptr == 0 ? 0 : phome._mp;
-  return res;    
+  return res;
 }
 safecp_void __mkptr_mssmf(void* ptr, fseqcp_void phome){
   safecp_void res;
   res._p = ptr;
   res._mp = ptr == 0 ? 0 : phome._mp;
-  return res;    
+  return res;
 }
 
 
 //
 // seqc
 //
-void __bounds_check_mq(seqcp_void p){ 
+void __bounds_check_mq(seqcp_void p){
   __CCURED_ASSERT(p._e != 0, (p._p ? FAIL_NONPOINTER : FAIL_NULL));
   __CCURED_ASSERT(p._p >= p._b, FAIL_LBOUND);
   __CCURED_ASSERT(p._p < p._e, FAIL_UBOUND);
@@ -3899,7 +3899,7 @@ seqcp_void __mkptr_mqsmq(void* ptr, seqcp_void phome)
   res._b = ptr == 0 ? 0 : phome._b;
   res._e = ptr == 0 ? 0 : phome._e;
   res._mp = ptr == 0 ? 0 : phome._mp;
-  return res;    
+  return res;
 }
 
 void __read_at_least_mq(seqcp_void ptr, unsigned int n){
@@ -3927,7 +3927,7 @@ void __copytags_qmq(seqp_void dest, seqcp_void src, unsigned int n){
 //
 // fseqc
 //
-void __bounds_check_mf(fseqcp_void p){ 
+void __bounds_check_mf(fseqcp_void p){
   __CCURED_ASSERT(p._e != 0, (p._p ? FAIL_NONPOINTER : FAIL_NULL));
   __CCURED_ASSERT(p._p < p._e, FAIL_UBOUND);
 }
@@ -3952,7 +3952,7 @@ fseqcp_void __mkptr_size_mfs(void* ptr, unsigned int len)
   res._p = ptr;
   res._e = ptr == 0 ? 0 : (void*)((char*)ptr + len);
   res._mp = 0; // TODO
-  return res;    
+  return res;
 }
 // The null is part of the area
 fseqcp_char __mkptr_string_mfs(char* ptr)
@@ -3960,12 +3960,12 @@ fseqcp_char __mkptr_string_mfs(char* ptr)
   fseqcp_char res;
   res._p = ptr;
   res._e = ptr == 0 ? 0 : (void*)((char*)ptr + strlen(ptr)
-                                  + (__ccuredUseStrings ? 0 : 1));
+				  + (__ccuredUseStrings ? 0 : 1));
   res._z = 0; // TODO
-  return res;    
+  return res;
 }
 fseqcp_void __mkptr_file_mfs(FILE* f){
-  return __mkptr_size_mfs(f, sizeof(FILE));    
+  return __mkptr_size_mfs(f, sizeof(FILE));
 }
 
 void __verify_nul_mf(fseqcp_char p){
@@ -4023,7 +4023,7 @@ void* __endof_si(indexp_void p){
 void* __ptrof_si(indexp_void p){
   __CCURED_ASSERT(p._p >= p._b, FAIL_LBOUND);
   __CCURED_ASSERT(!p._p || (p._p < CHECK_FETCH_INDEX_END(p._p, p._b, 0)),
-                  FAIL_UBOUND);  //allow p to be null
+		  FAIL_UBOUND);  //allow p to be null
   return p._p;
 }
 
@@ -4044,24 +4044,24 @@ void __write_at_least_i(indexp_void ptr, unsigned int n){
 
 // ------------------- vsprintf -----------------------
 
-// Doesn't check the size of buffer; should only be called by 
+// Doesn't check the size of buffer; should only be called by
 // trusted wrappers (e.g. vsprintf_fsvs below and sprintf_wrapper.)
 int __ccured_vsnprintf_ssvs(char* buffer, int size, const char *format,
-                            CCURED_VAINFO *args)
+			    CCURED_VAINFO *args)
 {
   CHECK_FORMATARGS(format);
   return VSNPRINTF(buffer, size, format, args->nextp);
 }
 
 // __ccured_vsnprintf for the all-wild solver.
-int __ccured_vsnprintf_wsvs(wildp_char buffer, int size, char* format, 
+int __ccured_vsnprintf_wsvs(wildp_char buffer, int size, char* format,
 			    CCURED_VAINFO *args)
 {
   return __ccured_vsnprintf_ssvs(buffer._p, size, format, args);
 }
 
 int vsprintf_fsvs(fseqp_char buffer, const char *format,
-                  CCURED_VAINFO *args)
+		  CCURED_VAINFO *args)
 {
   int res;
   //matth: This used to be "(int)buffer._e - (int)buffer._p - 1".  Why?
@@ -4081,7 +4081,7 @@ int vsprintf_fsvs(fseqp_char buffer, const char *format,
 }
 
 int vsprintf_qsvs(seqp_char buffer, const char *format,
-                  CCURED_VAINFO *args)
+		  CCURED_VAINFO *args)
 {
   fseqp_char buffer_f;
   CHECK_SEQ2FSEQ(buffer._b, buffer._e, buffer._p);
@@ -4185,7 +4185,7 @@ int printf_fs(fseqp_char format, ...) // weimer
   CCURED_VAINFO args;
   int res;
   ccured_verify_nul(format._p,
-                    (unsigned long)format._e - (unsigned long)format._p);
+		    (unsigned long)format._e - (unsigned long)format._p);
 
   __ccured_va_start_vs(&args, getPNextArg(format));
   res = vfprintf_ssvs(stdout, format._p, &args);
@@ -4217,7 +4217,7 @@ int printf_ws(wildp_char format, ...)
 #endif
 
 
-// 
+//
 // void ccured_fscanf_string_ssw(FILE *stream, char* what, wildp_char buffer) {
 //   fseqp_char buffer_f;
 //   int buff_wrds = CHECK_FETCHLENGTH(buffer._p, buffer._b, 0);
@@ -4289,8 +4289,8 @@ int getScanfCount() {
 }
 
 void ccured_fscanf_string_len(FILE *stream, char* what,
-                              char *buffer,
-                              long bufflen) {
+			      char *buffer,
+			      long bufflen) {
   char *mybuff;
   int orig_pos, read, scanned;
 
@@ -4375,15 +4375,15 @@ wildp_char strncat_www(wildp_char dest, wildp_char src, size_t n) {
     for (i=0; i<destwildlen && dest._p[i]!='\0'; ++i) {
     }
     for (j=0;
-         i<destwildlen && (size_t)j<n && j<srcwildlen && src._p[i]!='\0';
-         ++i, ++j) { // We can't go off the end of dest nor src nor past n.
-        dest._p[i] = src._p[j];
+	 i<destwildlen && (size_t)j<n && j<srcwildlen && src._p[i]!='\0';
+	 ++i, ++j) { // We can't go off the end of dest nor src nor past n.
+	dest._p[i] = src._p[j];
     }
     // Stick on terminating nul character.
     if (i<destwildlen) {
-        dest._p[i] = '\0';
+	dest._p[i] = '\0';
     } else {
-        ccured_fail(FAIL_STRINGBOUND  FILE_AND_LINE);
+	ccured_fail(FAIL_STRINGBOUND  FILE_AND_LINE);
     }
     return dest;
 }
@@ -4396,13 +4396,13 @@ wildp_char strncpy_www(wildp_char dest, wildp_char src, size_t n) {
     int srcwildlen = wildp_length(src);
     int i;
     for (i=0; (size_t)i<n && i<srcwildlen; ++i) { // We can't go off the end of src nor past n.
-        if (src._p[i]!='\0') {  // If there is something to copy,
-            if (i<destwildlen) { // and somewhere to put it
-                dest._p[i] = src._p[i]; // copy it.
-            } else {
-                ccured_fail(FAIL_STRINGBOUND  FILE_AND_LINE); // otherwise, fail.
-            }
-        }
+	if (src._p[i]!='\0') {  // If there is something to copy,
+	    if (i<destwildlen) { // and somewhere to put it
+		dest._p[i] = src._p[i]; // copy it.
+	    } else {
+		ccured_fail(FAIL_STRINGBOUND  FILE_AND_LINE); // otherwise, fail.
+	    }
+	}
     }
     // Pad the rest of dest with nuls.
     for (; i<destwildlen; ++i) dest._p[i] = '\0';
@@ -4439,14 +4439,14 @@ long ftell_w(wildp_FILE __stream) {
 //      return munmap(start._p, length);
 //  }
 
-#ifndef _MSVC 
+#ifndef _MSVC
 
   int pthread_mutex_destroy_w(wildp_pthread_mutex_t mutex) {
       return pthread_mutex_destroy(mutex._p);
   }
 
   int pthread_mutex_init_ws(wildp_pthread_mutex_t mutex,
-                            pthread_mutexattr_t *mutexattr) {
+			    pthread_mutexattr_t *mutexattr) {
       return pthread_mutex_init(mutex._p, mutexattr);
   }
 
@@ -4467,7 +4467,7 @@ int ungetc_w(int __c, wildp_FILE __stream) {
 }
 
 #endif // CCURED_NO_WILD_WRAPPERS
- 
+
 // ------------------------ kind_of ------------------
 // sm: what is this for?
 // gn: to build test cases in which we can ask about the kind of a pointer
@@ -4544,7 +4544,7 @@ seqp_void __align_seq_qq(seqp_void p, size_t size) {
   res._p = p._p;
   res._b = p._b;
   res._e = (void*)((char*)p._e -
-                   ((uintptr_t)p._e - (uintptr_t)p._p) % size);
+		   ((uintptr_t)p._e - (uintptr_t)p._p) % size);
   return res;
 }
 
@@ -4554,7 +4554,7 @@ fseqp_void __align_seq_ff(fseqp_void p, size_t size) {
   // take the floor of the length wrt size being the unit value
   res._p = p._p;
   res._e = (void*)((char*)p._e -
-                   ((uintptr_t)p._e - (uintptr_t)p._p) % size);
+		   ((uintptr_t)p._e - (uintptr_t)p._p) % size);
   return res;
 }
 
@@ -4605,36 +4605,36 @@ struct hostent* true_gethostent(void) {
     return gethostent();
 }
 int true_gethostbyname_r (__const char *__restrict __name,
-                          struct hostent *__restrict __result_buf,
-                          char *__restrict __buf, size_t __buflen,
-                          struct hostent **__restrict __result,
-                          int *__restrict __h_errnop) __THROW {
+			  struct hostent *__restrict __result_buf,
+			  char *__restrict __buf, size_t __buflen,
+			  struct hostent **__restrict __result,
+			  int *__restrict __h_errnop) __THROW {
   return gethostbyname_r(__name, __result_buf,
-                         __buf, __buflen, __result, __h_errnop);
+			 __buf, __buflen, __result, __h_errnop);
 }
 int true_getservbyname_r (__const char *__restrict __name,
-                          __const char *__restrict __proto,
-                          struct servent *__restrict __result_buf,
-                          char *__restrict __buf, size_t __buflen,
-                          struct servent **__restrict __result) __THROW {
+			  __const char *__restrict __proto,
+			  struct servent *__restrict __result_buf,
+			  char *__restrict __buf, size_t __buflen,
+			  struct servent **__restrict __result) __THROW {
   return getservbyname_r(__name, __proto, __result_buf,
-                         __buf, __buflen, __result);
+			 __buf, __buflen, __result);
 }
 int true_gethostent_r (struct hostent *__restrict __result_buf,
-                       char *__restrict __buf, size_t __buflen,
-                       struct hostent **__restrict __result,
-                       int *__restrict __h_errnop) __THROW {
+		       char *__restrict __buf, size_t __buflen,
+		       struct hostent **__restrict __result,
+		       int *__restrict __h_errnop) __THROW {
   return gethostent_r (__result_buf, __buf, __buflen, __result, __h_errnop);
 }
 
 int true_gethostbyaddr_r (__const void *__restrict __addr, __socklen_t __len,
-                          int __type,
-                          struct hostent *__restrict __result_buf,
-                          char *__restrict __buf, size_t __buflen,
-                          struct hostent **__restrict __result,
-                          int *__restrict __h_errnop) __THROW {
+			  int __type,
+			  struct hostent *__restrict __result_buf,
+			  char *__restrict __buf, size_t __buflen,
+			  struct hostent **__restrict __result,
+			  int *__restrict __h_errnop) __THROW {
   return gethostbyaddr_r (__addr, __len, __type,__result_buf,__buf,
-                          __buflen,__result,__h_errnop);
+			  __buflen,__result,__h_errnop);
 }
 #endif //!CYGWIN
 #endif //0
@@ -4682,8 +4682,8 @@ void check_glob_size(int pglob_size)
 
 // sm: the usual.. but with a size check
 int true_glob(const char *pattern, int flags,
-              int errfunc(const char *epath, int eerrno),
-              glob_t *pglob, int pglob_size)
+	      int errfunc(const char *epath, int eerrno),
+	      glob_t *pglob, int pglob_size)
 {
   check_glob_size(pglob_size);
   return glob(pattern, flags, errfunc, pglob);
@@ -4700,7 +4700,7 @@ struct passwd *true_getpwnam(const char *name)
   return getpwnam(name);
 }
 
-#endif // GNUCC 
+#endif // GNUCC
 
 
 unsigned long ___stack_threshhold;
@@ -4711,8 +4711,8 @@ unsigned long  ___compute_stack_threshhold(void) {
   if(sp < maxSize) {
     unsigned long res = 0x1000;
     fprintf(stderr,
-            "SP=0x%08lx, which is smaller than the maximum stack size. Will set a stack theshhold of 0x%lx\n",
-            sp, res);
+	    "SP=0x%08lx, which is smaller than the maximum stack size. Will set a stack theshhold of 0x%lx\n",
+	    sp, res);
     return res;
   }
   return sp - maxSize;
@@ -4748,4 +4748,3 @@ char* wrapperStrdup(char *str) {
 void abort_deepcopy(char *fieldname) {
   ccured_fail_str(fieldname FILE_AND_LINE);
 }
-
