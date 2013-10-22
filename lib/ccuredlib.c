@@ -2690,7 +2690,7 @@ typedef struct {
 // sm: I don't have __assert ... we need an #ifdef here
 // which identifies the machine which has this ...
 // gn: who has this anyway?
-#if !defined(__GLIBC__) && !defined(_MSVC)
+#if !defined(__GLIBC__) && !defined(_MSVC) && !defined(__FreeBSD__)
   extern void __assert(const char *, int, const char *);
   void __assert_ww(wildp_char file, int line, wildp_char a2)
   {
@@ -2699,7 +2699,6 @@ typedef struct {
     __assert(file._p, line, a2._b);
   }
 #endif
-
 
 // sm: I don't know if this is a problem on msvc, but I suspect it is
 #ifdef _GNUCC
@@ -4580,7 +4579,11 @@ void (*__sysv_signal_sf(int signum, struct some_fseqp_fun fun))(int n )
     // we know to be encoded special values; complain
     ccured_fail_str("__sysv_signal called with a strange pointer\n"  FILE_AND_LINE);
   }
+#if defined(__FreeBSD__)
+  return signal(signum, fun._p);
+#else
   return __sysv_signal(signum, fun._p);
+#endif
 }
 #endif // defined(_GNUCC) && !defined(__CYGWIN__)
 
