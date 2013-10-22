@@ -1,2 +1,15 @@
 #!/bin/bash
-autoconf && ./configure && gmake
+# 1. Install opam.
+#
+# 2. Install ocamlfind in opam.
+#
+# 3. Install cil (fix-native-libs-install branch from
+#    github/pmundkur/ccured-hack, until these gets merged upstream).
+#
+# 4. Add to the PERL5LIB envvar the base Perl path to the CilConfig.pm
+#    module.  That is, if it is installed to
+#    $INSTALLDIR/lib/perl5/App/Cilly/CilConfig.pm,
+#    then PERL5LIB should include $INSTALLDIR/lib/perl5.
+#
+
+autoconf && CPPFLAGS=-I/usr/local/include CFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure && gmake

@@ -80,6 +80,9 @@ ifdef USE_PG
   COMPILEREXT := $(COMPILEREXT)pg
 endif
 
+CFLAGS   = @CFLAGS@
+LDFLAGS  = @LDFLAGS@
+
 ###
 ###    # Now the rules to make the library
 ###
