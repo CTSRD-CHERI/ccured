@@ -280,7 +280,7 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
 *)
       if doCheckChains then
         checkChainEnds n1 n2 why_n1_n2;
-      let new_edge = addEdge n1 n2 (ECompat why_n1_n2) (Some(location))
+      let _new_edge = addEdge n1 n2 (ECompat why_n1_n2) (Some(location))
       in
 
       (* If at least one of the two nodes has the RTTI flag set then we set
@@ -487,7 +487,7 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
   if !E.verboseFlag then ignore (E.log "Solver: Step 1  (Casts)\n") ;
 
   (* try to find a node for this type *)
-  let pointer_with_no_node tau1 =
+  let _pointer_with_no_node tau1 =
     match node_of_type tau1 with
       Some(n) -> ()
     | None -> begin
@@ -908,7 +908,7 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
   in
 
   let processDataFlow cur = begin
-    let id = cur.id in
+    let _id = cur.id in
     (* First consider all ECompat edges:
      * flags should be equal across them. This is motivated by
      * test/small1/apachebuf.c. Merely making ECompat-linked nodes have
@@ -1299,7 +1299,7 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
    * All other nodes are safe.
    *)
   if !E.verboseFlag then ignore (E.log "Solver: Step 10  (Safe)\n") ;
-  let ecompat_warnings = false in
+  let _ecompat_warnings = false in
   Hashtbl.iter (fun id n ->
     if n.kind = Unknown then begin
       update n Safe Unconstrained

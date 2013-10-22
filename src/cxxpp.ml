@@ -449,7 +449,7 @@ let packCheckVMTable () : global =
   (trace "vtable" (dprintf "minimizing parent sets\n"));
   H.iter
     (fun _ (vi, parents, _) -> (
-      let d_string () (s:string) : doc = (text s) in
+      let _d_string () (s:string) : doc = (text s) in
       (*(trace "minparent" (dprintf "minimizing parents of %s@!  currently: %a\n"*)
       (*                            vi.vname  (d_list ", " d_string) !parents));*)
       parents :=

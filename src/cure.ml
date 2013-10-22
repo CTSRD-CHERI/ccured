@@ -2295,7 +2295,7 @@ let fromTable (oldk: N.opointerkind)
               (p: exp)
   (* Returns some metadata *)
   : expmeta * stmt clist =
-  let checkAreas () =
+  let _checkAreas () =
     if not !N.useLeanFats then
       E.s (bug "I thought that we weren't using lean fats\n")
   in
@@ -3849,7 +3849,7 @@ let rec checkMem (why: checkLvWhy)
         begin
           match why with
             ToRead when inlv.plvk = N.Wild ->
-              let b = emGet MKBase "checkTags" inlv.lvm in
+              let _b = emGet MKBase "checkTags" inlv.lvm in
               let rdScanner = new checkReadClass getWildBaseEndExp in
               genScanner rdScanner inlv.lvt inlv.lv empty
           | ToRead -> empty
@@ -4776,7 +4776,6 @@ let mangleTypes (deep: bool) ?(mangledNodes: N.node IH.t option)
                       | _ -> []
                     end
                   in
-                  let acc1 = "c" :: acc in
                   let this =
                     List.fold_left qualNames
                       []
@@ -5211,7 +5210,7 @@ let rec makeMetagenFun (t: typ) (mt: typ) : fundec =
         (* Create all the formal arguments. *)
         let md = makeFormalVar f "md" (TPtr (mt, [])) in
         let d = makeFormalVar f "d" (TPtr (t, [])) in
-        let len = makeFormalVar f "len" uintType in
+        let _len = makeFormalVar f "len" uintType in
         let ctx = makeFormalVar f "ctx" voidPtrType in
         (* Now make one function call for each field that has metadata. *)
         let makeMetagenFields (fi: fieldinfo) : stmt list =
@@ -6186,7 +6185,7 @@ and interceptHelper
                           d_plainexp arg.ep)
           in
           (* ignore (E.log "src = %a\n" d_cureexp src); *)
-          let tag = emGet MKRtti "__CCURED_RTTICHECK (tagged unions)" src.em in
+          let _tag = emGet MKRtti "__CCURED_RTTICHECK (tagged unions)" src.em in
           let desttype = typeOf src.ep in
           let dest_rtti = MU.getRttiForType desttype in
           let dest_is_ptr = isPointerType desttype in
@@ -6369,8 +6368,8 @@ and cureLval1 (b, off) (foraccess: forAccess) : curelval * stmt clist =
            the __Tag field when recursing into f. *)
         let maybeInTaggedUnion: lval option
           = Taggedunion.tagForDataField inlv.lv f in
-        let next = { bflv with lv = addOffsetLval addf bflv.lv;
-                               lvt = f.ftype; lvm = lvm'; plvk = plvk; } in
+        let next = { lv = addOffsetLval addf bflv.lv;
+                     lvt = f.ftype; lvm = lvm'; plvk = plvk; } in
         let next', donext' = goIntoTypes next in
         let res, dorest = doOffset next'
                             ?inTaggedUnion:maybeInTaggedUnion resto in
@@ -7873,7 +7872,7 @@ let cureFile file =
     if showGlobals then ignore (E.log "Curing GVar(%s) at %a\n"
                                   vi.vname d_loc l);
     (* Leave alone some functions *)
-    let origType = vi.vtype in
+    let _origType = vi.vtype in
     (* Leave alone the allocation functions !!!. GN: Why? *)
     if true || not (isAllocFunction vi.vname) then begin
       (* Remove the format attribute from functions that we do not leave

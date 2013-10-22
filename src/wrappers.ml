@@ -944,7 +944,7 @@ let createDeepCopyBody
    (direction: copyDirection) : fundec option  =
   if debugWrappers then
     ignore (E.log "Creating deepcopy body for %s.\n" funcDecl.vname);
-  let name = Poly.stripPoly funcDecl.vname in
+  let _name = Poly.stripPoly funcDecl.vname in
   (* Now check the type of the function *)
   let destci, srcci, destt, srct =
     match funcDecl.vtype with
@@ -981,10 +981,10 @@ let createDeepCopyBody
           if debugWrappers then
             ignore (E.log "Found declaration of %s\n" funcDecl.vname);
           let func = emptyFunction funcDecl.vname in
-          let destIn = makeFormalVar func
+          let _destIn = makeFormalVar func
               (if direction = ToCompat then "compat" else "fat")
               destt in
-          let src    = makeFormalVar func
+          let _src    = makeFormalVar func
               (if direction = ToCompat then "fat" else "compat")
               srct in
           func.svar <- fd;

@@ -290,7 +290,7 @@ let processSizeFieldAttribute (f: fieldinfo) (a: attrparam) : unit =
         f' :: _ when f == f' -> ()
       | _ -> E.s (error "You are using \"size\" attribute on the array field %s that is not last in structure %s" f.fname comp.cname));
       (* Get the minimum length of the array *)
-      let min =
+      let _min =
         match leno with
           Some min -> min
         | None -> (* Change the type of the field *)
@@ -350,7 +350,7 @@ let processSizeFieldAttribute (f: fieldinfo) (a: attrparam) : unit =
 
 let metaFieldAction (mf:fieldinfo) (allDepFields: fieldinfo list)
   (why: access) (lv: lval) (resto: offset) (acc: instr list) : instr list =
-  let comp = mf.fcomp in
+  let _comp = mf.fcomp in
   if resto <> NoOffset then
     E.s (error "Compound type for metadata field");
   let hostlv, _ = removeOffsetLval lv in

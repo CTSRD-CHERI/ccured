@@ -1095,7 +1095,7 @@ and doFunctionCall
     | (_, ft, _) :: formals, a :: args ->
         (* See if this is a polymorphic argument. Then strip the cast to
          * void* *)
-        let a' =
+        let _a' =
           match ispoly, unrollType ft with
             true, TPtr(TVoid _, _) -> true
           | _, _ -> false
@@ -1381,7 +1381,7 @@ let markFile fl =
   (* Once we have registered the functions, we can process the other pragmas.
    *)
   let processOtherPragmas = function
-    | GPragma (a, l) as g -> begin
+    | GPragma (a, l) as _g -> begin
         currentLoc := l;
         (match a with
         | Attr("ccuredalloc", AStr(s) :: _) ->

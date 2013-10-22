@@ -350,7 +350,7 @@ let cleanup_cedges (n : node) =
     | [] -> []
     | e::es -> reduce_cedges' e es []
   in
-  let comp ((n1,w1, _,_,_,_) as e1) ((n2,w2,_,_,_,_) as e2) =
+  let comp ((n1,w1, _,_,_,_) as _e1) ((n2,w2,_,_,_,_) as _e2) =
     if (n1=n2 && w1=w2) then 0
     else let res = compare n1 n2 in
       if res=0 then compare w1 w2
@@ -907,7 +907,7 @@ let do_hexagons () =
     : (int*int*int*int) =
 
     (* use choose to accumulate weights of paths to targ *)
-    let choose_path_to (choose : int -> int -> int) (targ : node ref) ((wa,wb,wc,wd) as acc) ((nr,w,a,b,c,d) as e : cedge) =
+    let choose_path_to (choose : int -> int -> int) (targ : node ref) ((wa,wb,wc,wd) as acc) ((nr,w,a,b,c,d) as _e : cedge) =
       if (nr=targ) then
         ( (if a then choose w wa else wa),
           (if b then choose w wb else wb),
@@ -935,7 +935,7 @@ let do_hexagons () =
           List.fold_left2 (hexpath) (best, best, best, best) (!ptrphi.jsuccs) (!phi.jpreds)
         with
           | Invalid_argument reason ->
-              let s = sprint ~width:80
+              let _s = sprint ~width:80
                     ( dprintf
                         "hexagons (%s): [%a].jsuccs = [%a] different size than [%a].jpreds = [%a]"
                         reason
@@ -1324,7 +1324,7 @@ let interestingCheck  (i : instr) =
           match (chk.vname) with
             | ("CHECK_FSEQ2SAFE"
               | "CHECK_FSEQARITH"
-              | "CHECK_FSEQARITH2SAFE") as chk -> true
+              | "CHECK_FSEQARITH2SAFE") -> true
             | _ -> false
         end
     | _ -> false
@@ -1369,7 +1369,7 @@ let ptrvars = ref []
  * anyone using lookup on something not definitely in env
  * should catch NoMatch and do something sensible *)
 let rec lookup (env,_ : varsmap) (v : varinfo) =
-  if v.vglob or (not (isIntType v)) then
+  if v.vglob || (not (isIntType v)) then
     raise NoMatch
   else
     try
@@ -1383,7 +1383,7 @@ let rec lookup (env,_ : varsmap) (v : varinfo) =
                             d_type v.vtype ))
 
 and ptrlookup(_,penv : varsmap) (v : varinfo) =
-  if v.vglob or (not (isPAType v)) then
+  if v.vglob || (not (isPAType v)) then
     raise NoMatch
   else
     try
@@ -1695,7 +1695,7 @@ and doInstr (env:varsmap) (i : instr) =
   match i with
 
     (* intvar = intvar + intconst *)
-    | Set ((Var x, NoOffset) as lhs, rhs, loc) when isIntType x ->
+    | Set ((Var x, NoOffset) as _lhs, rhs, loc) when isIntType x ->
         begin
           let env' =
             try
@@ -1715,7 +1715,7 @@ and doInstr (env:varsmap) (i : instr) =
         end
 
     (* ptr = ptr' + intconst *)
-    | Set ((Var p, NoOffset) as lhs, rhs, loc) when isPAType p ->
+    | Set ((Var p, NoOffset) as _lhs, rhs, loc) when isPAType p ->
         begin
           let env' =
             try
