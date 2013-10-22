@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -53,16 +53,16 @@ class collectCureStats = object (self)
 
 
 
-  method vinst (i: instr) : instr list visitAction = 
-    let isCheck name = 
-      let prefix p s = 
+  method vinst (i: instr) : instr list visitAction =
+    let isCheck name =
+      let prefix p s =
         let lp = String.length p in
         let ls = String.length s in
         lp <= ls && String.sub s 0 lp = p
       in
       prefix "CHECK_" name
     in
-    let incrCount (name: string) = 
+    let incrCount (name: string) =
       try
         let vr = H.find counters name in
         incr vr
@@ -71,8 +71,8 @@ class collectCureStats = object (self)
         H.add counters name vr
       end
     in
-    match i with 
-      Call(_, Lval(Var fvi, NoOffset), _, _) when isCheck fvi.vname -> 
+    match i with
+      Call(_, Lval(Var fvi, NoOffset), _, _) when isCheck fvi.vname ->
         incrCount fvi.vname;
         SkipChildren
     | _ -> SkipChildren
@@ -81,14 +81,14 @@ class collectCureStats = object (self)
 
 end
 
-(* weimer: 
+(* weimer:
  * visitor routines to check and see if major types have changed *)
 let typeSizeHT = Hashtbl.create 555
 let compSizeHT = Hashtbl.create 555
 
 let typeSizeSetVisitor = object
-  inherit nopCilVisitor 
-  method vglob g = 
+  inherit nopCilVisitor
+  method vglob g =
     match g with
       GType (t, _) when t.tname <> "" -> begin
         let bs = try bitsSizeOf t.ttype / 8 with _ -> 0 in
@@ -100,40 +100,40 @@ let typeSizeSetVisitor = object
         let bs = try bitsSizeOf t / 8 with _ -> 0 in
         Hashtbl.add compSizeHT ci.cname bs;
         SkipChildren
-      end 
+      end
     | _ -> SkipChildren
 end
 let rememberTypeSizes (f:file): unit =
   visitCilFileSameGlobals typeSizeSetVisitor f
 
-let warnIfSizeChanged tau ht name other_attrlist = 
+let warnIfSizeChanged tau ht name other_attrlist =
   let new_bs = try bitsSizeOf tau / 8 with _ -> 0 in
   let old_bs = Hashtbl.find ht name in
   if (new_bs <> old_bs) then begin
-    ignore (E.log "****!!! Sizeof %s changed from %d to %d\n" 
+    ignore (E.log "****!!! Sizeof %s changed from %d to %d\n"
               name old_bs new_bs);
-    let node = Ptrnode.nodeOfAttrlist (typeAttrs tau @ other_attrlist) in 
+    let node = Ptrnode.nodeOfAttrlist (typeAttrs tau @ other_attrlist) in
     match node with
-      Some(n) when Ptrnode.hasFlag n Ptrnode.pkInterface -> 
-        let p,i = n.Ptrnode.where in 
-        ignore (E.log "  and is used in interface function %a\n" 
+      Some(n) when Ptrnode.hasFlag n Ptrnode.pkInterface ->
+        let p,i = n.Ptrnode.where in
+        ignore (E.log "  and is used in interface function %a\n"
                   Ptrnode.d_place p)
     | _ -> ()
   end
 
 let typeSizeCheckVisitor = object
-  inherit nopCilVisitor 
+  inherit nopCilVisitor
   method vglob g =
-    match g with 
-    | GCompTag (ci, l) when ci.cname <> "" 
+    match g with
+    | GCompTag (ci, l) when ci.cname <> ""
                       && Hashtbl.mem compSizeHT ci.cname -> begin
         let t = TComp(ci,[]) in
         warnIfSizeChanged t compSizeHT ci.cname ci.cattr ;
         SkipChildren
-      end 
-    | GType (t, l) when t.tname <> "" 
+      end
+    | GType (t, l) when t.tname <> ""
                        && Hashtbl.mem typeSizeHT t.tname -> begin
-        warnIfSizeChanged t.ttype typeSizeHT t.tname [] ; 
+        warnIfSizeChanged t.ttype typeSizeHT t.tname [] ;
         SkipChildren
       end
     | _ -> SkipChildren
@@ -146,7 +146,7 @@ let checkTypeSizes (f:file): unit =
 
 (* Look for global variables and functions that are used in a different module
    than they are defined. *)
-let differentFile loc1 loc2: bool = 
+let differentFile loc1 loc2: bool =
   (loc1 != locUnknown)
   && (loc2 != locUnknown)
   && (loc1.file <> loc2.file)
@@ -162,7 +162,7 @@ let globalFinder = object
   method vvrbl (v:varinfo) =
     if v.vglob then begin
      (*  ignore (E.log " Considering global %s.\n" v.vname); *)
-      try 
+      try
         match H.find MU.allGlobals (Poly.stripPoly v.vname) with
           Some loc ->
             if (differentFile !currentLoc loc)
@@ -179,9 +179,9 @@ let globalFinder = object
     SkipChildren
   method vtype (t:typ) =
     match t with TComp(ci, _) -> begin
-      try 
+      try
         let _, loc = H.find MU.allCompinfo ci.cname in
-        if not (IH.mem nonStaticComps ci.ckey) 
+        if not (IH.mem nonStaticComps ci.ckey)
           && (differentFile !currentLoc loc) then begin
 (*             ignore (E.log " Comp %s not static 'cause used in %a but defined in %a.\n" *)
 (*                       ci.cname d_loc !currentLoc d_loc loc); *)
@@ -218,7 +218,7 @@ let newStats (): stats = {
   union = ref 0;
   vararg = ref 0;
 }
-let printStats out what s: unit = 
+let printStats out what s: unit =
   let doOne cnt dsc: unit =
     if !cnt <> 0 then
       ignore(fprintf out "   %3d  %s.\n" !cnt dsc)
@@ -235,14 +235,14 @@ let printStats out what s: unit =
 
 let isSeq: N.opointerkind -> bool = function
   | N.Seq | N.FSeq | N.Index | N.Wild
-  | N.SeqN | N.FSeqN | N.SeqR | N.FSeqR 
+  | N.SeqN | N.FSeqN | N.SeqR | N.FSeqR
   | N.IndexT | N.WildT | N.SeqT | N.FSeqT | N.SeqNT | N.FSeqNT
   | N.SeqC | N.FSeqC | N.SeqNC | N.FSeqNC | N.SeqRC | N.FSeqRC
       -> true
   | _ -> false
 
 
-(* print with context.  
+(* print with context.
    We do this so the context info is only printed if needed. *)
 type context = { ctx: doc;
                  indent: int;
@@ -262,7 +262,7 @@ let doPrint (d:doc): unit =
 
 let withContext (d:doc) (f: 'a -> unit) (x: 'a): unit =
   let old = !current in
-  let ctx =    
+  let ctx =
     let ind = (!current).indent in
     text (String.make ind ' ') ++ d
   in
@@ -290,7 +290,7 @@ let doPrintNode (nid:int) (s:string): unit =
 (* Friendlier printing of nodes. *)
 let d_type = printType N.ccuredInferPrinter
 
-let rec examineType (ctr:stats) t : unit = 
+let rec examineType (ctr:stats) t : unit =
   let t = unrollType t in
   match t with
     TVoid _
@@ -340,10 +340,10 @@ let rec examineType (ctr:stats) t : unit =
       end;
       withContext (dprintf "In return type [%a]:\n" d_type rt)
         (examineType ctr) rt;
-      List.iter (fun (n, t, _) -> 
+      List.iter (fun (n, t, _) ->
                    withContext (dprintf "In formal \"%s\" [%a]:\n" n d_type t)
                      (examineType ctr) t
-                ) 
+                )
         (argsToList args)
   | TComp _ -> ()(* We visit these separately. *)
   | TNamed _ -> E.s (bug "unrollType")
@@ -374,13 +374,13 @@ let printGlobalAnnotations (out: out_channel) (f:file): unit =
   in
   iterGlobals f doGlobal;
   let compStats: stats = newStats () in
-  let doComp (ci:compinfo): unit = 
+  let doComp (ci:compinfo): unit =
     incr compStats.totalOccurances;
     if not ci.cstruct then begin
       doPrintInd (text "is a union.\n");
       incr compStats.union;
     end;
-    List.iter (fun fi -> 
+    List.iter (fun fi ->
                  withContext (dprintf "In field %s [%a]:\n"
                                 fi.fname d_type fi.ftype)
                    (examineType compStats) fi.ftype)
@@ -392,11 +392,11 @@ let printGlobalAnnotations (out: out_channel) (f:file): unit =
           )
     nonStaticComps;
 
-  ignore(fprintf out 
+  ignore(fprintf out
            "Summary of the annotation burden for \"%s\".\n" f.fileName);
-  ignore(fprintf out 
+  ignore(fprintf out
            "Remember that this excludes library functions with wrappers.\n");
-  ignore(fprintf out 
+  ignore(fprintf out
          "This also excludes any nodes that have already been annotated.\n\n");
   ignore(fprintf out "**************************************************\n");
   printStats out "Global variables" variableStats;
@@ -414,7 +414,7 @@ let printGlobalAnnotations (out: out_channel) (f:file): unit =
 
 (* similar to examineType, but for listGlobalAnnotations instead of
    printGlobalAnnotations. *)
-let rec listExamineType ?(suppressBoundsWarning=false) 
+let rec listExamineType ?(suppressBoundsWarning=false)
   (where: string) (t:typ): unit =
   let reportNodeDoc (what:doc): unit =
     let di_type = printType N.ccuredInferPrinter  in
@@ -454,7 +454,7 @@ let rec listExamineType ?(suppressBoundsWarning=false)
         let n = nodeOf a in
         let rep = N.get_rep n in
         if not(isVoidType rep.N.btype) then
-          reportNodeDoc 
+          reportNodeDoc
             ((text "is a void* that CCured has inferred to be a ")
              ++ d_type () (TPtr(rep.N.btype,[])))
       end;
@@ -477,22 +477,22 @@ let rec listExamineType ?(suppressBoundsWarning=false)
 (*         doPrintInd (text "Vararg function.\n") *)
 (*       end; *)
       listExamineType "<function pointer return type>" rt;
-      List.iter (fun (n, t, _) -> 
-                   listExamineType ("<function pointer formal "^n^">") t) 
+      List.iter (fun (n, t, _) ->
+                   listExamineType ("<function pointer formal "^n^">") t)
         (argsToList args)
   | TComp _ -> ()(* We visit these separately. *)
   | TNamed _ -> E.s (bug "unrollType")
 
 (* listGlobalAnnotations lists all of the annotations needed by Deputy.
    It's similar to printGlobalAnnotations, but it lists the results one
-   at a time on stdout, and it includes even static globals. *)   
-let listGlobalAnnotations (f:file): unit = 
+   at a time on stdout, and it includes even static globals. *)
+let listGlobalAnnotations (f:file): unit =
   E.log "\nListing annotations needed for Deputy.\n";
   let oldPCI = !print_CIL_Input in
   print_CIL_Input := true;
 
   (* Maintain a map from globals to the location of their first declaration.
-     If a var has no location (probably because it's Poly), use the 
+     If a var has no location (probably because it's Poly), use the
      location of it's declaration.  *)
   let declarations: location IH.t = IH.create 50 in
   let setLoc vi: unit =
@@ -514,7 +514,7 @@ let listGlobalAnnotations (f:file): unit =
         if not (hasAttribute "annotated" vi.vattr) then begin
           let rt, formals, _, _ = splitFunctionType vi.vtype in
           listExamineType "the return value" rt;
-          List.iter (fun (n,t,_) -> 
+          List.iter (fun (n,t,_) ->
                        listExamineType ("formal \""^n^"\"") t)
             (argsToList formals);
         end
@@ -530,8 +530,8 @@ let listGlobalAnnotations (f:file): unit =
           listExamineType "the return value" rt;
           List.iter (fun vi -> listExamineType ("formal \""^vi.vname^"\"") vi.vtype)
             fdec.sformals;
-          List.iter (fun vi -> 
-                       listExamineType ~suppressBoundsWarning:true 
+          List.iter (fun vi ->
+                       listExamineType ~suppressBoundsWarning:true
                        ("local \""^vi.vname^"\"") vi.vtype)
             fdec.slocals
         end
@@ -558,22 +558,22 @@ let listGlobalAnnotations (f:file): unit =
 (**************************************************************************)
 (**************************************************************************)
 
-let printChecks (f: file) = 
+let printChecks (f: file) =
   H.clear counters;
   ignore (visitCilFile (new collectCureStats) f);
   let allChecks = ref 0 in
-  let l = 
-    H.fold (fun name counter acc -> 
+  let l =
+    H.fold (fun name counter acc ->
       allChecks := !allChecks + !counter;
       (name, !counter) :: acc) counters [] in
   (* Now sort for most frequent first *)
   let l = List.sort (fun (_, c1) (_, c2) -> (compare c2 c1)) l in
   H.clear counters;
-  if !allChecks = 0 then 
+  if !allChecks = 0 then
     ignore (E.log "No checks were inserted!\n")
   else begin
     ignore (E.log "Static count of CHECKs inserted:\n");
-    List.iter 
+    List.iter
       (fun (n, c) -> ignore (E.log " %-30s %6d (%6.2f%%)\n"
                                n c (100.0 *. (float c) /. (float !allChecks))))
       l

@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -55,7 +55,7 @@ type normalAddr = (
         Cil.exp (* The base address, a Lval, AddrOf, StartOf *)
       * int * Cil.exp (* A scale (maybe 0) times an index *)
       * int       (* An offset *)
-      ) option 
+      ) option
 
 
 (** Pretty printer for {!Optutil.normalExp} *)
@@ -66,18 +66,17 @@ val d_naddr: unit -> normalAddr -> Pretty.doc
 
 
 (** Normalize an expression *)
-val normalizeExp: Cil.exp -> normalExp 
+val normalizeExp: Cil.exp -> normalExp
 
 (** Normalize an address *)
 val normalizeAddr: Cil.exp -> normalAddr
-  
+
 
 (** Multiply a normalized expression by an integer factor. *)
-val multNormalExp: normalExp -> int -> normalExp 
+val multNormalExp: normalExp -> int -> normalExp
 
 (** Add two normalized expressions *)
 val addNormalExp: normalExp -> normalExp -> normalExp
 
 (** Add a normal expression to a normal address *)
 val addNormalAddr: normalAddr -> normalExp -> normalAddr
-

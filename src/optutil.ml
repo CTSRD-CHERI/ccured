@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -59,7 +59,7 @@ type normalAddr = (
         exp (* The base address, a Lval, AddrOf, StartOf *)
       * int * exp (* A scale (maybe 0) times an index *)
       * int       (* An offset *)
-      ) option 
+      ) option
 
 let d_nexp () = function
     None -> text "NoNormExp"
@@ -71,49 +71,49 @@ let d_naddr () = function
 
 
 (** Multiply a normalized expression *)
-let multNormalExp (ne: normalExp) (fact: int) : normalExp = 
-  match ne with 
+let multNormalExp (ne: normalExp) (fact: int) : normalExp =
+  match ne with
     None -> None
   | Some (s, e, o) -> Some (s * fact, e, o * fact)
 
 (* Add two normalized expressions *)
-let addNormalExp (ne: normalExp) (ne': normalExp) : normalExp = 
+let addNormalExp (ne: normalExp) (ne': normalExp) : normalExp =
   match ne, ne' with
     None, _ -> None
   | _, None -> None
-  | Some (s, e, o), Some (s', e', o') -> 
-      if s = 0 then Some (s', e', o + o') 
-      else if s' = 0 then Some (s, e, o + o') 
+  | Some (s, e, o), Some (s', e', o') ->
+      if s = 0 then Some (s', e', o + o')
+      else if s' = 0 then Some (s, e, o + o')
       else
         (* Both s and s' are non-null. Hope that e are the same *)
-        if e == e' then 
+        if e == e' then
           Some (s + s', e, o + o')
-        else 
+        else
           None
 
 (* Add a normal expression to a normal address *)
-let addNormalAddr (na: normalAddr) (ne: normalExp): normalAddr = 
-  match na, ne with 
+let addNormalAddr (na: normalAddr) (ne: normalExp): normalAddr =
+  match na, ne with
     None, _ -> None
   | _, None -> None
   | Some (b, s, i, o), Some (s', i', o') -> begin
-      match addNormalExp (Some (s, i, o)) (Some (s', i', o')) with 
+      match addNormalExp (Some (s, i, o)) (Some (s', i', o')) with
         None -> None
       | Some (s'', i'', o'') -> Some (b, s'', i'', o'')
   end
 
 (** Normalize an expression *)
-let rec normalizeExp (e: exp) : normalExp = 
-  match e with 
+let rec normalizeExp (e: exp) : normalExp =
+  match e with
     CastE(_, e) -> normalizeExp e
   | Const(CInt64(i, _, _)) -> Some (0, zero, Int64.to_int i)
-  | BinOp(PlusA, e1, e2, _) -> 
+  | BinOp(PlusA, e1, e2, _) ->
       addNormalExp (normalizeExp e1) (normalizeExp e2)
-  | BinOp(MinusA, e1, e2, _) -> 
+  | BinOp(MinusA, e1, e2, _) ->
       addNormalExp (normalizeExp e1) (multNormalExp (normalizeExp e2) (-1))
-  | BinOp(Mult, Const(CInt64(i, _, _)), e2, _) -> 
+  | BinOp(Mult, Const(CInt64(i, _, _)), e2, _) ->
       multNormalExp (normalizeExp e2) (Int64.to_int i)
-  | BinOp(Mult, e1, Const(CInt64(i, _, _)), _) -> 
+  | BinOp(Mult, e1, Const(CInt64(i, _, _)), _) ->
       multNormalExp (normalizeExp e1) (Int64.to_int i)
   | SizeOf (t) -> begin
       try
@@ -128,62 +128,61 @@ let rec normalizeExp (e: exp) : normalExp =
   | e -> Some (1, e, 0)
 
 (** Normalize an address *)
-let rec normalizeAddr (a: exp): normalAddr = 
-  match a with 
+let rec normalizeAddr (a: exp): normalAddr =
+  match a with
   | CastE (_, a) -> normalizeAddr a
   | StartOf _ | Lval _ -> Some (a, 0, zero, 0)
   | BinOp((PlusPI|IndexPI), a, off, TPtr(bt, _)) -> begin
       try
         let bt_size = bitsSizeOf bt / 8 in
-        addNormalAddr (normalizeAddr a) 
+        addNormalAddr (normalizeAddr a)
           (multNormalExp (normalizeExp off) bt_size)
       with _ -> None
   end
   | BinOp(MinusPI, a, off, TPtr(bt, _)) -> begin
       try
         let bt_size = bitsSizeOf bt / 8 in
-        addNormalAddr (normalizeAddr a) 
+        addNormalAddr (normalizeAddr a)
           (multNormalExp (normalizeExp off) (- bt_size))
       with _ -> None
   end
   | AddrOf (h, off) -> begin
       (* Hopefully it is ...[i] *)
-      let rec getHostIndex (off: offset) : (offset * exp) option = 
-        match off with 
+      let rec getHostIndex (off: offset) : (offset * exp) option =
+        match off with
         | NoOffset -> None
         | Index(idx, NoOffset) -> Some (NoOffset, idx)
         | Field (f, off) -> begin
-            match getHostIndex off with 
+            match getHostIndex off with
               None -> None
             | Some (hoff, idx) -> Some (Field(f, hoff), idx)
         end
         | Index(idx0, off) -> begin
-            match getHostIndex off with 
+            match getHostIndex off with
               None -> None
             | Some (hoff, idx) -> Some (Index(idx0, hoff), idx)
         end
       in
-      match getHostIndex off with 
+      match getHostIndex off with
         None -> Some (a, 0, zero, 0)
-      | Some (hoff, idx) -> 
+      | Some (hoff, idx) ->
           try
             let bt_size = bitsSizeOf (typeOfLval (h, off)) / 8 in
-            addNormalAddr 
+            addNormalAddr
               (normalizeAddr (StartOf (h, hoff)))
               (multNormalExp (normalizeExp idx) bt_size)
           with _ -> None
   end
   | _ -> None
 
-(* For debugging 
-let normalizeExp (e: exp) : normalExp = 
+(* For debugging
+let normalizeExp (e: exp) : normalExp =
   let res = normalizeExp e in
   ignore (E.log "normalizeExp(%a) = %a\n" d_exp e d_nexp res);
   res
 
-let normalizeAddr (a: exp) : normalAddr = 
+let normalizeAddr (a: exp) : normalAddr =
   let res = normalizeAddr a in
   ignore (E.log "normalizeAddr(%a) = %a\n" d_exp a d_naddr res);
   res
 *)
-  

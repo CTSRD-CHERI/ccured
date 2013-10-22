@@ -1,12 +1,12 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  Matt Harren         <matth@cs.berkeley.edu>
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -48,10 +48,10 @@ module N = Ptrnode
 module MU = Markutil
 module Dep = Dependent
 
-let findOrCreateFunc f ?(extraGlobal:global option) name t : varinfo = 
-  let rec search glist = 
+let findOrCreateFunc f ?(extraGlobal:global option) name t : varinfo =
+  let rec search glist =
     match glist with
-	GVarDecl(vi,_) :: rest when isFunctionType vi.vtype 
+	GVarDecl(vi,_) :: rest when isFunctionType vi.vtype
 	  && vi.vname = name -> vi
       | _ :: rest -> search rest (* tail recursive *)
       | [] -> (*not found, so create one *)
@@ -67,14 +67,14 @@ let findOrCreateFunc f ?(extraGlobal:global option) name t : varinfo =
 
 let stringOf (i:int): string = Int32.to_string (Int32.of_int i)
 
-let arrayLen eo : int = 
+let arrayLen eo : int =
   try
     lenOfArray eo
   with LenOfArray -> E.s (unimp "array without a size")
 
 (* flatten nested arrays *)
 let rec getSize t: int * typ =
-  match unrollType t with 
+  match unrollType t with
       TArray(bt, e, _) ->
         let mylen = arrayLen e in
         let len', bt' = getSize bt in
@@ -82,7 +82,7 @@ let rec getSize t: int * typ =
     | _ -> 1, t
 
 (* size in bytes. *)
-let mySizeof t: int = 
+let mySizeof t: int =
   try
     let s = bitsSizeOf t in
     if s mod 8 <> 0 then raise (SizeOfError("not a multiple of 8", t));
@@ -103,7 +103,7 @@ let fieldDifference f1 f2: int =
   delta / 8
 
 
-(* Should we treat a function polymorphically? 
+(* Should we treat a function polymorphically?
    As a heuristic, only do this for functions that take a void* argument.
    This way most wrappers will not be polymorphic. *)
 let treatAsPoly fv: bool =
@@ -117,32 +117,32 @@ let treatAsPoly fv: bool =
 (*     && not (startsWith (Poly.stripPoly fv.vname) "__") *)
 (*     (\* Do annotate __endof, __stringof, etc. *)
 (*        FIXME: find a better way to tell which funcs are external.*\) *)
-        
+
 
 (* exception Unimp *)
 let uniqueUnimplLabel = ref 0
-let unimplementedT t =  
-  ignore (warn "Can't annotate unimplemented type: %a  (Attrs: %a)\n" 
+let unimplementedT t =
+  ignore (warn "Can't annotate unimplemented type: %a  (Attrs: %a)\n"
             d_type t d_attrlist (typeAttrs t));
 (*   raise Unimp *)
   incr uniqueUnimplLabel;
   dprintf "unimplemented%d" !uniqueUnimplLabel
 
-let rec hasOneMetaField (t:typ): bool = 
+let rec hasOneMetaField (t:typ): bool =
   match unrollType t with
       TPtr(bt, a) ->
         let kind, _ = N.kindOfAttrlist a in
         kind = N.Rtti
     | _ -> false
 
-let rec hasTwoMetaFields (t:typ): bool = 
+let rec hasTwoMetaFields (t:typ): bool =
   match unrollType t with
       TPtr(bt, a) ->
         let kind, _ = N.kindOfAttrlist a in
         kind = N.Seq
     | _ -> false
 
-let maybeStack (a: attributes):bool = 
+let maybeStack (a: attributes):bool =
   match N.nodeOfAttrlist a with
       Some n when N.hasFlag n N.pkStack -> true
     | _ -> false
@@ -155,34 +155,34 @@ let dumpSizeAttribute (thisFieldOpt:fieldinfo option) (a:attrparam): doc =
       AInt k -> num k
     | ASizeOf t -> num (mySizeof t)
     | ACons(s, []) -> begin (* This is a field access into the host *)
-        try 
+        try
           let targetField = getCompField thisField.fcomp s in
           let diff = fieldDifference thisField targetField in
           dprintf "(memAt %d)" diff
-        with Not_found -> 
+        with Not_found ->
           E.s (bug "Cannot annotate the dependency %a: Cannot find field %s"
                  d_attrparam a
                  s)
       end
-    | ABinOp ((PlusA|MinusA|Mult) as bop, e1, e2) -> 
+    | ABinOp ((PlusA|MinusA|Mult) as bop, e1, e2) ->
         dprintf "(%a %a %a)" d_binop bop insert (doit e1) insert (doit e2)
     | _ -> E.s (unimp "Cannot annotate the dependency %a" d_attrparam a)
   in
   doit a
 
-let rec encodeType ?(thisField:fieldinfo option) (t:typ):doc = 
+let rec encodeType ?(thisField:fieldinfo option) (t:typ):doc =
   let unimplemented () = unimplementedT t in
   match unrollType t with
-      TInt _ | TEnum _ as t' when bitsSizeOf t' = 32 -> 
+      TInt _ | TEnum _ as t' when bitsSizeOf t' = 32 ->
         text "int" (*int, uint, long, ulong*)
     | TInt _ | TEnum _ as t' when bitsSizeOf t' = 16 ->
         text "short"
-    | TInt _ | TEnum _ as t' when bitsSizeOf t' = 8 -> 
+    | TInt _ | TEnum _ as t' when bitsSizeOf t' = 8 ->
         text "char"
     | TPtr(bt, a) -> begin
         let bt' = encodeType ?thisField bt in
         let kind, _ = N.kindOfAttrlist a in
-        let ptrAnn kind = 
+        let ptrAnn kind =
           let t = chr '(' ++ text kind ++ bt' ++ chr ')' in
           if maybeStack a then text "(local " ++ t ++ chr ')'
           else t
@@ -191,7 +191,7 @@ let rec encodeType ?(thisField:fieldinfo option) (t:typ):doc =
             _, N.Safe when hasAttribute "size" a ->begin
               match filterAttributes "size" a with
                 [Attr(_,[sz])] ->
-                  dprintf "(sizedP %a %a)" 
+                  dprintf "(sizedP %a %a)"
                     insert bt' insert (dumpSizeAttribute thisField sz)
               | _ -> E.s (bug "bad size attr")
             end
@@ -213,31 +213,31 @@ let rec encodeType ?(thisField:fieldinfo option) (t:typ):doc =
     | TComp(ci, _) when ci.cstruct ->
         text ci.cname
     | TVoid [] -> text "void"
-    | _ -> 
+    | _ ->
         unimplemented ()
 
 and encodeFuncType = function
-    TFun(rt, args, va, a) -> 
+    TFun(rt, args, va, a) ->
       (* FIXME: varargs *)
       if va then
         ignore (warn "vararg functions unimplemented.");
       if a <> [] then
         ignore (warn "function attributes unimplemented.");
-      let rec doParams argList: doc = 
-        match argList with 
+      let rec doParams argList: doc =
+        match argList with
         | (_, t, _)::m1::rest when hasOneMetaField t ->
             let t' = encodeType t in
             chr ' ' ++ t' ++ text " (depValue -4)" ++ (doParams rest)
         | (_, t, _)::m1::m2::rest when hasTwoMetaFields t ->
             let t' = encodeType t in
-            chr ' ' ++ t' ++ text " (depValue -4) (depValue -8)" 
+            chr ' ' ++ t' ++ text " (depValue -4) (depValue -8)"
             ++ (doParams rest)
         | (_, t, _)::rest ->
             let t' = encodeType t in
             chr ' ' ++ t' ++ (doParams rest)
         | [] -> nil
       in
-      text "(func " ++ encodeType rt ++ doParams (argsToList args) 
+      text "(func " ++ encodeType rt ++ doParams (argsToList args)
             ++ chr ')'
   | _ ->
       E.s (bug "nonfunc in encodeFuncType")
@@ -247,8 +247,8 @@ let depValue n = text "(depValue " ++ num n ++ chr ')'
 
 (* get the string for the type of a metadata field *)
 let encodeMetadata (fi:fieldinfo): doc =
-  let bitOffset, x = (bitsOffset 
-                        (TComp(fi.fcomp,[])) 
+  let bitOffset, x = (bitsOffset
+                        (TComp(fi.fcomp,[]))
                         (Field(fi, NoOffset))) in
   (* assume the pointer starts 4 bytes before the meta struct *)
   let byteOffset = (-1 * (bitOffset / 8)) - 4 in
@@ -259,7 +259,7 @@ let encodeMetadata (fi:fieldinfo): doc =
 (* For arrays inside structs, unroll them into "len" different fields *)
 (* FIXME: this doesn't work well for variable access *)
 let encodeArrayType (fieldName:string) (t:typ) : doc =
-  if not (isArrayType t) then 
+  if not (isArrayType t) then
     E.s (bug " non-array passed to encodeArrayType");
   let len, bt = getSize t in
   let acc: doc ref = ref nil in
@@ -275,7 +275,7 @@ let allocFunctions: (string, unit) H.t = H.create 7
 
 let getPragmas (f:file): unit =
   List.iter
-    (function 
+    (function
          GPragma (Attr("ccuredalloc",  AStr(s) :: rest), l) ->
            if not (H.mem allocFunctions s) then begin
              ignore (E.log "%s is an allocation func.\n" s);
@@ -285,8 +285,8 @@ let getPragmas (f:file): unit =
     )
     f.globals;
   ()
-  
-let isAlloc (vf:varinfo): bool = 
+
+let isAlloc (vf:varinfo): bool =
 (* FIXME:  what about name mangling by cure.ml?? *)
   let name = Poly.stripPoly vf.vname in
   let name' = Alpha.getAlphaPrefix name in
@@ -301,19 +301,19 @@ let quoted s: string =
   "\"" ^ s ^ "\""
 
 (* Like quoted, but prepends _ to identifiers if Cil.underscore_name is true.*)
-let quotedLabel s: doc = 
+let quotedLabel s: doc =
   if !Cil.underscore_name then
     text "\"_" ++ text s ++ chr '\"'
-  else 
+  else
     chr '\"'++ text s ++ chr '\"'
 
-let strOf (d:doc):string = 
+let strOf (d:doc):string =
   sprint 1024 d
 
 let globalAnn label args:  global =
   let annstr = "#ANN(" ^ label ^", " ^ (strOf args) ^")" in
   GAsm(annstr, !currentLoc)
- 
+
 let volatile = [Attr("volatile", []);]
 
 let localAnn label args: instr =
@@ -332,7 +332,7 @@ let localVarAnn label func v typ totalsize: instr =
   in
   Asm(volatile, [strOf annstr],
       [(None, "=m", lv)],
-      [(None,"m", Lval lv)], 
+      [(None,"m", Lval lv)],
       [], !currentLoc)
 
 
@@ -341,7 +341,7 @@ let localVarAnn label func v typ totalsize: instr =
 let ccuredstruct = "ANN_STRUCT"
 let ccuredfunc = "ANN_FUNC"    (* A func that is declared or defined *)
 let ccuredroot = "ANN_ROOT"    (* A func that is defined *)
-let ccuredsubr = "ANN_SUBR"    (* A func that is defined but that should be 
+let ccuredsubr = "ANN_SUBR"    (* A func that is defined but that should be
                                   treated polymorphically (a subroutine). *)
 let ccuredglobal = "ANN_GLOBAL"
 let ccuredglobalarray = "ANN_GLOBALARRAY"
@@ -350,7 +350,7 @@ let ccuredrtti = "ANN_RTTITAGS"
 let ccuredalloc = "ANN_ALLOC"
 let ccuredlocal = "ANN_LOCAL"
 (* let ccuredlocalarray = "ANN_LOCALARRAY" *)
-  
+
 
 (*******   Visitor   *******)
 
@@ -359,7 +359,7 @@ let startsWith s prefix =
   (String.length s >= n) && ((Str.first_chars s n) = prefix)
 
 let annotatedFunctions: (varinfo, unit) H.t = H.create 19
-let annotateFundec fv = 
+let annotateFundec fv =
   if H.mem annotatedFunctions fv then
     None
   else if treatAsPoly fv then begin
@@ -375,14 +375,14 @@ let annotateFundec fv =
     Some ann
   end
 
-class annotationVisitor 
+class annotationVisitor
 = object(self)
   inherit nopCilVisitor
-    
+
   val mutable currentFunction: fundec = Cil.dummyFunDec
 
   method vinst i = begin
-    match i with 
+    match i with
         Call (Some dest, Lval(Var vf, NoOffset), _, _) (* when isAlloc vf *) ->
          (*  ignore (E.log "looking at %s\n" vf.vname); *)
           if not (isAlloc vf) then DoChildren else begin
@@ -414,12 +414,12 @@ class annotationVisitor
     if maybeStack v.vattr then begin
       assert (v.vaddrof);
       assert (not v.vglob);
-      (* For a local, this flag would only be set if we take the address of v, 
+      (* For a local, this flag would only be set if we take the address of v,
          right? *)
       (* ignore (E.log "  We take the address of %s.\n" v.vname); *)
       let t = encodeType v.vtype in
       let s = mySizeof v.vtype in
-      self#queueInstr 
+      self#queueInstr
         [localVarAnn ccuredlocal currentFunction v t s];
       ()
     end
@@ -431,7 +431,7 @@ class annotationVisitor
             | Some size' ->
                 let size'' = (Int64.to_int size') * mySizeof bt in
                 let t = encodeType bt in
-                self#queueInstr 
+                self#queueInstr
                   [localVarAnn ccuredlocal currentFunction v t size''];
                 ()
           end
@@ -445,7 +445,7 @@ class annotationVisitor
 
   method vglob g = begin
     try
-      match g with 
+      match g with
           GFun (fdec, l) ->
             currentFunction <- fdec;
             (* Step 1: declare the function signature *)
@@ -464,7 +464,7 @@ class annotationVisitor
               )
             else begin
               let anno = annotateFundec fdec.svar in
-              let rootAnn = globalAnn ccuredroot 
+              let rootAnn = globalAnn ccuredroot
                               (quotedLabel (Poly.stripPoly fdec.svar.vname)) in
               let newG = match anno with
                   Some ann -> [ann; rootAnn; g]
@@ -475,7 +475,7 @@ class annotationVisitor
                 (fun g -> currentFunction <- Cil.dummyFunDec; g)
               )
             end
-        | GVarDecl (vi, l) 
+        | GVarDecl (vi, l)
             when isFunctionType vi.vtype (* && vi.vname <> "__ccuredInit" *) ->
             begin
               let anno = annotateFundec vi in
@@ -503,7 +503,7 @@ class annotationVisitor
                       [ann; g],
                       (fun g -> g)
                     )
-                | _ -> 
+                | _ ->
                     E.s (error "I don't recognize the fields in this tagged unio n.");
               end
               else (* the union in a tagged union struct *)
@@ -517,11 +517,11 @@ class annotationVisitor
                 (fun fi ->
                    if fi.fname = Cil.missingFieldName then
                      E.s (unimp "not a real field? in %a" d_global g);
-                   if isArrayType fi.ftype then 
+                   if isArrayType fi.ftype then
                      annstr := !annstr ++ encodeArrayType fi.fname fi.ftype
                    else begin
                      let typestr = try
-                       let ptrField = 
+                       let ptrField =
                          H.find Dep.metaFields (ci.ckey, fi.fname) in
                        let diff = fieldDifference fi ptrField in
                        depValue diff
@@ -529,7 +529,7 @@ class annotationVisitor
                        if isMetaStruct then
                            encodeMetadata fi
                          else
-                           encodeType ~thisField:fi fi.ftype 
+                           encodeType ~thisField:fi fi.ftype
                      in
                      annstr := !annstr ++ text ", " ++ text (quoted fi.fname)
                                        ++ text ", " ++ typestr
@@ -549,7 +549,7 @@ class annotationVisitor
             when vi.vname = "RTTI_ARRAY" ->
             let arrayName = quotedLabel vi.vname in
             let extensions = Array.to_list (MU.getAllExtensions ()) in
-            let strs: doc list = 
+            let strs: doc list =
               List.map
                 (fun ex ->
                    match ex with
@@ -557,7 +557,7 @@ class annotationVisitor
                    | MU.ExScalar -> text "void"
                    | MU.ExComp ci -> encodeType (TComp (ci, []))
                    | MU.ExAuto(t, n) -> encodeType t
-                   | MU.ExNonPointer t -> text "(nonPtr " ++ (encodeType t) 
+                   | MU.ExNonPointer t -> text "(nonPtr " ++ (encodeType t)
                                             ++ chr ')'
                    | MU.ExType ti -> E.s (unimp "ExType")
                 )
@@ -565,7 +565,7 @@ class annotationVisitor
             in
             let annstr = docList (fun x -> x) () (arrayName::strs) in
             let ann = globalAnn ccuredrtti annstr in
-            ChangeDoChildrenPost( 
+            ChangeDoChildrenPost(
               [ann; g],
               (fun g -> g)
             )
@@ -575,38 +575,38 @@ class annotationVisitor
             (* ignore (E.log "annotating %s: %a\n" vi.vname d_type vi.vtype); *)
             (match vi.vtype with
                  TArray(bt, leno, a) when (bitsSizeOf bt) < 32 ->
-                   (* FIXME: hack for chars.  Expand this array so its 
+                   (* FIXME: hack for chars.  Expand this array so its
                       length is a multiple of 4. *)
                    let len = arrayLen leno in
                    let len' = ((len + 3) / 4) * 4 in
                    assert (len'>=len && len'<len+4);
                    vi.vtype <- TArray(bt, Some (integer len'), a);
                | _ -> ());
-            let ann = 
+            let ann =
               match vi.vtype with
                   TArray _ ->
                     let size, bt = getSize vi.vtype in
-                    globalAnn ccuredglobalarray 
-                      (dprintf "%a, %a, %d" 
+                    globalAnn ccuredglobalarray
+                      (dprintf "%a, %a, %d"
                          insert (quotedLabel vi.vname)
                          insert (encodeType bt)
                          size)
                 | TFun _ -> E.s (bug "Use GVarDecl for function prototypes.")
                 | _ -> globalAnn ccuredglobal (quotedLabel vi.vname
-                                               ++ text ", " 
+                                               ++ text ", "
                                                ++ (encodeType vi.vtype))
             in
-            ChangeDoChildrenPost( 
+            ChangeDoChildrenPost(
               [ann; g],
               (fun g -> g)
             )
-      | _ -> 
+      | _ ->
           DoChildren
-    with e -> 
+    with e ->
       (* DoChildren *)
       raise e
   end
-        
+
 end
 
 (*******  Preprocess  Visitor   *******)
@@ -625,7 +625,7 @@ class preprocessVisitor (calloc: varinfo) = object(self)
   method vinst i = begin
     match i with
       Call(Some res, Lval(Var vf, NoOffset), [size], l) when
-        vf.vname = "malloc" -> 
+        vf.vname = "malloc" ->
           let noInitNeeded =
             match unrollType (typeOfLval res) with
               TPtr(bt, _) -> isArithmeticType bt
@@ -643,13 +643,13 @@ class preprocessVisitor (calloc: varinfo) = object(self)
 
     (* Assert that we never do arith on MD arrays. *)
   method vexpr e = begin
-    match e with 
-        BinOp((PlusPI 
+    match e with
+        BinOp((PlusPI
               | IndexPI
               | MinusPI
               | MinusPP), e1, _, _) when isMDArrayExp e1 ->
           E.s (unimp "I haven't implemented pointer arith on multi-dimensional arrays yet.")
-      | _ -> 
+      | _ ->
          (*  ignore (E.log "[%a] looking at %a : %a\n" d_loc !currentLoc  *)
 (*                     d_plainexp e d_plaintype (typeOf e)); *)
           DoChildren
@@ -691,7 +691,7 @@ class preprocessVisitor (calloc: varinfo) = object(self)
   method vglob g = begin
     match g with
         GVar (vi, ({init = Some (CompoundInit(at, _) as old)} as i'), l)
-          when  isMDArray vi.vtype -> 
+          when  isMDArray vi.vtype ->
             (* ignore (E.log "init is %a\n" d_plaininit old); *)
             (* A simpler solution is possible when we know that the base type
                will always use SingleInit (i.e. is not a struct) *)
@@ -719,12 +719,12 @@ class preprocessVisitor (calloc: varinfo) = object(self)
 (*                   " t is %a\n  off is %a\n  sofar is %d\n  index is %d\n" *)
 (*                   d_type t (d_offset nil) off sofar index); *)
               (* let completeoff = addOffset off sofar in *)
-              match i with 
+              match i with
                   SingleInit (exp) ->
                     (Index(integer index, NoOffset), i)::acc
-                | CompoundInit (typI, initlist) -> (* recurse over the 
+                | CompoundInit (typI, initlist) -> (* recurse over the
                                                       elements of comp type*)
-                    foldLeftCompound ~implicit:true 
+                    foldLeftCompound ~implicit:true
                       ~doinit:(helper index) ~ct:typI
                       ~initl:initlist ~acc:acc
             in
@@ -737,7 +737,7 @@ class preprocessVisitor (calloc: varinfo) = object(self)
   end
 end
 
-let fixTypeDecl t : typ = 
+let fixTypeDecl t : typ =
   match unrollTypeDeep t with
       TArray(TArray _, _, a) -> begin
         let len, bt = getSize t in
@@ -752,7 +752,7 @@ let fixTypeDecl t : typ =
 (* Later, change the array declarations themselves *)
 class preprocessVisitor2 = object(self)
   inherit nopCilVisitor
-    
+
   method vvdec v = begin
     let newT = fixTypeDecl v.vtype in
     v.vtype <- newT;
@@ -784,12 +784,12 @@ end
 
 (*******  Module entry       *****************************************)
 
-let annotate (f: file) : unit = 
+let annotate (f: file) : unit =
   ignore(E.log "Printing annotations:\n");
   getPragmas f;
   let annVisitor = new annotationVisitor in
   visitCilFile annVisitor f;
-  let gl = globalAnn ccuredglobalarray 
+  let gl = globalAnn ccuredglobalarray
              (quotedLabel "__ccured_va_tags"
               ++ text ", int, 32") in
   let gl2 = globalAnn ccuredglobal (quotedLabel "__ccured_va_count"
@@ -800,19 +800,18 @@ let annotate (f: file) : unit =
 
 
 (* No Preproccessing at the moment *)
-let preprocess (f: file) : unit = 
+let preprocess (f: file) : unit =
   ignore(E.log "Preprocessing for annotations:\n");
-  let callocPragma = GPragma (Attr("ccuredalloc",  
+  let callocPragma = GPragma (Attr("ccuredalloc",
                                    [AStr("calloc");
                                     ACons("zero", []);
                                     ACons("sizemul", [AInt 1; AInt 2])]),
                               locUnknown) in
   let calloc = findOrCreateFunc f ~extraGlobal:callocPragma "calloc"
-                        (TFun (voidPtrType, 
-                               Some([("nmemb", uintType, []) ; 
-                                     ("size", uintType, []) ]), 
+                        (TFun (voidPtrType,
+                               Some([("nmemb", uintType, []) ;
+                                     ("size", uintType, []) ]),
                                false, [])) in
   visitCilFile (new preprocessVisitor calloc) f;
   visitCilFile (new preprocessVisitor2) f;
   ()
-

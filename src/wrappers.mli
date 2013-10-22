@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -53,13 +53,13 @@ val replaceWrappers: Cil.file -> unit
     wrapper (Or throws Not_found). *)
 val findWrapperOf: string -> Cil.varinfo
 
-(** e.g. #pragma ccuredwrapperof("foo_wrapper", "foo") 
+(** e.g. #pragma ccuredwrapperof("foo_wrapper", "foo")
  ** means that "foo" has a wrapper and "foo_wrapper" is a wrapper. *)
 val hasAWrapper: string -> bool
 val isAWrapper: string -> bool
 
-(** Improved version of addConstraints.  Adds constraints to directly to the 
- ** formal args of e.g. __endof, __mkptr, etc. 
+(** Improved version of addConstraints.  Adds constraints to directly to the
+ ** formal args of e.g. __endof, __mkptr, etc.
  ** No-op for all functions besides the wrapper helpers. *)
 val addFormalConstraints: Cil.varinfo -> unit
 

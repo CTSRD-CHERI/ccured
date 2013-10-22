@@ -1,11 +1,11 @@
 (*
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  Jeremey Condit      <jcondit@cs.berkeley.edu>
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -36,7 +36,7 @@
  * this module contains code necessary to insert annotations used by
  * proof-carrying code.
  *)
- 
+
 open Cil
 open Trace
 open Pretty
@@ -71,7 +71,7 @@ let rec makeTypeString = function
         | N.Seq -> "seqptr"
         | N.FSeq -> "fseqptr"
         | _ -> "unknownptr" in
-    let tyargs = 
+    let tyargs =
         begin try
         let Attr (_, tyargs) = List.hd (filterAttributes "tyargs" al) in tyargs
         with Failure _ -> []
@@ -80,7 +80,7 @@ let rec makeTypeString = function
             (fun t s -> match t with AStr x -> " @" ^ x ^ s | _ -> s) tyargs ""
     in
     "(" ^ tybasestr ^ " " ^ (makeTypeString t) ^ tyargsstr ^ ")"
-  (* TODO: compute number of array elements *)  
+  (* TODO: compute number of array elements *)
   | TArray(t, _, _) -> "(cstackarray " ^ makeTypeString t ^ " 0)"
   | TComp(ci, _) -> "(ccomp " ^ ci.cname ^ ")"
   | TFun(_, _, _, _) -> "function"
@@ -96,9 +96,9 @@ let varInfoToAnnot (vi: varinfo) =
             TArray(tsub, _, _) -> derefArray tsub (Lval (mkMem e NoOffset))
           | _ -> e
     in
-    Asm ([], ["ann var " ^ vi.vname ^ ",%0," ^ 
+    Asm ([], ["ann var " ^ vi.vname ^ ",%0," ^
               makeTypeString vi.vtype], [],
-         [(None, "X", 
+         [(None, "X",
            derefArray vi.vtype (Lval (Var vi, NoOffset)))], [], locUnknown)
 
 (* beginAnnot
@@ -244,11 +244,11 @@ let ptrAttrCustom (Attr (t, _)) =
 
 class ccuredPrinterClass = object
   inherit defaultCilPrinterClass as super
-        
-  method pAttr (a:attribute) = 
+
+  method pAttr (a:attribute) =
     match ptrAttrCustom a with
       Some d -> d,false
     | None -> super#pAttr a
 end
-          
+
 let ccuredPrinter = new ccuredPrinterClass

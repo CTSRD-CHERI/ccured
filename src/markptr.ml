@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -56,11 +56,11 @@ let boxing = ref true
 
 let noStackOverflowChecks = ref false
 
-(* Remember the structures we have marked already. This way we detect forward 
+(* Remember the structures we have marked already. This way we detect forward
  * references *)
 let markedCompInfos: (int, unit) H.t = H.create 17
 
-(* Remember the nodes for which the PointsTo information is unreliable 
+(* Remember the nodes for which the PointsTo information is unreliable
  * because they point to forward-declared structures *)
 let mustRecomputePointsTo: (int, N.node) H.t = H.create 17
 
@@ -71,20 +71,20 @@ let callId = ref (-1)  (* Each call site gets a new ID *)
 let allocFunctions: (string, unit) H.t = H.create 17
 
 (* weimer: utility function to ease the transition between our flag formats *)
-let setPosArith n why = begin N.setFlag n N.pkPosArith why end 
-let setArith n why = begin N.setFlag n N.pkArith why  end 
+let setPosArith n why = begin N.setFlag n N.pkPosArith why end
+let setArith n why = begin N.setFlag n N.pkArith why  end
 let setUpdated n why = begin N.setFlag n N.pkUpdated why end
 let setIntCast n why = begin N.setFlag n N.pkIntCast why end
 let setInterface n why = begin N.setFlag n N.pkInterface why end
 let setNoProto n why = begin N.setFlag n N.pkNoPrototype why end
-let setReferenced (n : N.node) why : unit = 
+let setReferenced (n : N.node) why : unit =
 begin
   (*(trace "sm" (dprintf "setting referenced at %a\n" d_loc n.N.loc));*)
   (N.setFlag n N.pkReferenced why)
 end
 let setEscape n why = begin N.setFlag n N.pkEscape why end
 let setStack n why = begin N.setFlag n N.pkStack why end
-let default_why () = N.ProgramSyntax(!currentLoc) 
+let default_why () = N.ProgramSyntax(!currentLoc)
 
 (* Add a prototype for __builtin_alloca to the file.  cabs2cil uses this for
    variable-sized functions, and user code may use it as well.  Unfortunately,
@@ -96,10 +96,10 @@ let addAlloca () : unit =
     let vi = makeGlobalVar name
                (TFun(voidPtrType, Some [("len", !typeOfSizeOf, [])], false,[]))
     in
-    let prag = Attr("ccuredalloc", [AStr(name); 
+    let prag = Attr("ccuredalloc", [AStr(name);
                                     ACons("nozero", []);
                                     ACons("sizein", [AInt 1]) ]) in
-    (!currentFile).globals <- GVarDecl(vi, locUnknown) 
+    (!currentFile).globals <- GVarDecl(vi, locUnknown)
                              :: GPragma (prag, locUnknown)
                              :: (!currentFile).globals;
   end
@@ -108,15 +108,15 @@ let addAlloca () : unit =
 (* We keep track of a number of type that we should not unroll *)
 let dontUnrollTypes : (string, bool) H.t = H.create 19
 
-let rec mustUnrollTypeInfo (ti: typeinfo) : bool = 
+let rec mustUnrollTypeInfo (ti: typeinfo) : bool =
   (not (H.mem dontUnrollTypes ti.tname)) &&
-  (match ti.ttype with 
+  (match ti.ttype with
   | TPtr _ -> true
   | TArray _ -> true
   | TFun _ -> true
   | TNamed (ti', _) -> mustUnrollTypeInfo ti'
     (* We will also unroll types that name a polymorphic structure *)
-  | TComp (ci, _) -> Poly.isPolyComp ci 
+  | TComp (ci, _) -> Poly.isPolyComp ci
   | _ -> false)
 
 
@@ -131,10 +131,10 @@ let addArraySizedAttribute arrayType enclosingAttr =
     else
       arrayType
 
-(* Grab the node from the attributs of a type. Returns dummyNode if no such 
+(* Grab the node from the attributs of a type. Returns dummyNode if no such
  * node *)
-let nodeOfType t = 
-  match unrollType t with 
+let nodeOfType t =
+  match unrollType t with
     TPtr(_, a) -> begin
       match N.nodeOfAttrlist a with
         Some n -> n
@@ -143,26 +143,26 @@ let nodeOfType t =
   | _ -> N.dummyNode
 
 
-(* Pass also the place and the next index within the place. Returns the 
+(* Pass also the place and the next index within the place. Returns the
  * modified type and the next ununsed index *)
-let rec doType (t: typ) (p: N.place) 
-               (nextidx: int) : typ * int = 
-  match t with 
+let rec doType (t: typ) (p: N.place)
+               (nextidx: int) : typ * int =
+  match t with
     (TVoid _ | TInt _ | TFloat _ | TEnum _ ) -> t, nextidx
   | TBuiltin_va_list _ -> t,nextidx
 (*
       E.s (error "Encountered the __builtin_va_list type. This means that you have not used the <stdarg.h> or <vararg.h> macros. We can't help you")
 
-*)  
+*)
   | TPtr (bt, a) -> begin
       match N.nodeOfAttrlist a with
         Some n -> TPtr (bt, a), nextidx (* Already done *)
-      | None -> 
+      | None ->
           let bt', i' = doType bt p (nextidx + 1) in
           let n = N.getNode p nextidx bt' a in
           (* See if the bt is a forward referenced TComp *)
-          (match unrollType bt with 
-            TComp(ci, _) when not (H.mem markedCompInfos ci.ckey) -> 
+          (match unrollType bt with
+            TComp(ci, _) when not (H.mem markedCompInfos ci.ckey) ->
               H.add mustRecomputePointsTo n.N.id n
 
           | _ -> ());
@@ -173,19 +173,19 @@ let rec doType (t: typ) (p: N.place)
        * each pointer *)
       match N.nodeOfAttrlist a with
         Some n -> TArray (bt, len, a), nextidx (* Already done *)
-      | None -> 
+      | None ->
           let bt', i' = doType bt p (nextidx + 1) in
           let n = N.getNode p nextidx bt' a in
           n.N.is_array <- true;
           TArray (bt', len, n.N.attr), i'
   end
-          
-  | TComp(c, at)-> 
+
+  | TComp(c, at)->
       if Poly.isPolyComp c then begin
-        (* We must make a copy of it. If we need to create new ones we must 
+        (* We must make a copy of it. If we need to create new ones we must
          * mark them and add them to the file *)
-        let c' = Poly.instantiatePolyComp c 
-            (fun c'' -> 
+        let c' = Poly.instantiatePolyComp c
+            (fun c'' ->
               markCompInfo c'' !currentLoc;
               (* Add a global definition for it *)
               MU.theFile := GCompTag (c'', !currentLoc) :: !MU.theFile) in
@@ -193,34 +193,34 @@ let rec doType (t: typ) (p: N.place)
       end else
         t, nextidx (* A reference to a regular composite type, leave alone *)
 
-    (* Strip the type names so that we have less sharing of nodes. However, 
-     * we do not need to do it if the named type is a structure, and we get 
+    (* Strip the type names so that we have less sharing of nodes. However,
+     * we do not need to do it if the named type is a structure, and we get
      * nicer looking programs. We also don't do it for base types *)
-  | TNamed (bt, a) -> 
+  | TNamed (bt, a) ->
       if mustUnrollTypeInfo bt then begin
         let t', nextidx' = doType bt.ttype p nextidx in
         t', nextidx'
       end else
-        (* A type reference. Leave alone. We'll handle the type inside when 
+        (* A type reference. Leave alone. We'll handle the type inside when
          * we do the GType *)
         t, nextidx
-        
-  | TFun (restyp, args, isva, a) -> 
+
+  | TFun (restyp, args, isva, a) ->
       let noproto = hasAttribute "missingproto" a in
-      let restyp = 
-        if noproto && not (isPointerType restyp) then 
+      let restyp =
+        if noproto && not (isPointerType restyp) then
           voidPtrType
-        else restyp 
+        else restyp
       in
       let restyp', i0 = doType restyp p nextidx in
-      let args', i' = match args with 
+      let args', i' = match args with
         None -> None, i0
-      | Some argl -> 
-          let argl', i' =  
-            List.fold_left 
-              (fun (args', nidx) (an, at, aa) -> 
+      | Some argl ->
+          let argl', i' =
+            List.fold_left
+              (fun (args', nidx) (an, at, aa) ->
                 let t', i' = doType at p nidx in
-                ((an,t',aa) :: args', i')) ([], i0) argl 
+                ((an,t',aa) :: args', i')) ([], i0) argl
           in
           Some (List.rev argl'), i'
       in
@@ -228,57 +228,57 @@ let rec doType (t: typ) (p: N.place)
       let newtp' = Vararg.processFormatAttribute newtp in
       newtp', i'
 
-and doField (f: fieldinfo) : N.node = 
-  let fftype = addArraySizedAttribute f.ftype f.fattr in 
+and doField (f: fieldinfo) : N.node =
+  let fftype = addArraySizedAttribute f.ftype f.fattr in
   let t', i' = doType fftype (N.PField f) 1 in
   (* Now create the node corresponding to the address of the field *)
   let nd = N.newNode (N.PField f) 0 t' f.fattr in
-  f.fattr <- addAttributes f.fattr nd.N.attr ; 
+  f.fattr <- addAttributes f.fattr nd.N.attr ;
   f.ftype <- t';
   nd
-  
-    
-(** This is called once for each compinfo DEFINITION. Do not call for 
- * declarations. It will process the fields and will add the nodes 
+
+
+(** This is called once for each compinfo DEFINITION. Do not call for
+ * declarations. It will process the fields and will add the nodes
  * corresponding to the address of the fields. *)
-and markCompInfo (comp: compinfo) (comptagloc: location) : unit = 
+and markCompInfo (comp: compinfo) (comptagloc: location) : unit =
   (* We must do its fields *)
   List.iter (fun f -> ignore (doField f)) comp.cfields;
-  (* Keep track of the compinfo we have done. We do this after we have done 
+  (* Keep track of the compinfo we have done. We do this after we have done
    * the fields, just in case some of the fields refer to the whole structure.
    *)
   H.add markedCompInfos comp.ckey ();
 
   (* Now handle unions specially *)
-  if not comp.cstruct then 
+  if not comp.cstruct then
     Taggedunion.markUnionComp comp comptagloc;
 
   ()
 
-(* Create a field successor. Just get the node from the field attributes. 
+(* Create a field successor. Just get the node from the field attributes.
  * Also add an EOFFSET edge from the pointer to struct to pointer to field. *)
 let fieldOfNode (n: N.node) (fi: fieldinfo) : N.node =
   if N.useOffsetNodes then begin
     (* Make a new node *)
     let fieldn = N.getNode (N.POffset (n.N.id, fi.fname)) 0 fi.ftype [] in
     (* And add the ESafe edge *)
-    let _ = N.addEdge n fieldn N.EOffset (Some !currentLoc) in 
+    let _ = N.addEdge n fieldn N.EOffset (Some !currentLoc) in
 (*
-    ignore (E.log "Created the node %d offset %s for %d\n" 
+    ignore (E.log "Created the node %d offset %s for %d\n"
               fieldn.N.id fi.fname n.N.id);
 *)
     fieldn
   end else begin
-    (* In the original scheme we have one node for the address of a field. 
-     * The problem with this is that it is shared to much and contributes to 
+    (* In the original scheme we have one node for the address of a field.
+     * The problem with this is that it is shared to much and contributes to
      * the spreading of WILDness *)
     match N.nodeOfAttrlist fi.fattr with
-      Some fieldn -> 
+      Some fieldn ->
         (* Add an EOffset edge from n to fieldn *)
-        let _ = N.addEdge n fieldn N.EOffset (Some !currentLoc) in 
+        let _ = N.addEdge n fieldn N.EOffset (Some !currentLoc) in
         fieldn
-          
-    | None -> 
+
+    | None ->
         (* We should have created nodes for all fieldinfo *)
         E.s (bug "Field %s.%s does not have a node"
                (compFullName fi.fcomp) fi.fname)
@@ -286,30 +286,30 @@ let fieldOfNode (n: N.node) (fi: fieldinfo) : N.node =
 
 let startOfNode (n: N.node) : N.node =
   match unrollType n.N.btype with
-    TArray (bt, len, a) -> 
-      let next = 
+    TArray (bt, len, a) ->
+      let next =
         match N.nodeOfAttrlist a with
-          Some oldn -> 
+          Some oldn ->
             (* ignore (E.log "Reusing node %d\n" oldn.N.id); *)
             oldn
-        | _ -> 
+        | _ ->
             E.s (bug "Array type does not have a node")
-            (* Somehow I hope that we never come here. This should be true if 
-            * all TArray got a node attribute already 
+            (* Somehow I hope that we never come here. This should be true if
+            * all TArray got a node attribute already
             ignore (warn "Creating a node for array @first\n");
             let next = N.newNode (N.POffset(n.N.id, "@first")) 0 bt a in
             (* !!! We should be remembering this one somewhere *)
             next *)
-      in              
-      let _ = N.addEdge n next N.EIndex (Some !currentLoc) in 
+      in
+      let _ = N.addEdge n next N.EIndex (Some !currentLoc) in
       next
 
   | _ -> n (* It is a function *)
-  
 
 
 
-(* Compute the sign of an expression. Extend this to a real constant folding 
+
+(* Compute the sign of an expression. Extend this to a real constant folding
  * + the sign rule  *)
 type sign = SPos | SNeg | SAny | SLiteral of int64
 
@@ -350,25 +350,25 @@ let rec signOf = function
   | _ -> SAny
 
 
-(* Do varinfo. We do the type and for all variables we also generate a node 
- * that will be used when we take the address of the variable (or if the 
+(* Do varinfo. We do the type and for all variables we also generate a node
+ * that will be used when we take the address of the variable (or if the
  * variable contains an array) *)
-let doVarinfo (vi : varinfo) : unit = 
+let doVarinfo (vi : varinfo) : unit =
   (* Compute a place for it *)
   let original_location = !currentLoc in (* weimer: better places *)
-  if vi.vdecl <> locUnknown then 
-    currentLoc := vi.vdecl ; 
-  let place = 
+  if vi.vdecl <> locUnknown then
+    currentLoc := vi.vdecl ;
+  let place =
     if vi.vglob then
-      if vi.vstorage = Static then 
+      if vi.vstorage = Static then
         N.PStatic (!currentFile.fileName, vi.vname)
       else
         N.PGlob vi.vname
     else
-      N.PLocal (!currentFile.fileName, !MU.currentFunction.svar.vname, 
+      N.PLocal (!currentFile.fileName, !MU.currentFunction.svar.vname,
                 vi.vname)
   in
-  let vi_vtype = addArraySizedAttribute vi.vtype vi.vattr in 
+  let vi_vtype = addArraySizedAttribute vi.vtype vi.vattr in
   (* Do the type of the variable. Start the index at 1 *)
   let t', _ = doType vi_vtype place 1 in
   vi.vtype <- t';
@@ -377,69 +377,69 @@ let doVarinfo (vi : varinfo) : unit =
   (* Associate a node with the variable itself. Use index = 0 *)
   let n = N.getNode place 0 vi.vtype vi.vattr in
 
-  (* Add this to the variable attributes. Note that this node might have been 
-   * created earlier. Merge the attributes and make sure we get the _ptrnode 
+  (* Add this to the variable attributes. Note that this node might have been
+   * created earlier. Merge the attributes and make sure we get the _ptrnode
    * attribute  *)
   vi.vattr <- addAttributes vi.vattr n.N.attr;
-(*  ignore (E.log "varinfo: T=%a. A=%a\n" 
+(*  ignore (E.log "varinfo: T=%a. A=%a\n"
             d_plaintype vi.vtype (d_attrlist true) vi.vattr) *)
 
   (* sg: not global and not static means a variable goes on the stack *)
   if (not vi.vglob) && (vi.vstorage <> Static) then
-  currentLoc := original_location ; 
-  (* Now see if this is a function pointer then we might have to look at the 
+  currentLoc := original_location ;
+  (* Now see if this is a function pointer then we might have to look at the
    * overrides *)
-  (match unrollTypeDeep vi.vtype with 
+  (match unrollTypeDeep vi.vtype with
     TPtr(TFun _, _) -> Markcxx.fixFunctionPointerVar vi !currentLoc
   | _ -> ()
   );
-  currentLoc := original_location ; 
+  currentLoc := original_location ;
   ()
 
 (* Check a sizeof argument *)
-let checkSizeOfArgument (t: typ) = 
+let checkSizeOfArgument (t: typ) =
   (* Now give a warning if this type contains pointers *)
-  let containsExposedPointers t = 
-    existsType 
-      (function 
+  let containsExposedPointers t =
+    existsType
+      (function
           TPtr _ -> ExistsTrue
               (* Pointers inside named structures are not exposed *)
-        | TComp (comp, _) 
+        | TComp (comp, _)
             when (String.length comp.cname > 1 &&
                   String.get comp.cname 0 <> '@') -> ExistsFalse
                       (* Pointers behind names are not exposed *)
         | TNamed _ -> ExistsFalse
-        | _ -> ExistsMaybe) t 
+        | _ -> ExistsMaybe) t
   in
   if containsExposedPointers t then begin
     (* Take a look at the node and see if it is disconnected *)
-    let extra_msg = 
-      match N.nodeOfAttrlist (typeAttrs t) with 
-        Some n -> (* It is Ok if this node has edges that are not 
+    let extra_msg =
+      match N.nodeOfAttrlist (typeAttrs t) with
+        Some n -> (* It is Ok if this node has edges that are not
           * EPointsTo *)
           if List.exists (fun e -> e.N.ekind <> N.EPointsTo) n.N.succ ||
-          List.exists (fun e -> e.N.ekind <> N.EPointsTo) n.N.pred 
+          List.exists (fun e -> e.N.ekind <> N.EPointsTo) n.N.pred
           then
             "Type has a connected node."
           else
             "Type has a disconnected node."
-              
+
       | None -> "Type does not have a node."
     in
     ignore (warn "Encountered sizeof(%a) when type contains pointers. Use sizeof expression. %s" d_type t extra_msg);
   end
-  
-(* Do an expression. Return an expression, a type and a node. The node is 
- * only meaningful if the type is a TPtr _. In that case the node is also 
+
+(* Do an expression. Return an expression, a type and a node. The node is
+ * only meaningful if the type is a TPtr _. In that case the node is also
  * refered to from the attributes of TPtr. Otherwise the node is N.dummyNode
   *)
-let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node = 
+let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
   let markAddrOfLocal lv lvn : unit =
     (* when taking the address of an lvalue, check whether we're taking the
        address of a local var. *)
     let locals = (!MU.currentFunction).slocals in
     let formals = (!MU.currentFunction).sformals in
-    (match lv with 
+    (match lv with
          (Var vi), _ when
            (List.mem vi locals || List.mem vi formals)
            && not (hasAttribute "heapify" vi.vattr)
@@ -448,22 +448,22 @@ let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
              setStack lvn (default_why ())
        | _ -> ())
   in
-  match e with 
-    Lval lv -> 
+  match e with
+    Lval lv ->
       let lv', lvn = doLvalue lv false in
       (* We are reading from it, so mark it as referenced *)
       setReferenced lvn (default_why ());
       Lval lv', lvn.N.btype, nodeOfType lvn.N.btype
 
-  | AddrOf (lv) -> 
+  | AddrOf (lv) ->
       (* Maybe we are taking the address of a function *)
-      let lv1 = 
-        match lv with 
-          Var v, NoOffset when isFunctionType v.vtype -> 
+      let lv1 =
+        match lv with
+          Var v, NoOffset when isFunctionType v.vtype ->
             let newvi, ispoly = Poly.instantiatePolyFunc v in
-            (* If we did create a new instance, we must also process the new 
+            (* If we did create a new instance, we must also process the new
              * varinfo *)
-            if ispoly then 
+            if ispoly then
               doVarinfo newvi;
             Var newvi, NoOffset
         | _ -> lv
@@ -472,7 +472,7 @@ let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
       markAddrOfLocal lv lvn;
       AddrOf (lv'), TPtr(lvn.N.btype, lvn.N.attr), lvn
 
-  | StartOf lv -> 
+  | StartOf lv ->
       let lv', lvn = doLvalue lv false in
       let next = startOfNode lvn in
       markAddrOfLocal lv next;
@@ -486,11 +486,11 @@ let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
       checkSizeOfArgument t';
       SizeOf (t'), !typeOfSizeOf, N.dummyNode
 
-  | SizeOfE (e) -> 
+  | SizeOfE (e) ->
       let e', et', en' = doExp ~inSizeof:true e in
       SizeOfE(e'), !typeOfSizeOf , N.dummyNode
 
-  | SizeOfStr (s) -> 
+  | SizeOfStr (s) ->
       e, !typeOfSizeOf, N.dummyNode
 
   | AlignOf (t) ->
@@ -498,61 +498,61 @@ let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
       checkSizeOfArgument t';
       AlignOf (t'), !typeOfSizeOf, N.dummyNode
 
-  | AlignOfE (e) -> 
+  | AlignOfE (e) ->
       let e', et', en' = doExp ~inSizeof:true e in
       AlignOfE(e'), !typeOfSizeOf , N.dummyNode
 
         (* pointer subtraction. do the subexpressions *)
-  | BinOp (MinusPP, e1, e2, tres) -> 
+  | BinOp (MinusPP, e1, e2, tres) ->
       let e1', _, _ = doExp e1 in
       let e2', _, _ = doExp e2 in
       BinOp(MinusPP, e1', e2', tres), tres, N.dummyNode
 
         (* arithmetic binop. *)
   | BinOp (((PlusA|MinusA|Mult|Div|Mod|Shiftlt|Shiftrt|
-             Lt|Gt|Le|Ge|Eq|Ne|BAnd|BXor|BOr|LAnd|LOr) as bop), 
-           e1, e2, tres) -> 
+             Lt|Gt|Le|Ge|Eq|Ne|BAnd|BXor|BOr|LAnd|LOr) as bop),
+           e1, e2, tres) ->
              BinOp(bop, doExpAndCast e1 tres,
                    doExpAndCast e2 tres, tres), tres, N.dummyNode
 
        (* pointer arithmetic *)
-  | BinOp (((PlusPI|MinusPI|IndexPI) as bop), e1, e2, tres) -> 
+  | BinOp (((PlusPI|MinusPI|IndexPI) as bop), e1, e2, tres) ->
       let e1', e1t, e1n = doExp e1 in
-      let sign = 
-        signOf 
-          (match bop with PlusPI|IndexPI -> e2 | _ -> UnOp(Neg, e2, intType)) 
+      let sign =
+        signOf
+          (match bop with PlusPI|IndexPI -> e2 | _ -> UnOp(Neg, e2, intType))
       in
       (match sign with
-        SLiteral z -> 
+        SLiteral z ->
           if z < Int64.zero then setArith e1n (default_why ()) else
           if z > Int64.zero then setPosArith e1n (default_why ()) else
           ()
 
       | SPos -> setPosArith e1n (default_why ())
 
-      | _ -> 
+      | _ ->
           if bop = IndexPI then (*  Was created from p[e] *)
              setPosArith e1n (default_why ())
-          else 
+          else
              setArith e1n (default_why ()) );
       if sign = SLiteral Int64.zero then
         e1', e1t, e1n
       else
         BinOp (bop, e1', doExpAndCast e2 intType, e1t), e1t, e1n
-      
-      
-  | CastE (newt, e) -> 
+
+
+  | CastE (newt, e) ->
       let newt', _ = doType newt (N.anonPlace ()) 1 in
       CastE (newt', doExpAndCast e newt'), newt', nodeOfType newt'
 
-  | Const (CStr s) as e -> 
-      (* Add a cast in front of strings. This way we have a place where 
+  | Const (CStr s) as e ->
+      (* Add a cast in front of strings. This way we have a place where
        * to attach a node. *)
       let newt', _ = doType charPtrType (N.anonPlace ()) 1 in
       CastE (newt', e), newt', nodeOfType newt'
 
-  | Const (CWStr s) as e -> 
-      (* Add a cast in front of strings. This way we have a place where 
+  | Const (CWStr s) as e ->
+      (* Add a cast in front of strings. This way we have a place where
        * to attach a node. *)
       let newt', _ = doType (TPtr(!wcharType, [])) (N.anonPlace ()) 1 in
       CastE (newt', e), newt', nodeOfType newt'
@@ -562,23 +562,23 @@ let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
 
 
 (* Do initializers. *)
-and doInit (vi: varinfo) (i: init) (l: location) : init * typ = 
+and doInit (vi: varinfo) (i: init) (l: location) : init * typ =
 
   (* Baseoff is the offset to the current compound *)
-  let rec doOne (baseoff: offset) off (what: init) : init * typ = 
+  let rec doOne (baseoff: offset) off (what: init) : init * typ =
     let off' = addOffset off baseoff in
-    match what with 
+    match what with
     | SingleInit ei -> begin
         (* Fake an assignment *)
         let lv', ei' = doSet (Var vi, off') ei l in
         SingleInit ei', typeOfLval lv'
     end
-    | CompoundInit (t, initl) -> 
+    | CompoundInit (t, initl) ->
         let t', _ = doType t (N.anonPlace ()) 1 in
-        let initl' = 
-          foldLeftCompound 
+        let initl' =
+          foldLeftCompound
             ~implicit:false
-            ~doinit:(fun newoff what t acc -> 
+            ~doinit:(fun newoff what t acc ->
                         let what', _ = doOne off' newoff what in
                         (newoff, what') :: acc)
             ~ct:t' ~initl:initl ~acc:[] in
@@ -588,108 +588,108 @@ and doInit (vi: varinfo) (i: init) (l: location) : init * typ =
   doOne NoOffset NoOffset i
 
 
-and doSet (lv: lval) (e: exp) (l: location) : lval * exp = 
+and doSet (lv: lval) (e: exp) (l: location) : lval * exp =
   let lv', lvn = doLvalue lv true in
       (* We are writing to it, so mark it as referenced *)
-  setReferenced lvn (N.ProgramSyntax(l)) ; 
-  (*      ignore (E.log "Setting lv=%a\n lvt=%a (ND=%d)\n" 
+  setReferenced lvn (N.ProgramSyntax(l)) ;
+  (*      ignore (E.log "Setting lv=%a\n lvt=%a (ND=%d)\n"
         d_plainlval lv' d_plaintype lvn.N.btype lvn.N.id);  *)
   let e' = doExpAndCast e lvn.N.btype in
-      (* sg: If assigning thru a pointer or to a global, mark adresses in e' 
-      * as pkEscape. The former is a conservative approximation since 
+      (* sg: If assigning thru a pointer or to a global, mark adresses in e'
+      * as pkEscape. The former is a conservative approximation since
       * depending on where lv can point, the value may probably not escape *)
   (match lv' with
     Mem _, _ -> expMarkEscape e' (* thru a pointer *)
-  | Var vi, _ -> 
+  | Var vi, _ ->
       if vi.vglob then expMarkEscape e' else () ); (* to a global *)
-      
+
   lv', e'
 
-and expMarkEscape (e : exp) : unit = 
+and expMarkEscape (e : exp) : unit =
 	(*ignore (printf "--%a--\n" d_plainexp e); *)
-  match e with 
-    
-    Lval lv -> 	
+  match e with
+
+    Lval lv ->
       let lvnode = nodeOfType (typeOfLval lv) (*get node for lv*)
       in setEscape lvnode (default_why ())
-        
-  | StartOf lv -> 
+
+  | StartOf lv ->
       let lvnode = (* like typeOf, but keeps attrs of arrays *)
 	(match unrollType (typeOfLval lv) with
 	  TArray (t,_,al) -> nodeOfType (TPtr(t, al))
 	| _ -> E.s (E.bug "expMarkEscape: StartOf on a non-array") )
       in
       setEscape lvnode(default_why ())
-        
-  | AddrOf lv  -> 
+
+  | AddrOf lv  ->
       let _, alvnode = doLvalue lv false (* gets node for &lv *)
       in setEscape alvnode(default_why ())
-        
-  | CastE(_, e1)   -> expMarkEscape e1
-  | UnOp((Neg|BNot), e1, _) -> expMarkEscape e1 
-        
-  | BinOp( (Lt|Gt|Le|Ge|Eq|Ne(*|LtP|GtP|LeP|GeP|EqP|NeP*)), _, _, _) -> ()
-  | BinOp(_, e1, e2, _) -> expMarkEscape e1; expMarkEscape e2 
-  | _ -> ()
-        
 
-(*      
+  | CastE(_, e1)   -> expMarkEscape e1
+  | UnOp((Neg|BNot), e1, _) -> expMarkEscape e1
+
+  | BinOp( (Lt|Gt|Le|Ge|Eq|Ne(*|LtP|GtP|LeP|GeP|EqP|NeP*)), _, _, _) -> ()
+  | BinOp(_, e1, e2, _) -> expMarkEscape e1; expMarkEscape e2
+  | _ -> ()
+
+
+(*
   (* Baseoff is the offset to the current compound *)
-  let rec initone (baseoff: offset) off what t acc = 
+  let rec initone (baseoff: offset) off what t acc =
     let off' = addOffset off baseoff in
     match what with
         (* Just like in an assignment but ignore the statments *)
         let lv', lvn = doLvalue (Var vi, off') true in
         let ei' = doExpAndCast ei lvn.N.btype in
 
-        mkStmt (Instr [Set ((Var vi, off'), ei, locUnknown)]) 
+        mkStmt (Instr [Set ((Var vi, off'), ei, locUnknown)])
         :: acc
   in
-  let inits = 
-    initone NoOffset NoOffset init vi.vtype finit.sbody.bstmts in 
+  let inits =
+    initone NoOffset NoOffset init vi.vtype finit.sbody.bstmts in
 
-  match i with 
-  | SingleInit e -> 
+  match i with
+  | SingleInit e ->
       let e', t, n = doExp e in
-      if n != N.dummyNode then 
+      if n != N.dummyNode then
         E.s (bug "Found pointer initializer: %a\n" d_init i);
       SingleInit e', t
-          
-  | CompoundInit (t, initl) -> 
+
+  | CompoundInit (t, initl) ->
       let t', _ = doType t (N.anonPlace ()) 1 in
       if nodeOfType t' != N.dummyNode then
         E.s (bug "found pointer initializer: %a\n" d_init i);
         (* Construct a new initializer list *)
-      let doOneInit (off: offset) (ei: init) (tei: typ) acc = 
+      let doOneInit (off: offset) (ei: init) (tei: typ) acc =
         let ei', _ = doInit ei l in
         (off, ei') :: acc
       in
-      let newinitl = 
-        List.rev (foldLeftCompound ~doinit:doOneInit ~ct:t' 
+      let newinitl =
+        List.rev (foldLeftCompound ~doinit:doOneInit ~ct:t'
                                    ~initl:initl ~acc:[]) in
       CompoundInit (t', newinitl), t'
 *)
-(* Do an lvalue. We assume conservatively that this is for the purpose of 
- * taking its address. Return a modifed lvalue and a node that stands for & 
- * lval. Just ignore the node and get its base type if you do not want to 
+(* Do an lvalue. We assume conservatively that this is for the purpose of
+ * taking its address. Return a modifed lvalue and a node that stands for &
+ * lval. Just ignore the node and get its base type if you do not want to
  * take the address of. *)
-and doLvalue ((base, off) : lval) (iswrite: bool) : lval * N.node = 
-  let base', startNode = 
-    match base with 
-      Var vi -> begin 
+and doLvalue ((base, off) : lval) (iswrite: bool) : lval * N.node =
+  let base', startNode =
+    match base with
+      Var vi -> begin
         (* ignore (E.log "doLval (before): %s: T=%a\n"
                   vi.vname d_plaintype vi.vtype); *)
         (* doVarinfo vi; It was done when the variable was declared !!! *)
-        let vn = 
+        let vn =
           match N.nodeOfAttrlist vi.vattr with Some n -> n | _ -> N.dummyNode
         in
-        (* Now grab the node for it 
+        (* Now grab the node for it
         ignore (E.log "doLval: %s: T=%a (ND=%d)\n"
-                  vi.vname d_plaintype vi.vtype vn.N.id); 
+                  vi.vname d_plaintype vi.vtype vn.N.id);
 *)
         base, vn
       end
-    | Mem e -> 
+    | Mem e ->
         let e', et, ne = doExp e in
         if iswrite then
           setUpdated ne (default_why ());
@@ -697,28 +697,28 @@ and doLvalue ((base, off) : lval) (iswrite: bool) : lval * N.node =
   in
   let newoff, newn = doOffset off startNode in
   (base', newoff), newn
-        
+
 (* Now do the offset. Base types are included in nodes. *)
-and doOffset (off: offset) (n: N.node) : offset * N.node = 
-  match off with 
+and doOffset (off: offset) (n: N.node) : offset * N.node =
+  match off with
     NoOffset -> off, n
 
 
-  | Field(fi, resto) -> 
-      (* We might need to change the fi in case we are in a polymorphic 
+  | Field(fi, resto) ->
+      (* We might need to change the fi in case we are in a polymorphic
       * structure *)
-      let fi' = 
-        match unrollType n.N.btype with 
-          TComp (nci, _) when nci != fi.fcomp -> 
-            let fi' = 
-              try 
+      let fi' =
+        match unrollType n.N.btype with
+          TComp (nci, _) when nci != fi.fcomp ->
+            let fi' =
+              try
                 List.find (fun fi' -> fi'.fname = fi.fname) nci.cfields
-              with Not_found -> 
+              with Not_found ->
                 E.s (bug "Cannot find field %s in instance %s (replacement for %s)\n"
                        fi.fname (compFullName nci) (compFullName fi.fcomp))
             in
             fi'
-              
+
         | _ -> fi
       in
       let nextn = fieldOfNode n fi' in
@@ -734,28 +734,28 @@ and doOffset (off: offset) (n: N.node) : offset * N.node =
   end
 
 
-  
+
 (* Now model an assignment of a processed expression into a type *)
-and expToType (e,et,en) t (callid: int) : exp = 
+and expToType (e,et,en) t (callid: int) : exp =
   let debugExpToType = false (* !currentLoc.line = 24 *) in
   let etn = nodeOfType et in
   let destn  = nodeOfType t in
-  if debugExpToType then 
+  if debugExpToType then
     ignore (E.log "expToType e=%a (NS=%d) -> TD=%a (ND=%d)\n"
-              d_plainexp e etn.N.id d_plaintype t destn.N.id); 
+              d_plainexp e etn.N.id d_plaintype t destn.N.id);
   match etn == N.dummyNode, destn == N.dummyNode with
     true, true -> e (* scalar -> scalar *)
   | false, true -> e (* Ignore casts of pointer to non-pointer *)
   | false, false -> (* pointer to pointer *)
 (*
       if isZero e then begin
-        let _ = N.addEdge etn destn N.ENull (Some !currentLoc) in 
+        let _ = N.addEdge etn destn N.ENull (Some !currentLoc) in
         e
       end else begin *)
         if debugExpToType then
           ignore (E.log "Setting %a : %a -> %d\n"
-                    d_plainexp e d_plaintype et destn.N.id); 
-        let _ = N.addEdge etn destn (N.ECast N.EEK_cast) (Some !currentLoc) in 
+                    d_plainexp e d_plaintype et destn.N.id);
+        let _ = N.addEdge etn destn (N.ECast N.EEK_cast) (Some !currentLoc) in
         e
 
   | true, false -> (* scalar -> pointer *)
@@ -765,13 +765,13 @@ and expToType (e,et,en) t (callid: int) : exp =
       else
         setIntCast destn (default_why ()));
       e
-    
-and doExpAndCast e t = 
+
+and doExpAndCast e t =
   (* Get rid of cascades of casts of 0 *)
   let e' = if isZero e then zero else e in
   expToType (doExp e') t (-1)
 
-and doExpAndCastCall e t callid = 
+and doExpAndCastCall e t callid =
   (* Get rid of cascades of casts of 0 *)
   let e' = if isZero e then zero else e in
   expToType (doExp e') t callid
@@ -790,47 +790,47 @@ let rec list_first l n = begin
 end
 
 
-(* Some utility functions for decomposing a function call so that we can 
+(* Some utility functions for decomposing a function call so that we can
  * process them in a special way *)
-type callArgDescr = 
-    { caOrig: exp; (* The original actual, without the cast that was added to 
+type callArgDescr =
+    { caOrig: exp; (* The original actual, without the cast that was added to
                     * match it with the formal type *)
       caOrigType: typ; (* Type of caOrig *)
       caOrigNode: N.node; (* The node corresponding to caOrigType, if TPtr *)
       caFormal: (string * typ * attributes);  (* The formal varinfo *)
       caFormalType: typ; (* The type of the corresponding formal *)
       caFormalNode: N.node; (* The node corrsponding to caFormalNode,if TPtr *)
-    } 
+    }
 
-let decomposeCall 
+let decomposeCall
     (reso: lval option)
     (f: exp)
-    (args: exp list) : (* result *) callArgDescr * 
-                       (* args *) callArgDescr list = 
+    (args: exp list) : (* result *) callArgDescr *
+                       (* args *) callArgDescr list =
   (* Fetch the function type *)
-  let rt, formals = 
+  let rt, formals =
     match unrollType (typeOf f) with
       TFun (rt, formals, _, _) -> rt, argsToList formals
     | _ -> E.s (E.bug "decomposingCall to a non-function")
   in
-  if List.length formals <> List.length args then 
+  if List.length formals <> List.length args then
     E.s (E.bug "decomposeCall: mismatch of argument list length");
-  (* A function to split a pointer type into base type, attribute and 
+  (* A function to split a pointer type into base type, attribute and
   * node of attributes *)
-  let splitPtrType (t: typ) = 
+  let splitPtrType (t: typ) =
     match unrollType t with
       TPtr(bt, a) -> begin
-        bt, a, 
+        bt, a,
         (match N.nodeOfAttrlist a with
           Some n -> n
         | None -> N.dummyNode)
       end
     | _ -> voidType, [], N.dummyNode
   in
-  let argDescr = 
+  let argDescr =
     List.map2
       (fun a ((fn,ft,fa) as f) ->
-        (* Get the types of the arguments. But be prepared to strip the top 
+        (* Get the types of the arguments. But be prepared to strip the top
          * level cast since it could have been added by cabs2cil *)
         let orig = stripCasts a in
         let origt = typeOf orig in
@@ -843,109 +843,109 @@ let decomposeCall
   in
   (* Now the return type *)
   let rt_bt, rt_a, rt_n = splitPtrType rt in
-  let resDescr = 
-    match reso, rt with 
-      None, TVoid _ -> 
+  let resDescr =
+    match reso, rt with
+      None, TVoid _ ->
         { caOrig = zero; caOrigType = voidType; caOrigNode = N.dummyNode;
-          caFormal = ("", voidType, []); 
+          caFormal = ("", voidType, []);
           caFormalType = voidType; caFormalNode = N.dummyNode }
-    | None, _ -> { caOrig = zero; caOrigType = voidType; 
+    | None, _ -> { caOrig = zero; caOrigType = voidType;
                    caOrigNode = N.dummyNode;
-                   caFormal = ("", voidType, []); 
+                   caFormal = ("", voidType, []);
                    caFormalType = rt; caFormalNode = rt_n }
     | Some _, TVoid _ -> E.s (E.bug "decomposeCall: assigned subroutine")
-    | Some lv, _ -> 
+    | Some lv, _ ->
         let origt = typeOfLval lv in
         let orig_bt, orig_a, orig_n = splitPtrType origt in
-        { caOrig = Lval (lv); caOrigType = origt; 
-          caOrigNode = orig_n; caFormal = ("", voidType, []); 
+        { caOrig = Lval (lv); caOrigType = origt;
+          caOrigNode = orig_n; caFormal = ("", voidType, []);
           caFormalType = rt; caFormalNode = rt_n }
   in
   resDescr, argDescr
 
 
-let rec doBlock blk = 
-  if hasAttribute "nocure" blk.battrs then 
+let rec doBlock blk =
+  if hasAttribute "nocure" blk.battrs then
     blk
-  else 
+  else
     { bstmts = List.map doStmt blk.bstmts; battrs = blk.battrs }
 
-and doStmt (s: stmt) : stmt = 
+and doStmt (s: stmt) : stmt =
   try
-    (match s.skind with 
+    (match s.skind with
       Goto _ | Break _ | Continue _ -> ()
     | Return (None, _) -> ()
-    | Return (Some e, l) -> 
+    | Return (Some e, l) ->
         currentLoc := l;
         let e' = doExpAndCast e !currentResultType in
         (*sg:need to mark exp as escaped*)
         expMarkEscape e';
         s.skind <- Return (Some e', l)
-    | Instr il -> 
+    | Instr il ->
         s.skind <- Instr (mapNoCopyList doInstr il)
-    | Loop (b, l, lb1, lb2) -> 
+    | Loop (b, l, lb1, lb2) ->
         currentLoc := l;
         s.skind <- Loop (doBlock b, l, lb1, lb2)
     | Block b -> s.skind <- Block (doBlock b)
-    | If(e, b1, b2, l) -> 
+    | If(e, b1, b2, l) ->
         currentLoc := l;
         s.skind <- If (doExpAndCast e intType, doBlock b1, doBlock b2, l)
-    | Switch (e, b, cases, l) -> 
+    | Switch (e, b, cases, l) ->
         currentLoc := l;
         s.skind <- Switch(doExpAndCast e intType, doBlock b, cases, l)
-    | TryFinally (b, h, l) -> 
+    | TryFinally (b, h, l) ->
         currentLoc := l;
         s.skind <- TryFinally(doBlock b, doBlock h, l)
-    | TryExcept (b, (il, e), h, l) -> 
+    | TryExcept (b, (il, e), h, l) ->
         currentLoc := l;
-        s.skind <- TryExcept(doBlock b, (mapNoCopyList doInstr il, 
-                                         doExpAndCast e intType), 
+        s.skind <- TryExcept(doBlock b, (mapNoCopyList doInstr il,
+                                         doExpAndCast e intType),
                              doBlock h, l));
 
     s
   with e -> begin
-    ignore (E.log "Markptr: statement error (%s) at %t\n" 
+    ignore (E.log "Markptr: statement error (%s) at %t\n"
               (Printexc.to_string e) d_thisloc);
     E.hadErrors := true;
     s
   end
 
-and doInstr (i:instr) : instr list = 
-  try 
+and doInstr (i:instr) : instr list =
+  try
     match i with
-    | Asm (attrs, tmpls, outs, ins, clob, l) -> 
+    | Asm (attrs, tmpls, outs, ins, clob, l) ->
         currentLoc := l;
-        if !N.allowInlineAssembly then 
-          ignore (warn "CCured cannot handle inline assembly soundly. Make sure you know what you are doing here!\n  Here are the instruction: %a" 
+        if !N.allowInlineAssembly then
+          ignore (warn "CCured cannot handle inline assembly soundly. Make sure you know what you are doing here!\n  Here are the instruction: %a"
                     (docList ~sep:line text) tmpls)
         else
           E.s (error "You did not turn on the handling of inline assembly. \n Here are the instructions: %a" (docList ~sep:line text) tmpls);
-        let outs' = 
+        let outs' =
           List.map
-            (fun (i,n, o) -> 
+            (fun (i,n, o) ->
               let o', lvn = doLvalue o true in
-              setReferenced lvn (default_why ()); 
+              setReferenced lvn (default_why ());
               (i,n, o'))
-            outs 
+            outs
         in
-        let ins' = 
+        let ins' =
           List.map
-            (fun (i,n, e) -> 
+            (fun (i,n, e) ->
               let e', _, _ = doExp e in
               (i,n, e'))
             ins
         in
         [Asm(attrs, tmpls, outs', ins', clob, l)]
 
-    | Set (lv, e,l) -> 
+    | Set (lv, e,l) ->
         currentLoc := l;
         let lv', e' = doSet lv e l in
         [Set(lv', e',l)]
-          
+
     | Call (reso, orig_func, args, l) as i -> begin
         currentLoc := l;
         (match orig_func with
-          Lval(Var vf, NoOffset) -> 
+          Lval(Var vf, NoOffset) ->
             if not (H.mem MU.calledFunctions vf.vname) then
               H.add MU.calledFunctions vf.vname vf
         | _ -> ());
@@ -954,7 +954,7 @@ and doInstr (i:instr) : instr list =
         | None -> doFunctionCall reso orig_func args l
     end
   with e -> begin
-    ignore (E.log "Markptr: instruction error (%s) at %t\n" 
+    ignore (E.log "Markptr: instruction error (%s) at %t\n"
               (Printexc.to_string e) d_thisloc);
     E.hadErrors := true;
     [i]
@@ -963,20 +963,20 @@ and doInstr (i:instr) : instr list =
 
 and interceptFunctionCalls = function
   | i -> None
-      
-and doFunctionCall 
+
+and doFunctionCall
     (reso: lval option)
     (orig_func: exp)
-    (args: exp list) 
-    (l: location) = 
+    (args: exp list)
+    (l: location) =
   incr callId; (* A new call id *)
-  (*      ignore (E.log "Call %a args: %a\n" 
+  (*      ignore (E.log "Call %a args: %a\n"
                 d_plainexp orig_func
                 (docList (fun a -> d_plaintype () (typeOf a)))
   args); *)
   let func, ispoly = (* check and see if it is polymorphic *)
     match orig_func with
-      (Lval(Var(v),NoOffset)) -> 
+      (Lval(Var(v),NoOffset)) ->
         let newvi, ispoly = Poly.instantiatePolyFunc v in
         newvi.vdecl <- !currentLoc; (*matth: give the variable a location
 				      so that errors in doVarinfo make sense.*)
@@ -991,29 +991,29 @@ and doFunctionCall
         if Poly.stripPoly newvi.vname = "__trusted_cast" ||
            Poly.stripPoly newvi.vname = "trusted_cast" then begin
           match newvi.vtype with
-            TFun((TPtr(TVoid _, ra) as rt), 
+            TFun((TPtr(TVoid _, ra) as rt),
                  Some [ (an, TPtr(TVoid _, apa), aa) ], false, fa) -> begin
-                   (* If the argument of trusted_cast is a scalar, then 
-                    * change the type of trusted_cast to take a scalar 
+                   (* If the argument of trusted_cast is a scalar, then
+                    * change the type of trusted_cast to take a scalar
                     * argument *)
-                   match args with 
+                   match args with
                      [ a ] -> begin
                        let at = typeOf (stripCasts a) in
-                       match unrollType at with 
+                       match unrollType at with
                          TInt _ | TEnum _ -> begin
-                           newvi.vtype <- TFun(rt, 
+                           newvi.vtype <- TFun(rt,
                                                Some [(an, !upointType, aa)],
                                                false, fa)
                          end
                        | _ -> begin
                            (* Add a TCast edge *)
-                           match N.nodeOfAttrlist apa, 
-                                 N.nodeOfAttrlist ra with 
-                             Some an, Some rn -> 
-                               let e = N.addEdge an rn 
+                           match N.nodeOfAttrlist apa,
+                                 N.nodeOfAttrlist ra with
+                             Some an, Some rn ->
+                               let e = N.addEdge an rn
                                    (N.ESameKind N.EEK_trustedCast) (Some l) in
                                e.N.eloc <- l
-                           | _, _ -> 
+                           | _, _ ->
                                E.s (bug "Cannot find nodes in type of __trusted_cast")
                        end
                      end
@@ -1027,47 +1027,47 @@ and doFunctionCall
     | _ -> orig_func, false
   in
   (* Do the function as if we were to take its address *)
-  let (pfunc, pfunct, pfuncn) = 
-    match func with 
+  let (pfunc, pfunct, pfuncn) =
+    match func with
       Lval lv -> doExp (mkAddrOf lv)
     | _ -> E.s (unimp "Called function is not an lvalue")
   in
-  (* Now fetch out the real function and its type. We must do this after we 
+  (* Now fetch out the real function and its type. We must do this after we
    * process the function itself because it may be an expression. *)
   let func' = Lval (mkMem pfunc NoOffset) in
-  let (rt, formals, isva, noProto) = 
+  let (rt, formals, isva, noProto) =
     match unrollType (typeOf func') with
-      TFun(rt, formals, isva, a) -> 
+      TFun(rt, formals, isva, a) ->
         rt, argsToList formals, isva, hasAttribute "missingproto" a
     | _ -> E.s (bug "Call to a non-function")
   in
-  let preinstr, args' = 
-    if isva then 
+  let preinstr, args' =
+    if isva then
       (* This might add prototypes to MU.theFile *)
-      Vararg.prepareVarargArguments 
-        (fun t -> 
-          let vi = makeTempVar !MU.currentFunction t in 
+      Vararg.prepareVarargArguments
+        (fun t ->
+          let vi = makeTempVar !MU.currentFunction t in
           doVarinfo vi;
-          vi) 
+          vi)
         func' (List.length formals) args
     else
       [], args
   in
-  (* If the function has more actual arguments than formals then mark 
+  (* If the function has more actual arguments than formals then mark
   * the function node as used without prototype  *)
-  let make_it_wild = 
+  let make_it_wild =
     if not isva && (noProto ||
-                    List.length args' <> List.length formals) then 
+                    List.length args' <> List.length formals) then
       begin
-	(* Bark if it is polymorphic. No prototype + polymorphism (or 
+	(* Bark if it is polymorphic. No prototype + polymorphism (or
 	 * allocation) do not work together *)
-	if ispoly then 
-          E.s (error "Calling polymorphic (or allocation) function %a without proper prototype, or with the wrong number of arguments." 
+	if ispoly then
+          E.s (error "Calling polymorphic (or allocation) function %a without proper prototype, or with the wrong number of arguments."
 		 d_exp func)
-	else if noProto then 
+	else if noProto then
      	  ignore (warn "Calling function %a without proper prototype: will be WILD.\n  %a has type %a"
-                    d_exp func 
-                    d_exp func 
+                    d_exp func
+                    d_exp func
 		    d_type (unrollType (typeOf func')) )
 	else
 	  ignore (warn "Calling function %a with %d arguments when expecting %d: will be WILD.\n  %a has type %a"
@@ -1075,52 +1075,52 @@ and doFunctionCall
                     d_exp func d_type (unrollType (typeOf func')) ) ;
 	setNoProto pfuncn (default_why ());
 	true
-      end 
+      end
     else false
   in
   (* Now check the arguments *)
-  let rec loopArgs formals args = 
+  let rec loopArgs formals args =
     match formals, args with
       [], [] -> []
-    | [], a :: args -> 
-        (* We ran out of formals. This is either in a vararg functions or 
-         * else this is bad, so we make sure to mark that the argument is 
+    | [], a :: args ->
+        (* We ran out of formals. This is either in a vararg functions or
+         * else this is bad, so we make sure to mark that the argument is
          * used in a function without prototypes *)
         (* Do the arguments because they might contain pointer types *)
         let a', _, an = doExp a in
         if an != N.dummyNode && not isva  then
           setNoProto an (default_why ()) ;
         a' :: loopArgs [] args
-                
-    | (_, ft, _) :: formals, a :: args -> 
-        (* See if this is a polymorphic argument. Then strip the cast to 
+
+    | (_, ft, _) :: formals, a :: args ->
+        (* See if this is a polymorphic argument. Then strip the cast to
          * void* *)
-        let a' = 
+        let a' =
           match ispoly, unrollType ft with
             true, TPtr(TVoid _, _) -> true
           | _, _ -> false
         in
-        (*            ignore (E.log "Call arg %a: %a -> %s\n" 
+        (*            ignore (E.log "Call arg %a: %a -> %s\n"
                       d_exp a' d_plaintype (typeOf a') fo.vname); *)
         let a' = doExpAndCastCall a ft !callId in
         a' :: loopArgs formals args
-                
-    | _, _ -> E.s (E.unimp "Markptr: not enough arguments in call to %a" 
+
+    | _, _ -> E.s (E.unimp "Markptr: not enough arguments in call to %a"
                      d_exp orig_func)
-  in  
+  in
   (* Now scan the arguments again and add EArgs edges *)
   (* Now do the arguments *)
   let args'' = loopArgs formals args' in
-  List.iter (fun a' -> 
+  List.iter (fun a' ->
     let a'n = nodeOfType (typeOf a') in
-    if a'n != N.dummyNode then 
+    if a'n != N.dummyNode then
       ignore(N.addEdge pfuncn a'n N.EArgs (Some l))) args'';
 
-  let reso' = 
+  let reso' =
     (* Now check the return value*)
     match reso, unrollType rt with
       None, TVoid _ -> None
-    | Some _, TVoid _ -> 
+    | Some _, TVoid _ ->
         ignore (warn "void value is assigned.");
         None
 
@@ -1128,10 +1128,10 @@ and doFunctionCall
     | Some dest, _ -> begin
         (* Do the lvalue, just so that the type is done *)
         let dest', lvn = doLvalue dest true in
-        setReferenced lvn (default_why ()); 
+        setReferenced lvn (default_why ());
 
-        (* Add the cast from the return type to the destination of the call. 
-         * Make up a phony expression and a node so that we can call 
+        (* Add the cast from the return type to the destination of the call.
+         * Make up a phony expression and a node so that we can call
          * expToType.  *)
 (*
         ignore (E.log "Call to %a. \n\trt=%a\n\ttypeOFLval(dest') = %a\n"
@@ -1140,41 +1140,41 @@ and doFunctionCall
         let dest't = typeOfLval dest' in
         (* Also add an EArgs edge *)
         let dest'n = nodeOfType dest't  in
-        if dest'n != N.dummyNode then 
+        if dest'n != N.dummyNode then
           ignore(N.addEdge pfuncn dest'n N.EArgs (Some l));
-        (* For allocation functions do not connect the returned value to the 
+        (* For allocation functions do not connect the returned value to the
          * result because the returned value is an integer *)
-        (match func' with 
-          Lval(Var f, NoOffset) 
+        (match func' with
+          Lval(Var f, NoOffset)
             when H.mem allocFunctions (Poly.stripPoly f.vname) -> ()
-        | _ -> 
+        | _ ->
             ignore (expToType (mkString ("a call return"),
-                               rt, N.dummyNode) dest't 
+                               rt, N.dummyNode) dest't
                       !callId));
         Some dest'
-    end 
+    end
   in
   (* We need to mark all instructions that we have generated *)
   let preinstr' = mapNoCopyList doInstr preinstr in
   preinstr' @ [Call(reso', func', args'', l)]
 
 
-let doFunctionBody (fdec: fundec) = 
+let doFunctionBody (fdec: fundec) =
   MU.currentFunction := fdec;
-  (* See if this is a vararg function. Must do this first because we might 
+  (* See if this is a vararg function. Must do this first because we might
    * change a lot of temporaries, which we want to process *)
   Vararg.processVarargBody fdec;
-  (* Go through the formals and copy their type and attributes from 
-  * the type of the function. Then add the nodes for the address of the 
+  (* Go through the formals and copy their type and attributes from
+  * the type of the function. Then add the nodes for the address of the
   * formals. Then restore the sharing with the function type. *)
   let rt, targs, isva, fa = splitFunctionTypeVI fdec.svar in
-  let rec scanFormals targs sformals = 
+  let rec scanFormals targs sformals =
     match targs, sformals with
       [], [] -> ()
-    | (tan, tat, taa) :: targs, sf :: sformals -> 
+    | (tan, tat, taa) :: targs, sf :: sformals ->
         sf.vtype <- tat;
-        let n = 
-          N.getNode (N.PLocal(!currentFile.fileName, 
+        let n =
+          N.getNode (N.PLocal(!currentFile.fileName,
                               !MU.currentFunction.svar.vname, tan))
             0 tat taa in
         sf.vattr <- addAttributes taa n.N.attr;
@@ -1192,13 +1192,13 @@ let doFunctionBody (fdec: fundec) =
   fdec.sbody <- doBlock fdec.sbody
 
 
-  
+
 (* Now do the globals *)
-let doGlobal (g: global) : global = 
+let doGlobal (g: global) : global =
   try
     match g with
     | GPragma (a, l) as g -> begin
-        (* Most of the pragmas have been processed. Only a few have to be 
+        (* Most of the pragmas have been processed. Only a few have to be
         * processed at the same time with the other globals *)
         currentLoc := l;
         (match a with
@@ -1208,70 +1208,70 @@ let doGlobal (g: global) : global =
         g
     end
     | GText _ | GAsm _ | GEnumTag _ | GCompTagDecl _ | GEnumTagDecl _ -> g
-              
-              (* We process here only those types that we must not unroll. 
+
+              (* We process here only those types that we must not unroll.
                * The others we'll process as we see them used.*)
-    | GType (t, l) when !boxing -> 
+    | GType (t, l) when !boxing ->
         currentLoc := l;
         (* See if we have the "nounroll" attribute *)
-        if hasAttribute "nounroll" (typeAttrs t.ttype) then 
+        if hasAttribute "nounroll" (typeAttrs t.ttype) then
           H.add dontUnrollTypes t.tname true;
         if not (mustUnrollTypeInfo t) then begin
           let t', _ = doType t.ttype (N.PType t.tname) 1 in
           t.ttype <- t';
           g
-        end else 
-          if !N.printVerboseOutput then 
+        end else
+          if !N.printVerboseOutput then
             GText ("// Definition of unrolled type "^t.tname^" was removed")
           else
             GText ("//")
-              
-    | GCompTag (comp, l) when !boxing -> 
+
+    | GCompTag (comp, l) when !boxing ->
         currentLoc := l;
         if not (Poly.isPolyComp comp) then begin
           markCompInfo comp l;
           g
         end else begin
-          (* It is polymorphic, so nobody should be using this copy 
+          (* It is polymorphic, so nobody should be using this copy
           * anymore *)
           if !N.printVerboseOutput then
-            GText("// definition of polymorphic struct " ^ comp.cname ^ 
+            GText("// definition of polymorphic struct " ^ comp.cname ^
                   " used to be here")
           else
             GText("//")
         end
-            
-    | GVarDecl (vi, l) when !boxing -> 
+
+    | GVarDecl (vi, l) when !boxing ->
         currentLoc := l;
         (* ignore (E.log "Found GVarDecl of %s. T=%a\n" vi.vname
                     d_plaintype vi.vtype); *)
         let ispoly = Poly.isPolyFunc vi in
-        if not ispoly then doVarinfo vi; 
-        if not ispoly then 
+        if not ispoly then doVarinfo vi;
+        if not ispoly then
           g
         else
-          if !N.printVerboseOutput then 
+          if !N.printVerboseOutput then
             GText ("// declaration of polymorphic " ^ vi.vname^" dropped")
           else
             GText ("//")
-              
-    | GVar (vi, init, l) when !boxing -> 
+
+    | GVar (vi, init, l) when !boxing ->
         currentLoc := l;
-        doVarinfo vi; 
+        doVarinfo vi;
         (match init.init with
           None -> ()
-        | Some i -> 
+        | Some i ->
             let i', _ = doInit vi i l in
             init.init <- Some i');
         g
-              
+
     | GFun (fdec, l) when !boxing ->
         currentLoc := l;
         let dobox = not (hasAttribute "nocure" fdec.svar.vattr) in
         if dobox then begin
           (* If it is polymorphic then remember it for later. *)
           if Poly.isPolyFunc fdec.svar then begin
-            Poly.rememberFunctionDefinition fdec 
+            Poly.rememberFunctionDefinition fdec
           end else begin
             doVarinfo fdec.svar;
             doFunctionBody fdec;
@@ -1279,16 +1279,16 @@ let doGlobal (g: global) : global =
           end
         end else
           g
-            
-            
-    | g -> 
-        if not !boxing then g else 
+
+
+    | g ->
+        if not !boxing then g else
         E.s (bug "Unmatched clause in markPtr::doGlobal")
 
 
   with e -> begin
     (* Try to describe the global *)
-    ignore (E.log "Markptr: global error (%s) on %a at %t\n" 
+    ignore (E.log "Markptr: global error (%s) on %a at %t\n"
               (Printexc.to_string e) d_shortglobal g d_thisloc);
     E.hadErrors := true;
     g
@@ -1297,10 +1297,10 @@ let doGlobal (g: global) : global =
 
 (********************************************************)
 
-      
-(* Now do the file *)      
-let markFile fl = 
-  if not !noStackOverflowChecks then 
+
+(* Now do the file *)
+let markFile fl =
+  if not !noStackOverflowChecks then
     Stackoverflow.addCheck fl;
   currentFile := fl;
   boxing := true;
@@ -1313,7 +1313,7 @@ let markFile fl =
 
   Poly.initFile ();
   Taggedunion.init ();
-  
+
   MU.init();
   N.initialize ();
   H.clear mustRecomputePointsTo;
@@ -1329,12 +1329,12 @@ let markFile fl =
   Taggedunion.processTaggedUnions fl;
 
 
-  (* Registers the function declarations and definitions. We must do this 
-   * before looking at the rest of the program to ensure that we can process 
-   * the pragmas related to functions even before we see the definition or 
-   * the declaration of the function itself. *)  
+  (* Registers the function declarations and definitions. We must do this
+   * before looking at the rest of the program to ensure that we can process
+   * the pragmas related to functions even before we see the definition or
+   * the declaration of the function itself. *)
   let registerFunctions = function
-      GPragma ((Attr(an, _) as a), l) -> 
+      GPragma ((Attr(an, _) as a), l) ->
         currentLoc := l;
         (* Watch for obsolete pragmas *)
         (match an with
@@ -1345,17 +1345,17 @@ let markFile fl =
         Wrappers.processPragma a;
         MU.processPragma a l
 
-    | GFun(fdec, l) -> 
+    | GFun(fdec, l) ->
         currentLoc := l;
         (* Build the list of functions *)
         MU.registerFunction (MU.Defined fdec);
         MU.registerGlobalDefinition fdec.svar l
 
-    | GType (ti, l) -> 
+    | GType (ti, l) ->
         currentLoc := l;
         MU.registerTypeinfo ti
 
-    | GCompTag (ci, l) -> 
+    | GCompTag (ci, l) ->
         currentLoc := l;
         MU.registerCompinfo ci l
 
@@ -1364,31 +1364,31 @@ let markFile fl =
         MU.registerGlobalDeclaration vi;
         (* See if this is a function that is not yet defined *)
         match unrollType vi.vtype with
-          TFun _ when not (H.mem MU.allFunctions vi.vname) -> 
+          TFun _ when not (H.mem MU.allFunctions vi.vname) ->
             MU.registerFunction (MU.Declared vi)
         | _ -> ()
     end
 
-    | GVar (vi, _, l) -> 
+    | GVar (vi, _, l) ->
         currentLoc := l;
         MU.registerGlobalDefinition vi l
 
     | _ -> ()
   in
-  
+
   iterGlobals fl registerFunctions;
-  
-  (* Once we have registered the functions, we can process the other pragmas. 
+
+  (* Once we have registered the functions, we can process the other pragmas.
    *)
   let processOtherPragmas = function
     | GPragma (a, l) as g -> begin
         currentLoc := l;
         (match a with
-        | Attr("ccuredalloc", AStr(s) :: _) -> 
-            (* Set the return type of an allocator to be integer so that we 
+        | Attr("ccuredalloc", AStr(s) :: _) ->
+            (* Set the return type of an allocator to be integer so that we
              * do not have problems when we box the type *)
             MU.applyToFunction s
-              (fun vi -> 
+              (fun vi ->
                 let rt, args, isva, al = splitFunctionType vi.vtype in
                 H.add allocFunctions vi.vname ();
                 vi.vtype <- TFun(!upointType, args, isva, al));
@@ -1399,16 +1399,16 @@ let markFile fl =
             H.add dontUnrollTypes s true
 
         | Attr("ccuredleavealone", funcs) ->
-            List.iter 
-              (function (AStr s) -> 
+            List.iter
+              (function (AStr s) ->
                 (* Make nocure functions polymorphic *)
                 Poly.processPragma a;
                 if MU.alreadyDefinedFunction s then
-                  ignore 
+                  ignore
                     (warn "#pragma ccuredleavealone appears after definition of %s\n" s)
                 else begin
                   MU.applyToFunction s
-                    (fun vi -> 
+                    (fun vi ->
                       vi.vattr <- addAttribute (Attr("nocure",[])) vi.vattr);
                 end
                 | _ -> ignore (warn "Invalid #pragma ccuredleavealone"))
@@ -1428,21 +1428,21 @@ let markFile fl =
   (* This is where we process all the functions. *)
   ignore (E.log "before markptr\n");
   MU.theFile := [];
-  List.iter (fun g -> let g' = doGlobal g in 
+  List.iter (fun g -> let g' = doGlobal g in
                       MU.theFile := g' :: !MU.theFile) fl.globals;
 
-  (* Now we have to scan the nodes again. There might be some nodes whose 
-   * type is pointer to TComp and which do not have any EPointsTo edges 
-   * because the TComp was a forward reference. Now that should have been 
+  (* Now we have to scan the nodes again. There might be some nodes whose
+   * type is pointer to TComp and which do not have any EPointsTo edges
+   * because the TComp was a forward reference. Now that should have been
    * fixed, so try to regenerate the EPoints to edges *)
-  H.iter 
-    (fun _ n -> 
+  H.iter
+    (fun _ n ->
       (* ignore (E.log "Recomputing PointsTo for node %d\n" n.N.id); *)
       N.setNodePointsTo n)
     mustRecomputePointsTo;
 
   (* Now do the globinit *)
-  let newglobinit = 
+  let newglobinit =
     match fl.globinit with
       None -> None
     | Some g -> begin
@@ -1454,15 +1454,15 @@ let markFile fl =
   ignore (E.log "after markptr\n");
 
   (* Now we must create the copies for the polymorphic functions *)
-  Poly.finishInstantiations 
-    (fun f -> 
+  Poly.finishInstantiations
+    (fun f ->
 (*    ignore (E.log "Marking body of %s after instantiation\n" f.svar.vname);*)
       let g = doGlobal (GFun(f, locUnknown)) in
-      (* Let's drop the cilnoremove things, so that the rmtmps can remove 
+      (* Let's drop the cilnoremove things, so that the rmtmps can remove
        * more things  *)
-      (match g with 
+      (match g with
         GPragma(Attr("cilnoremove", _), _) -> ()
-      | _ -> 
+      | _ ->
           MU.theFile :=  g :: !MU.theFile));
   ignore (E.log "after creating the polymorphic instantiations\n");
 
@@ -1473,28 +1473,28 @@ let markFile fl =
   let newglobals = List.rev !MU.theFile in
 
   (* Now, after we have added the nodes we fix the overrides *)
-  if !Cc_args.doCxxPP then 
+  if !Cc_args.doCxxPP then
     Markcxx.fixOverrides ();
 
-     
-  (* Now we must go through the extends hierachy and add ECast edges as 
+
+  (* Now we must go through the extends hierachy and add ECast edges as
    * appropriate *)
-  if !E.verboseFlag then 
+  if !E.verboseFlag then
     MU.dumpExtensionHierarchy();
-  List.iter 
-    (fun (child, parent, loc) -> 
+  List.iter
+    (fun (child, parent, loc) ->
       (* Manufacture two pointers *)
       let p_child, _ = doType (TPtr(child, [])) (N.anonPlace ()) 1 in
       let p_parent, _ = doType (TPtr(parent, [])) (N.anonPlace ()) 1 in
       (* Add the ECast edge *)
-      match nodeOfType p_child, nodeOfType p_parent with 
-        n_child, n_parent 
-          when n_child != N.dummyNode && n_parent != N.dummyNode -> 
-            ignore (N.addEdge n_child n_parent 
+      match nodeOfType p_child, nodeOfType p_parent with
+        n_child, n_parent
+          when n_child != N.dummyNode && n_parent != N.dummyNode ->
+            ignore (N.addEdge n_child n_parent
                       (N.ECast N.EEK_extends) (Some loc))
       | _, _ -> E.s (bug "markptr: extends relationship"))
     (MU.allExtendsRelationships ());
-      
+
 
   let newfile = {fl with globals = newglobals; globinit = newglobinit} in
 
@@ -1504,7 +1504,7 @@ let markFile fl =
   if !Cilutil.doCheck then
     ignore (Check.checkFile [] newfile);
 
-  if !E.verboseFlag || !E.hadErrors then (* But do not stop, we want to print 
+  if !E.verboseFlag || !E.hadErrors then (* But do not stop, we want to print
                                           * the browser and the infer files *)
     ignore (E.log "Markptr: %s\n"
               (if !E.hadErrors then "Error" else "Success"));
@@ -1519,6 +1519,3 @@ let markFile fl =
   currentFile := dummyFile;
 
   newfile
-
-
-

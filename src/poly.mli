@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -36,7 +36,7 @@
  *)
 
 
-(** Split a name into a polymorphic prefix and a base name. The polymorphic 
+(** Split a name into a polymorphic prefix and a base name. The polymorphic
  * prefix is the empty string if this is not a polymorphic name *)
 val splitPolyName: string -> string * string
 
@@ -53,7 +53,7 @@ val initFile: unit -> unit
 (** Called to process a pragma before any other global is processed *)
 val processPragma: Cil.attribute -> unit
 
-(** Called to instantiate a polymorphic function. Returns a modifed varinfo 
+(** Called to instantiate a polymorphic function. Returns a modifed varinfo
  * and an indication whether this was actually a polimorphic function. *)
 val instantiatePolyFunc: Cil.varinfo -> Cil.varinfo * bool
 
@@ -68,7 +68,7 @@ val isPolyComp: Cil.compinfo -> bool
 val rememberFunctionDefinition: Cil.fundec -> Cil.global
 
 
-(** Called to finish the instantiations. Pass a function for processing the 
+(** Called to finish the instantiations. Pass a function for processing the
  * newly created functions.  *)
 val finishInstantiations: (Cil.fundec -> unit) -> unit
 

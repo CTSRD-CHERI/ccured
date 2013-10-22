@@ -1,8 +1,8 @@
-(* 
- * Copyright (c) 2001-2002, 
- *  Aman Bhargava        
+(*
+ * Copyright (c) 2001-2002,
+ *  Aman Bhargava
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -40,7 +40,7 @@ let showsolution = true
 (******************************************************************************)
 (* Types *)
 
-type limit = 
+type limit =
   | Int of int
   | Sym of string
   | NegInfinity
@@ -75,7 +75,7 @@ let lim_tostring = function
   | NegInfinity -> "-INF"
   | Infinity -> "INF"
 
-let tostring = function 
+let tostring = function
   | LT (a,b) -> (lim_tostring a) ^ " < " ^ (lim_tostring b)
   | LTE (a,b) -> (lim_tostring a) ^ " <= " ^ (lim_tostring b)
 
@@ -92,13 +92,13 @@ let pr = Printf.printf;
 type fringe_t = {fval : t; mutable fsolution : bool option}
 let fringe : fringe_t list ref = ref []
 
-let fringe_contains (x : t) = 
+let fringe_contains (x : t) =
   List.exists (fun a -> a.fval = x) !fringe
 
 let fringe_find (x : t) =
   List.find (fun a -> a.fval = x) !fringe
 
-let fringe_add (x : t) : fringe_t = 
+let fringe_add (x : t) : fringe_t =
   let fr = {fval=x; fsolution=None} in
   fringe := fr :: !fringe;
   fr
@@ -107,7 +107,7 @@ let fringe_add (x : t) : fringe_t =
 let slimits : limit list ref = ref []
 
 (* Initialize the fringe and the values for one run of the solver *)
-let initSolver constraints = 
+let initSolver constraints =
   fringe := [];
   slimits := [Infinity;NegInfinity];
   let add_to_slimits lim =
@@ -116,7 +116,7 @@ let initSolver constraints =
       | (Sym _) as lim -> slimits := lim :: !slimits
       | (Int _) as lim -> slimits := lim :: !slimits
       | _ -> ()
-  in					   
+  in
   List.iter (function c ->
     fringe := {fval=c; fsolution=Some true} :: !fringe;
     match c with
@@ -138,11 +138,11 @@ let rec rsolveLT (ca : limit) (cb : limit) : bool =
       try match fringe_find lt with
       | {fsolution = None} as fr -> fr.fsolution <- Some false; false
       | {fsolution = Some sol}   -> sol
-      with _ -> 
+      with _ ->
 	let fr = fringe_add lt in
 	let sol =
 	  List.exists
-	    (fun lim -> 
+	    (fun lim ->
 	      ((rsolveLT ca lim) && (rsolveLTE lim cb)) ||
 	      ((rsolveLTE ca lim) && (rsolveLT lim cb)))
 	    !slimits
@@ -150,7 +150,7 @@ let rec rsolveLT (ca : limit) (cb : limit) : bool =
 	fr.fsolution <- Some sol;
 	if debug then Printf.printf "Solve %s = %b\n"  (tostring lt) sol;
 	sol
-    
+
 
 (* Try to prove an equal-to relation *)
 and rsolveEQ (ca : limit) (cb : limit) : bool =
@@ -170,13 +170,13 @@ and rsolveLTE (ca : limit) (cb : limit) : bool =
       try match fringe_find lt with
       | {fsolution = None} as fr -> fr.fsolution <- Some false; false
       | {fsolution = Some sol}   -> sol
-      with _ -> 
+      with _ ->
 	let fr = fringe_add lt in
 	let sol =
 	  rsolveLT ca cb ||
 	  ca = cb ||
 	  List.exists
-	    (fun lim -> 
+	    (fun lim ->
 	      ((rsolveEQ ca lim) && (rsolveLTE lim cb)) ||
 	      ((rsolveEQ cb lim) && (rsolveLTE ca lim)))
 	    !slimits
@@ -184,7 +184,7 @@ and rsolveLTE (ca : limit) (cb : limit) : bool =
 	fr.fsolution <- Some sol;
 	if debug then Printf.printf "Solve %s = %b\n"  (tostring lt) sol;
 	sol
-	  
+
 
 
 (* Invoke the solver. Try to prove a theorem with the given constraints *)
@@ -195,7 +195,7 @@ let solve constraints theorem =
     | LT  (a,b) -> rsolveLT  a b
     | LTE (a,b) -> rsolveLTE a b
   in
-  if debug || showsolution then begin 
+  if debug || showsolution then begin
     Printf.printf "(solve) %s \t= %b\n" (tostring theorem) ret;
     flush stdout
   end;
@@ -212,7 +212,7 @@ let solveEQ constraints a b =
     flush stdout
   end;
   ret
-	  
+
 
 
 (******************************************************************************)
@@ -251,12 +251,12 @@ let test () =
   List.iter (fun a -> pr "%s " (lim_tostring a)) !slimits;
   pr "\nMemoization buffer: size = %d\n" (List.length !fringe);
 (*
-  List.iter (fun a -> pr "(memo) %s \t= %s\n" 
+  List.iter (fun a -> pr "(memo) %s \t= %s\n"
       (tostring a.fval)
       (match a.fsolution with None -> "?" | Some true -> "true" | _ -> "false"))
     !fringe;
 *)
   ()
-    
 
-;; test () ;; 
+
+;; test () ;;

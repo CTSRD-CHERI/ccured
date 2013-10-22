@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -35,10 +35,10 @@
  *
  *)
 
-(* A module that pulls out certain global initializers and generates 
+(* A module that pulls out certain global initializers and generates
  * initialization code in a special per-module function *)
 open Cil
-open Pretty 
+open Pretty
 open Trace
 
 module H = Hashtbl
@@ -47,22 +47,22 @@ module E = Errormsg
 let mainname = ref "main"
 
 (* Insert the global initializer in the main *)
-let insertGlobInit (file: file) : unit = 
-  match file.globinit with 
-  | Some gi when not file.globinitcalled -> 
+let insertGlobInit (file: file) : unit =
+  match file.globinit with
+  | Some gi when not file.globinitcalled ->
       let theFile : global list ref = ref [] in
       let inserted = ref false in
-      List.iter 
+      List.iter
         begin
           fun g ->
             (match g with
               GFun(m, lm) when m.svar.vname = !mainname ->
                 (* Prepend a prototype *)
                 theFile := GVarDecl (gi.svar, lm) :: !theFile;
-                m.sbody.bstmts <- 
-                   compactStmts (mkStmt (Instr [Call(None, 
-                                                     Lval(var gi.svar), 
-                                                     [], locUnknown)]) 
+                m.sbody.bstmts <-
+                   compactStmts (mkStmt (Instr [Call(None,
+                                                     Lval(var gi.svar),
+                                                     [], locUnknown)])
                                  :: m.sbody.bstmts);
                 inserted := true;
                 file.globinitcalled <- true;
@@ -72,11 +72,11 @@ let insertGlobInit (file: file) : unit =
             theFile := g :: !theFile (* Now put the global back *)
         end
         file.globals;
-      if not !inserted then 
-        ignore (E.warn "Cannot find %s to add global initializer %s" 
+      if not !inserted then
+        ignore (E.warn "Cannot find %s to add global initializer %s"
                   !mainname gi.svar.vname);
       file.globals <- List.rev !theFile
-  | Some gi  (* when file.globinitcalled *) -> 
+  | Some gi  (* when file.globinitcalled *) ->
       (* getGlobInit has already inserted a call.  *)
       (* Add a prototype to the start of the file.  getGlobInit does this too,
          but we clobber file.globals while curing. *)
@@ -84,46 +84,46 @@ let insertGlobInit (file: file) : unit =
   | None -> ()
 
 
-let doFile (fl: file) : file = 
+let doFile (fl: file) : file =
   let boxing = ref true in
   let rec doGlobal = function
-      GVar (vi, {init = Some init}, l) as g -> 
-        let hasPointers = 
-          existsType 
+      GVar (vi, {init = Some init}, l) as g ->
+        let hasPointers =
+          existsType
             (fun t ->
-              match t with 
+              match t with
                 TPtr _ -> ExistsTrue
               | _ -> ExistsMaybe) vi.vtype in
-        if !boxing && hasPointers then 
+        if !boxing && hasPointers then
           let finit = getGlobInit fl in
-          (* Now generate the code. Baseoff is the offset to the current 
+          (* Now generate the code. Baseoff is the offset to the current
            * compound  *)
-          let rec initone (baseoff: offset) off what t acc = 
+          let rec initone (baseoff: offset) off what t acc =
             let off' = addOffset off baseoff in
             match what with
-              CompoundInit (t, initl) -> 
+              CompoundInit (t, initl) ->
                 foldLeftCompound ~implicit:false
                            ~doinit:(initone off') ~ct:t ~initl:initl ~acc:acc
 (*
-            | ArrayInit (bt, len, initl) -> 
+            | ArrayInit (bt, len, initl) ->
                 let idx = ref (-1) in
-                List.fold_left 
-                  (fun acc i -> 
+                List.fold_left
+                  (fun acc i ->
                     incr idx;
                     initone off' (Index(integer !idx, NoOffset)) i bt acc)
                   acc
                   initl
 *)
-            | SingleInit ei -> 
-                mkStmt (Instr [Set ((Var vi, off'), ei, locUnknown)]) 
+            | SingleInit ei ->
+                mkStmt (Instr [Set ((Var vi, off'), ei, locUnknown)])
                 :: acc
           in
-          let inits = 
-            initone NoOffset NoOffset init vi.vtype finit.sbody.bstmts in 
+          let inits =
+            initone NoOffset NoOffset init vi.vtype finit.sbody.bstmts in
           finit.sbody.bstmts <- compactStmts (List.rev inits);
           GVar (vi, {init = None}, l)
         else g
-          
+
         (* Leave alone all other globals *)
     | GPragma (a, _) as g -> begin
         (match a with
@@ -142,6 +142,3 @@ let doFile (fl: file) : file =
   end;
   insertGlobInit newfile;
   newfile
-  
-
-

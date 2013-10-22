@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -35,13 +35,12 @@
  *
  *)
 
-val mainname: string ref 
+val mainname: string ref
 
 val doFile: Cil.file -> Cil.file
 
 
-(* Insert the global initializer in the main. Optionally you can specify the 
- * name of the function in which to insert the call to the global initializer 
+(* Insert the global initializer in the main. Optionally you can specify the
+ * name of the function in which to insert the call to the global initializer
  * *)
 val insertGlobInit: Cil.file -> unit
-

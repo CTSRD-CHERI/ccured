@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -40,7 +40,7 @@ val optimFile: Cil.file -> Cil.file
 
 val getStatistics: unit -> Pretty.doc
 
-(** Which checks to remove completely. Set to None to not do this. Set to 
-  * Some "" to remove all checks, set to Some "CHECK_NULL" to remove all 
+(** Which checks to remove completely. Set to None to not do this. Set to
+  * Some "" to remove all checks, set to Some "CHECK_NULL" to remove all
   * CHECK_NULL, etc. *)
 val checkToRemove: string option ref

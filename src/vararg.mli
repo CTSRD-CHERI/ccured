@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -39,11 +39,11 @@
 (** Called to initialize a new file. *)
 val initFile: unit -> unit
 
-(** Called to add to the file definitions for the automatically generated 
+(** Called to add to the file definitions for the automatically generated
  * descriptors *)
 val addToFileAutoDescr: unit -> unit
 
-(** Markptr will store here the pointer necessary for processing a new field. 
+(** Markptr will store here the pointer necessary for processing a new field.
  * We will invoke this function *)
 val pMarkField: (Cil.fieldinfo -> unit) ref
 
@@ -59,8 +59,8 @@ val processPragma: Cil.attribute -> unit
 val processFormatAttribute: Cil.typ -> Cil.typ
 
 
-(** Called at the time of a call to process the arguments. Returns a list of 
- * instructions to be added before the call and the modified arguments. Might 
+(** Called at the time of a call to process the arguments. Returns a list of
+ * instructions to be added before the call and the modified arguments. Might
  * also add global declarations to MU.theFile. *)
 val prepareVarargArguments:
     mkTempVar:(Cil.typ -> Cil.varinfo) ->
@@ -72,4 +72,3 @@ val prepareVarargArguments:
 
 (** Called to process the body of a variable argument function *)
 val processVarargBody: Cil.fundec -> unit
-

@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -39,7 +39,7 @@
 val init: unit -> unit
 
 (** Accumulate here the marked file *)
-val theFile: Cil.global list ref 
+val theFile: Cil.global list ref
 
 (** A pointer to the current function *)
 val currentFunction: Cil.fundec ref
@@ -72,7 +72,7 @@ val registerGlobalDeclaration: Cil.varinfo -> unit
 val alreadyDefinedFunction: string -> bool
 
 
-(** Apply a function to a function of a given name. If the function was not 
+(** Apply a function to a function of a given name. If the function was not
  * registered already we will apply the function when we will register it *)
 val applyToFunction: string -> (Cil.varinfo -> unit) -> unit
 
@@ -89,23 +89,23 @@ val addFunctionTypeAttribute: Cil.attribute -> Cil.varinfo -> unit
 
 
 (** Check if a global variable is imported, declared but not defined. *)
-val isImported: string -> bool  
+val isImported: string -> bool
 
-(* Check if a type can have RTTI. This means that it is void or appeared in a 
- * ccured_extends pragma. In any case it has to be a typdef or a structure 
- * type. It also returns a reason, which is interesting if the result is 
+(* Check if a type can have RTTI. This means that it is void or appeared in a
+ * ccured_extends pragma. In any case it has to be a typdef or a structure
+ * type. It also returns a reason, which is interesting if the result is
  * "false".  *)
 val typeCanHaveRtti: Cil.typ -> bool * string
 
 
-(* Check a cast in which at least one of the types is RTTI. Pass an 
- * indication whether automatic inference of RTTI is desired (and if so say 
- * where should the newly created edges be added). Use this option only 
- * before solving. Pass the pointer types. Returns whether the cast must be 
+(* Check a cast in which at least one of the types is RTTI. Pass an
+ * indication whether automatic inference of RTTI is desired (and if so say
+ * where should the newly created edges be added). Use this option only
+ * before solving. Pass the pointer types. Returns whether the cast must be
  * checked at run-time. *)
-val checkRttiCast: newedges:(Ptrnode.edge list ref option) -> 
-                   Cil.typ -> bool -> 
-                   Cil.typ -> bool -> Cil.location -> 
+val checkRttiCast: newedges:(Ptrnode.edge list ref option) ->
+                   Cil.typ -> bool ->
+                   Cil.typ -> bool -> Cil.location ->
                    Cil.exp * Cil.exp * bool
 
 
@@ -113,21 +113,21 @@ val checkRttiCast: newedges:(Ptrnode.edge list ref option) ->
 val rttiType: Cil.typ
 
 (** Get the RTTI of void. *)
-val getVoidRtti: unit -> Cil.exp 
+val getVoidRtti: unit -> Cil.exp
 
 (** Get the RTTI of scalar *)
-val getScalarRtti: unit -> Cil.exp 
+val getScalarRtti: unit -> Cil.exp
 
 (** Register a type that is used in a tagged union, and that
   therefore needs an rtti tag even though it may not be a pointer.
   This method does not draw edges, so do that elsewhere.*)
-val registerRttiType: Cil.typ -> unit 
+val registerRttiType: Cil.typ -> unit
 
 (** Get RTTI tag for a type that was previously registered with
     checkRttiCast or registerRttiType *)
-val getRttiForType: Cil.typ -> Cil.exp 
+val getRttiForType: Cil.typ -> Cil.exp
 
-(** Call this function for all DEFINITIONS of GCompTag and GType to populate 
+(** Call this function for all DEFINITIONS of GCompTag and GType to populate
  * the extension information with the real info *)
 val registerCompinfo: Cil.compinfo -> Cil.location -> unit
 
@@ -155,21 +155,21 @@ val dumpExtensionHierarchy: unit -> unit
 (** Whether to use shallow mangling of names *)
 val shallowMangling: bool ref
 
-(* If false generate code to ensure that the run-time checks just print an 
+(* If false generate code to ensure that the run-time checks just print an
  * error message instead of aborting. *)
 val alwaysStopOnError: bool ref
 
 (* If false then ensure that run-time checks print more info *)
 val failIsTerse: bool ref
 
-(** if set will generate code to track at run-time where the non-pointers 
+(** if set will generate code to track at run-time where the non-pointers
  * originate *)
 val logNonPointers: bool ref
 
 
 
 (** For generating annotations in verify.ml *)
-type exkind = 
+type exkind =
     (* Pointer to ... *)
     ExType of Cil.typeinfo
   | ExComp of Cil.compinfo
@@ -183,4 +183,3 @@ val getAllExtensions: unit -> exkind array
 
 (** Annotate the output for verification. *)
 val doAnnotateOutput: bool ref
-

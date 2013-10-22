@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -47,39 +47,39 @@ module MU = Markutil
 
 let debugPoly = false
 
-let polyId = ref (-1) 
-let newPolyName (base: string) = 
+let polyId = ref (-1)
+let newPolyName (base: string) =
   let res = "/*" ^ (string_of_int (!polyId + 1)) ^ "*/" ^ base in
   incr polyId;
   res
-  
 
-(* Split a name into a polymorphic prefix and a base name. The polymorphic 
+
+(* Split a name into a polymorphic prefix and a base name. The polymorphic
  * prefix is the empty string if this is not a polymorphic name *)
-let splitPolyName (name: string) : string * string = 
+let splitPolyName (name: string) : string * string =
   let nl = String.length name in
   if nl = 0 then "", name else
   if String.get name 0 = '/' then
     let rec loop i = (* Search for the second / *)
-      if i >= nl - 1 then "", name else 
-      if String.get name i = '/' then 
+      if i >= nl - 1 then "", name else
+      if String.get name i = '/' then
          String.sub name 0 (i + 1), String.sub name (i + 1) (nl - i - 1)
-      else 
+      else
         loop (i + 1)
     in
     loop 1
-  else 
+  else
     "", name
 
 (* Strip polymorphic prefix. Return the base name *)
-let stripPoly (name: string) : string = 
+let stripPoly (name: string) : string =
   let _, n = splitPolyName name in n
-  
-let isPolyName (name: string) : bool = 
+
+let isPolyName (name: string) : bool =
   String.get name 0 = '/'
 
-(* A number of functions will be treated polymorphically. In that case store 
- * their original type. When we process the type of a polymorphic function we 
+(* A number of functions will be treated polymorphically. In that case store
+ * their original type. When we process the type of a polymorphic function we
  * first store here the original type.  *)
 (* NOTE: this hash is only accessed with strings that have been
  * passed through 'alphaBaseName', to strip any ___0 etc. suffixes *)
@@ -133,23 +133,23 @@ let makePolyComp (s: string) =
 
 
 let processPragma = function
-    Attr("ccuredpoly", funcs ) -> 
-      List.iter 
-        (function 
+    Attr("ccuredpoly", funcs ) ->
+      List.iter
+        (function
             (AStr s) -> begin
-              (* See if we have a space in the name. Then we should have a 
+              (* See if we have a space in the name. Then we should have a
                * "struct foo" or "union bar" *)
               try
                 let space = String.index s ' ' in
                 let pref = String.sub s 0 space in
-                if pref = "struct" || pref = "union" then 
+                if pref = "struct" || pref = "union" then
                   (* Skip spaces *)
                   let len = String.length s in
-                  let rec skipSpaces i = 
-                    if i = len then 
+                  let rec skipSpaces i =
+                    if i = len then
                       ignore (warn "Invalid name %s in ccuredpoly pragma" s)
                     else
-                      if String.get s i = ' ' then 
+                      if String.get s i = ' ' then
                         skipSpaces (i + 1)
                       else begin
                         makePolyComp (String.sub s i (len - i))
@@ -162,45 +162,45 @@ let processPragma = function
                   end
           | _ -> ignore (warn "Invalid #pragma ccuredpoly"))
         funcs
-        
+
         (* #pragma ccuredwrapper("foo_wrapper", of("foo")) should make
            foo_wrapper polymorphic.  *)
-  | Attr("ccuredwrapper", AStr(s) :: _ ) -> makePolyFunc s 
+  | Attr("ccuredwrapper", AStr(s) :: _ ) -> makePolyFunc s
 
         (* Allocation functions are also treated polymorphically *)
   | Attr("ccuredalloc", AStr(s) :: _) -> makePolyFunc s
 
         (* Make nocure functions polymorphic *)
   | Attr("ccuredleavealone", funcs) ->
-      List.iter 
-        (function 
+      List.iter
+        (function
             (AStr s) -> makePolyFunc s
           | _ -> ignore (unimp "ccuredleavealone pragma must contain only strings"))
         funcs
 
   | _ -> ()
-              
+
 
 
 (* Keep track of all instantiations that we did, so we can copy the bodies *)
 let instantiations: (string * varinfo) list ref = ref []
 
-(* To avoid going into in an infinite loop keep a track of the instantiations 
+(* To avoid going into in an infinite loop keep a track of the instantiations
  * that are being done *)
 let recursiveInstantiations: (string * varinfo) list ref = ref []
 
-(* Take a look at the function and see if we must instantiate it. Return an 
+(* Take a look at the function and see if we must instantiate it. Return an
  * instance and a boolean saying if the function is polymorphic . *)
-let instantiatePolyFunc (fvi: varinfo) : varinfo * bool = 
+let instantiatePolyFunc (fvi: varinfo) : varinfo * bool =
   let dropNodeAttrs a = dropAttribute "_ptrnode" a in
   let old_name = fvi.vname in
-  let newvi, ispoly = 
+  let newvi, ispoly =
     match List.filter (fun (on, ovi) -> on = old_name) !recursiveInstantiations
-    with 
+    with
     | (_, ovi) :: _  -> ovi, true (* Reuse the recursive instantiation *)
     | [] -> begin
         try
-          if debugPoly then 
+          if debugPoly then
             ignore (E.log "trying instantiatePoly %s\n" old_name);
           (* sm: fixed bug where we were accessing polyFunc with fvi.vname directly *)
           let origtypref = (lookupPolyFunc fvi) in
@@ -208,12 +208,12 @@ let instantiatePolyFunc (fvi: varinfo) : varinfo * bool =
             ignore (E.log "Instantiating poly function %s\n" old_name);
           let origtype = (* Copy the type and remember it *)
             match !origtypref with
-              Some t -> 
+              Some t ->
                 if debugPoly then
                   ignore (E.log "  Not the first time. Copying: %a\n"
                             d_plaintype t);
                 t
-            | None -> 
+            | None ->
                 (* make a copy to return now *)
                 let copiedtype = fvi.vtype in
                 (* Make a copy to memoize and use to template new copies *)
@@ -224,17 +224,17 @@ let instantiatePolyFunc (fvi: varinfo) : varinfo * bool =
                 origtypref := Some copiedtype2;
                 copiedtype
           in
-          let newvi = 
-            { fvi with vtype = origtype; (* Set it like this and doVarInfo 
+          let newvi =
+            { fvi with vtype = origtype; (* Set it like this and doVarInfo
                                           * will fix it *)
               vname = newPolyName fvi.vname;
-              vattr = dropAttribute  
-                           "nocure" 
+              vattr = dropAttribute
+                           "nocure"
                             (dropNodeAttrs fvi.vattr) }  in
           MU.theFile := GVarDecl (newvi, fvi.vdecl) :: !MU.theFile;
           instantiations := (old_name, newvi) :: !instantiations;
           newvi, true
-        with Not_found -> 
+        with Not_found ->
           fvi, false    (* Not polymorphic *)
     end
   in
@@ -244,12 +244,12 @@ let instantiatePolyFunc (fvi: varinfo) : varinfo * bool =
   end;
   newvi, ispoly
 
-let rememberFunctionDefinition (fdec: fundec) = 
+let rememberFunctionDefinition (fdec: fundec) =
   assert(isPolyFunc fdec.svar);
-  if debugPoly then 
+  if debugPoly then
     ignore (E.log "Found body of polymorphic function %s\n" fdec.svar.vname);
   H.add polyBodies fdec.svar.vname fdec;
-  if !N.printVerboseOutput then   
+  if !N.printVerboseOutput then
     GText ("// Body of polymorphic " ^ fdec.svar.vname ^ " was dropped\n")
   else
     GText ("//\n")
@@ -257,15 +257,15 @@ let rememberFunctionDefinition (fdec: fundec) =
 
 
 
-(* We want to coalesce the polymorphic functions with the same mangling. Map 
- * from the stripped name (with mangling but without the polymorphic prefix) 
+(* We want to coalesce the polymorphic functions with the same mangling. Map
+ * from the stripped name (with mangling but without the polymorphic prefix)
  * to the varinfo to the representative *)
 let polyFuncRepresentative: (string, varinfo) H.t = H.create 111
 
 (* Return exactly the same if this is a representative *)
-let getPolyFuncRepresentative (vi: varinfo) : varinfo = 
+let getPolyFuncRepresentative (vi: varinfo) : varinfo =
   let n = stripPoly vi.vname in
-  if n = vi.vname then 
+  if n = vi.vname then
     vi
   else begin
     try
@@ -281,9 +281,9 @@ let getPolyFuncRepresentative (vi: varinfo) : varinfo =
 let polyCompRepresentative: (string, compinfo) H.t = H.create 111
 
 (* Return exactly the same if this is a representative *)
-let getPolyCompRepresentative (ci: compinfo) : compinfo = 
+let getPolyCompRepresentative (ci: compinfo) : compinfo =
   let n = stripPoly ci.cname in
-  if n = ci.cname then 
+  if n = ci.cname then
     ci
   else begin
     try
@@ -294,42 +294,42 @@ let getPolyCompRepresentative (ci: compinfo) : compinfo =
     end
   end
 
-(* This function is called at the end to create copies of the bodies of the 
- * polymorphic instances and to mark them recursively. The marking is done 
- * using the doNewFunc provided by the caller. We assume that doNewFunc will 
- * eventually call instantiatePolyFunc when it sees an invocation of a 
+(* This function is called at the end to create copies of the bodies of the
+ * polymorphic instances and to mark them recursively. The marking is done
+ * using the doNewFunc provided by the caller. We assume that doNewFunc will
+ * eventually call instantiatePolyFunc when it sees an invocation of a
  * polymorphic function in the copied body *)
-let finishInstantiations (doNewFunc: fundec -> unit) = 
-  
-  (* Now we must process the polymorphic functions. While we do that we might 
+let finishInstantiations (doNewFunc: fundec -> unit) =
+
+  (* Now we must process the polymorphic functions. While we do that we might
    * create new polymorphic instantiations. Careful about infinite loops *)
-  let rec loopInstantiations (recs: (string * varinfo) list) (* parents *) = 
+  let rec loopInstantiations (recs: (string * varinfo) list) (* parents *) =
     (* See what new instantiations we got *)
     let newinst = List.rev !instantiations in (* Do them in order *)
     instantiations := [];
     List.iter (depthFirst recs) newinst
-      
+
   and depthFirst (recs: (string * varinfo) list) (* Parents *)
                  ((oldname, newvi) as thisone)
-      : unit = 
+      : unit =
     assert (!instantiations == []);
     let recs' = thisone :: recs in
     recursiveInstantiations := recs'; (* Set the parents for instantiatePoly *)
-    (try  
+    (try
       let body = H.find polyBodies oldname in
-      if debugPoly then 
+      if debugPoly then
         ignore (E.log "Copying body of function %s\n" newvi.vname);
       let f' = copyFunction body newvi.vname in
-      (* We must use newvi as the svar but we have to preserve the 
+      (* We must use newvi as the svar but we have to preserve the
       * sharing with sformals *)
       setFunctionType f' newvi.vtype;
       newvi.vtype <- f'.svar.vtype;
       f'.svar <- newvi;
       doNewFunc f'
-      
-    with Not_found -> 
+
+    with Not_found ->
       if debugPoly then
-        ignore (E.log "Poly function %s does not have a body or model\n" 
+        ignore (E.log "Poly function %s does not have a body or model\n"
                   oldname)); (* This one does not have a body, or a model *)
     loopInstantiations recs'
   in
@@ -340,56 +340,56 @@ let finishInstantiations (doNewFunc: fundec -> unit) =
 (** Called to instantiate a compinfo *)
 let rec instantiatePolyComp
     (ci: compinfo)
-    (finishNewOnes: compinfo -> unit) : compinfo = 
+    (finishNewOnes: compinfo -> unit) : compinfo =
   if not (isPolyComp ci) then ci else
-  (* Keep track of those compinfos that we have made copies of,in this 
+  (* Keep track of those compinfos that we have made copies of,in this
    * invocation *)
   let recursiveStructs : (string, compinfo) H.t = H.create 13 in
   (* It is to be made polymorphic. Call our helper function *)
-  let rec instAux (ci: compinfo) = 
+  let rec instAux (ci: compinfo) =
     (* See if we have done it already *)
     try
       H.find recursiveStructs ci.cname
     with Not_found -> begin
       (* Doing it for the first time *)
       (* We first make a copy of the compinfo *)
-      let copyFields (newci: compinfo) = 
+      let copyFields (newci: compinfo) =
         (* Remember the compinfo in case there is recursion *)
         H.add recursiveStructs ci.cname newci;
         (* Now copy the fields and recursively instantiate their types *)
         let rec instType (t: typ) =
-          match t with 
+          match t with
             TComp (ci', a) when isPolyComp ci' -> TComp (instAux ci', a)
           | TComp _ -> t
             (* Go down inside pointer, array and function types *)
-          | TPtr (t0, a) -> 
-              let t0' = instType t0 in 
+          | TPtr (t0, a) ->
+              let t0' = instType t0 in
               if t0' != t0 then TPtr(t0', a) else t
-          | TArray (t0, leno, a) -> 
+          | TArray (t0, leno, a) ->
               let t0' = instType t0 in
               if t0' != t0 then TArray (t0', leno, a) else t
             (* Go inside named types *)
-          | TNamed (ti, a) -> 
+          | TNamed (ti, a) ->
               let t0' = instType ti.ttype in
-              if t0' != ti.ttype then 
+              if t0' != ti.ttype then
                 typeAddAttributes a t0' (* Don't use the named type anymore *)
               else
                 t
-          | TFun (t0, args, va, a) -> 
+          | TFun (t0, args, va, a) ->
               let t0' = instType t0 in
               if t0' != t0 then TFun (t0', args, va, a) else t
           | _ -> t
         in
         (* Created the field information *)
-        let fields = 
-          List.map 
-            (fun cifld -> 
-              (cifld.fname, instType cifld.ftype, 
+        let fields =
+          List.map
+            (fun cifld ->
+              (cifld.fname, instType cifld.ftype,
                cifld.fbitfield, cifld.fattr, cifld.floc))
             ci.cfields in
         fields
       in
-      let newci = 
+      let newci =
         mkCompInfo ci.cstruct (newPolyName ci.cname) copyFields ci.cattr in
       (* Apply the callback to handle this one *)
       finishNewOnes newci;
@@ -397,10 +397,10 @@ let rec instantiatePolyComp
     end
   in
   instAux ci
-  
-  
 
- 
+
+
+
 let initFile () =
   H.clear polyFunc;
   H.clear polyComps;

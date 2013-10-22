@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -39,19 +39,19 @@
  * Union-Find Functor (no side effects, purely applicative)
  *
  * (used by physical type equality to keep equivalence classes of types)
- *) 
+ *)
 module N = Ptrnode
 module E = Errormsg
 
-module type UF = 
+module type UF =
   sig
     type t
 
-    type elt 
+    type elt
 
     val empty : t
 
-    val check_equal : t -> elt -> elt -> bool 
+    val check_equal : t -> elt -> elt -> bool
 
         (* The chain is directed elt1 -> elt2 *)
     val make_equal : t -> elt -> elt -> N.chain -> t
@@ -60,7 +60,7 @@ module type UF =
 
     val class_of : t -> elt -> elt list
 
-    (* Returns the chain why two elements are equal. Raises Failure if they 
+    (* Returns the chain why two elements are equal. Raises Failure if they
      * are not actually equal *)
     val why_equal : t -> elt -> elt -> N.chain
   end
@@ -68,25 +68,25 @@ module type UF =
 
 module Make(S : Set.S) =
   struct
-    (* An equivalence class supports membership queries and can also explain 
+    (* An equivalence class supports membership queries and can also explain
      * why two elements are equal *)
-    type aclass = 
+    type aclass =
         { set: S.t; (* For the membership query *)
           why: whyset }
-    and whyset = 
+    and whyset =
         WSSingle of S.elt (* A singleton *)
-      (* Was formed by unioning aclass1 (containing elt1) and aclass2 
-       * (containing elt2) with the given chain for elt1->elt2 *) 
-      | WSUnion of aclass * S.elt * N.chain * S.elt * aclass 
+      (* Was formed by unioning aclass1 (containing elt1) and aclass2
+       * (containing elt2) with the given chain for elt1->elt2 *)
+      | WSUnion of aclass * S.elt * N.chain * S.elt * aclass
 
     type t = aclass list
 
-    type elt = S.elt 
+    type elt = S.elt
 
     let empty = []
 
     let check_equal uf e1 e2 =
-      List.fold_left 
+      List.fold_left
         (fun acc cls -> acc || (S.mem e1 cls.set && S.mem e2 cls.set)) false uf
 
     exception AlreadyEqual
@@ -101,51 +101,51 @@ module Make(S : Set.S) =
           if S.mem e1 cls.set then begin
             if S.mem e2 cls.set then
               raise AlreadyEqual
-            else 
+            else
               c1 := cls
           end else if S.mem e2 cls.set then
             c2 := cls
-          else 
-            uninvolved := cls :: !uninvolved) 
+          else
+            uninvolved := cls :: !uninvolved)
           clss ;
-        let merged_set = 
-          { set = S.union !c1.set !c2.set; 
+        let merged_set =
+          { set = S.union !c1.set !c2.set;
             why = WSUnion (!c1, e1, chain, e2, !c2); }
         in
         let final_list_of_sets = merged_set :: !uninvolved in
         (final_list_of_sets : aclass list)
-      with AlreadyEqual -> 
+      with AlreadyEqual ->
         clss
 
-    let eq_classes clss = 
+    let eq_classes clss =
       List.map (fun eqclass -> S.elements eqclass.set) clss
 
     let class_of clss elt =
       let rec search = function
           [] -> []
-        | cls :: tl -> 
-            if S.mem elt cls.set then S.elements cls.set else search tl 
-      in 
+        | cls :: tl ->
+            if S.mem elt cls.set then S.elements cls.set else search tl
+      in
       search clss
 
-    let why_equal (clss: aclass list) (e1: elt) (e2: elt) : N.chain = 
+    let why_equal (clss: aclass list) (e1: elt) (e2: elt) : N.chain =
       (* Find the class of e1 *)
-      let cls = 
-        try List.find (fun cls -> S.mem e1 cls.set) clss 
+      let cls =
+        try List.find (fun cls -> S.mem e1 cls.set) clss
         with _ -> E.s (E.bug "why_equal: element not known") in
       (* Check that e2 is in the same class *)
-      if not (S.mem e2 cls.set) then 
+      if not (S.mem e2 cls.set) then
         E.s (E.bug "why_equal: not actually equal");
-      (* Now traverse the history of unions in reverse order. The invariant 
+      (* Now traverse the history of unions in reverse order. The invariant
        * is that both e1 and e2 are in the set. *)
-      let rec whyLoop (e1: elt) (e2: elt) (why: whyset) = 
+      let rec whyLoop (e1: elt) (e2: elt) (why: whyset) =
         (* Maybe they are equal *)
         if compare e1 e2 = 0 then N.mkRIdent else
-        match why with 
+        match why with
           WSSingle _ -> E.s (E.bug "why_equal: equal elements")
-        | WSUnion (c1, e1', r', e2', c2) -> 
-            if S.mem e1 c1.set then 
-              if S.mem e2 c1.set then 
+        | WSUnion (c1, e1', r', e2', c2) ->
+            if S.mem e1 c1.set then
+              if S.mem e2 c1.set then
                 (* Both e1 and e2 belong to c1 *)
                 whyLoop e1 e2 c1.why
               else
@@ -154,7 +154,7 @@ module Make(S : Set.S) =
                   (N.mkRTrans r'
                      (whyLoop e2' e2 c2.why))
             else (* e1 in c2 *)
-              if S.mem e2 c2.set then 
+              if S.mem e2 c2.set then
                 (* Both e1 and e2 in the c2 *)
                 whyLoop e1 e2 c2.why
               else
@@ -166,7 +166,3 @@ module Make(S : Set.S) =
       whyLoop e1 e2 cls.why
 
   end
-
-
-    
-  

@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -42,12 +42,12 @@ module MU = Markutil
 module N = Ptrnode
 
 let funinfoToVarinfo (fi: MU.funinfo) : varinfo  =
-  match fi with 
+  match fi with
     MU.Declared vi -> vi
   | MU.Defined fdec -> fdec.svar
 
-let nodeOfType t = 
-  match unrollType t with 
+let nodeOfType t =
+  match unrollType t with
     TPtr(_, a) -> begin
       match N.nodeOfAttrlist a with
         Some n -> n
@@ -57,31 +57,31 @@ let nodeOfType t =
 
 (** Add compatibility edge between two types *)
 let markCompatibleTypes (who: string) (parent: string) (loc: location)
-                        (t1: typ) (t2: typ) (ek: N.edgekind) = 
+                        (t1: typ) (t2: typ) (ek: N.edgekind) =
   let n1 = nodeOfType t1 in
   let n2  = nodeOfType t2 in
   match n1 == N.dummyNode, n2 == N.dummyNode with
     true, true -> () (* scalar -> scalar *)
   | false, false -> (* pointer to pointer *)
-      let _ = N.addEdge n1 n2 ek None in 
+      let _ = N.addEdge n1 n2 ek None in
       let _ = N.addEdge n2 n1 ek None in
       ()
-  | _, _ -> 
+  | _, _ ->
       ignore (E.warn "%a: trying to markCompatibleTypes: %a and %a (%s)\n(because %s overrides %s)\n"
                 d_loc loc d_type t1 d_type t2
                 (match ek with N.ESameKind N.EEK_trustedCast -> "ETrustedCast"
-                               | _ -> "ECast") 
+                               | _ -> "ECast")
                 who parent)
-  
+
 
 (** Add compatibility edges between two function types *)
-let markOverrideFunctionType  (who: string) (loc: location) (ftype: typ) = 
-  match filterAttributes "override" (typeAttrs ftype) with 
+let markOverrideFunctionType  (who: string) (loc: location) (ftype: typ) =
+  match filterAttributes "override" (typeAttrs ftype) with
   | [ Attr(_, [AStr parent]) ] -> begin
       try
-        let pvi = 
-          try funinfoToVarinfo (H.find MU.allFunctions parent) 
-          with Not_found -> 
+        let pvi =
+          try funinfoToVarinfo (H.find MU.allFunctions parent)
+          with Not_found ->
             ignore (E.warn "%a: Cannot find definition of overriden %s\n" d_loc loc parent);
             raise Not_found
         in
@@ -91,23 +91,23 @@ let markOverrideFunctionType  (who: string) (loc: location) (ftype: typ) =
         let args1 = argsToList args1 in
         let args2 = argsToList args2 in
         if List.length args1 <> List.length args2 then begin
-          ignore (E.warn 
-                    "%a: Trying to override function (%s) with different # of arguments for parent %s" 
+          ignore (E.warn
+                    "%a: Trying to override function (%s) with different # of arguments for parent %s"
                     d_loc loc who parent);
           raise Not_found
         end;
         let isfst = ref true in
-        (* Two methods that override eachother must be compatible on all 
-         * arguments, except the first one. But even the first one must be of 
+        (* Two methods that override eachother must be compatible on all
+         * arguments, except the first one. But even the first one must be of
          * the same kind *)
 (*
         ignore (E.log "Found override of %s\n" pvi.vname);
 *)
-        markCompatibleTypes who parent loc rt1 rt2 
+        markCompatibleTypes who parent loc rt1 rt2
           (N.ESameKind N.EEK_trustedCast);
-        List.iter2 
-          (fun (_, at1, _) (_, at2, _) -> 
-            markCompatibleTypes who parent loc at1 at2 
+        List.iter2
+          (fun (_, at1, _) (_, at2, _) ->
+            markCompatibleTypes who parent loc at1 at2
               (if !isfst then (N.ESameKind N.EEK_trustedCast)
                else (N.ECast N.EEK_cxxOverride));
             isfst := false)
@@ -118,15 +118,15 @@ let markOverrideFunctionType  (who: string) (loc: location) (ftype: typ) =
 
   | _ ->  () (* This one does not override anything *)
 
-        
-      
-  
-    
-        
+
+
+
+
+
 (* Scan all the functions and fix the overrides *)
-let fixOverrides () = 
-  H.iter 
-    (fun fname fi -> 
+let fixOverrides () =
+  H.iter
+    (fun fname fi ->
       (* Get the varinfo *)
       let vi = funinfoToVarinfo fi in
       markOverrideFunctionType vi.vname vi.vdecl vi.vtype)
@@ -134,7 +134,7 @@ let fixOverrides () =
 
 
 let fixFunctionPointerVar (vi: varinfo) (loc: location) =
-  match vi.vtype with 
-    TPtr(((TFun _) as tfun), _) -> 
+  match vi.vtype with
+    TPtr(((TFun _) as tfun), _) ->
       markOverrideFunctionType vi.vname loc tfun
   | _ -> ()

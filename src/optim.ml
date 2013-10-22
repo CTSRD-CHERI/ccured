@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -69,7 +69,7 @@ let outNode : exp list array ref = ref[| |] (* dataflow info at the exit of a no
 let allVals : exp list ref = ref [] (* list of all flow values. To be used as TOP in dataflow analysis *)
 
 (* Some statistics that we can use to brag about later *)
-let stats_total      = ref 0 (* Total CHECKs seen *) 
+let stats_total      = ref 0 (* Total CHECKs seen *)
 let stats_nc_removed = ref 0 (* removed by null check remover *)
 let stats_removed    = ref 0 (* removed by the redundancy eliminator *)
 
@@ -91,8 +91,8 @@ let stats_removed    = ref 0 (* removed by the redundancy eliminator *)
    None means the succ is the function return. It does not mean the break/cont
    is invalid. We assume the validity has already been checked.
 *)
-(* At the end of CFG computation, 
-   - numNodes = total number of CFG nodes 
+(* At the end of CFG computation,
+   - numNodes = total number of CFG nodes
    - length(nodeList) = numNodes
 *)
 
@@ -100,7 +100,7 @@ let rec printCfgBlock ?(showGruesomeDetails = true) blk =
   List.iter (function s ->
     printCfgStmt ~showGruesomeDetails:showGruesomeDetails s)
     blk.bstmts;
-  
+
 
 and printCfgStmt ?(showGruesomeDetails = true) s =
   ignore (printf "-------------------------------------------------\n");
@@ -126,7 +126,7 @@ and printCfgStmt ?(showGruesomeDetails = true) s =
     ignore (printf "\n");
     end;
   end;
-  
+
   match s.skind  with
   | If (test, blk1, blk2, _) ->
       ignore (printf "Cond: %a\n" d_plainexp test);
@@ -157,9 +157,9 @@ and dfs s =
   end
 *)
 
-and dfsMarkAll (color : int) = 
+and dfsMarkAll (color : int) =
   List.iter (fun s -> s.sid <- color) !nodeList
-  
+
 and dfs (start:stmt) =
   assert ((List.length !nodeList) == !numNodes);
   dfsMarkAll dfsMarkWhite;
@@ -192,8 +192,8 @@ let starts_with (s : string) (prefix : string) : bool =
 let isCheckCall_str s = starts_with s "CHECK_"
 let isCheckCall_instr : instr -> bool = function
     Call (_,Lval(Var x,_),args,l) when isCheckCall_str x.vname -> true
-  | _ -> false    
-    
+  | _ -> false
+
 
 (*-----------------------------------------------------------------*)
 (* Print all the CHECK_NULL arguments (without a cast if there is one).
@@ -210,7 +210,7 @@ and printChecksStmt s =
   | Switch (e,blk,_,_) -> printChecksBlock blk
   | Loop (blk,_,_,_) -> printChecksBlock blk
   | Block b -> printChecksBlock b
-  | TryExcept _ | TryFinally _ -> 
+  | TryExcept _ | TryFinally _ ->
       E.s (E.unimp "Optim:printChecksStmt try/except")
 
 and printChecksInstr i =
@@ -320,7 +320,7 @@ let rec optimInstr (l: instr list) nnl : instr list =
           else first::optimInstr tl (checkExp::nnl) (* add to the list of valid non-null exp *)
       | Call(_,Lval(Var x,_),args,l)  (* Don't invalidate for well-behaved functions *)
         when ((String.length x.vname) > 6 &&
-              (String.sub x.vname 0 6)="CHECK_") -> 
+              (String.sub x.vname 0 6)="CHECK_") ->
 		stats_total := !stats_total + 1;
 		first::optimInstr tl nnl
       | Call _ -> (* invalidate everything *)
@@ -354,7 +354,7 @@ let nullChecksOptim f =
   nodes := Array.create !numNodes dummyStmt; (* allocate space *)
   orderBlock f.sbody.bstmts; (* assign sid *)
   (* sCount+1 was the largest sid assigned *)
-  
+
 
   (* Create gen and kill for all nodes *)
   gen := Array.create !numNodes [];  (* allocate space *)
@@ -433,10 +433,10 @@ let amandebug = try (Sys.getenv "REDDBG") = "1" with _ -> false
 let amanDontRemove = try (Sys.getenv "REDDONTREMOVE") = "1" with _ -> false
 
 (* Be extremely non-conservative about assignments and func-calls *)
-let amanNonConservative = 
+let amanNonConservative =
   try (Sys.getenv "REDNONCONSERVATIVE") = "1" with _ -> false
 
-(* Skip the global init which is often very long and slows down my 
+(* Skip the global init which is often very long and slows down my
    super-quadratic algo *)
 let amanSkipGlobInit =
   try (Sys.getenv "REDSKIPGLOBINIT") = "1" with _ -> false
@@ -445,20 +445,20 @@ let amanSkipGlobInit =
 (******************************************************************************)
 (* Lattice values *)
 type latticeType =
-    Unknown 
-  | NotNeeded 
+    Unknown
+  | NotNeeded
   | Live of varinfo   (* Its sufficient to just have one temp. variable store
-			 the live value of the CHECK, for non-void CHECK 
-			 functions. 
+			 the live value of the CHECK, for non-void CHECK
+			 functions.
 			 The assumption here is that these temp. variables are
-			 not assigned any other value later 
-			 Another assumption is that the return value of CHECKs 
+			 not assigned any other value later
+			 Another assumption is that the return value of CHECKs
 			 is only stored in named unoffsetted variables
-		      *)			 
-  | Needed 
+		      *)
+  | Needed
 
 (* I dont want to rely on the numbers that the compiler assigns to the types. *)
-type lattice     = {latWeight: int ; 
+type lattice     = {latWeight: int ;
 		      latType: latticeType}
 
 (* Lattice values start from "unknown" and keep creeping towards "needed" *)
@@ -480,12 +480,12 @@ let latCheckNeeded     = {latWeight = wrNEEDED;    latType = Needed}
    We handle the comparision of Live specially. *)
 
 let lat_max v1 v2 =
-  if v1.latWeight = wtLIVE && v2.latWeight = wtLIVE 
+  if v1.latWeight = wtLIVE && v2.latWeight = wtLIVE
   then (if v1 = v2 then v1 else latCheckNeeded)
   else if v1.latWeight >= v2.latWeight then v1 else v2
 
-let lat_min v1 v2 = 
-  if v1.latWeight = wtLIVE && v2.latWeight = wtLIVE 
+let lat_min v1 v2 =
+  if v1.latWeight = wtLIVE && v2.latWeight = wtLIVE
   then (if v1 = v2 then v1 else latUnknown)
   else if v1.latWeight <= v2.latWeight then v1 else v2
 
@@ -513,7 +513,7 @@ let doMarshal v : unit =
   let chn = open_out_bin "op.m" in
   Marshal.to_channel chn v [Marshal.No_sharing];
   (*
-  Marshal.to_channel chn 
+  Marshal.to_channel chn
     (match !checkInstrs.(i) with Call (_,_,ee,_) -> ee | _ -> [])
     [];
   *)
@@ -538,7 +538,7 @@ let rec getOutermostOffset (off : offset) =
   | Index (_, off) -> getOutermostOffset off
 
 let getOutermostOffsetLval (_,lvoff) = getOutermostOffset lvoff
-  
+
 
 (* Helper function that strips the outermost offset of an lval
    e.g. a[3].z[3] -> a[3].z -> a[3] -> a -> invalid_arg!
@@ -555,7 +555,7 @@ let stripOffset (lv : lval) : lval =
   match lv with (mv, off) -> (mv, butlastOffset off)
 
 (* Returns -1 if not found *)
-let find_in_array (array : 'a array) (element : 'a) : int =  
+let find_in_array (array : 'a array) (element : 'a) : int =
   let ubound = Array.length array in
   let rec findloop i =
     if i >= ubound then -1 else
@@ -570,10 +570,10 @@ let strstr str qry : bool =
   let rec loop pos qpos =
     qpos >= ql ||
     (str.[pos] == qry.[qpos] && (loop (pos+1) (qpos+1))) ||
-    (pos < (sl-ql) && (loop (pos+1) 0)) 
+    (pos < (sl-ql) && (loop (pos+1) 0))
   in
   ql <= sl && loop 0 0
-     
+
 (* compareWithoutCasts:
    Strip the casts and compare the expressions
 *)
@@ -595,11 +595,11 @@ let rec simplifyExp e : exp =
   | CastE (_,e) -> simplifyExp e
   | Lval lv -> simplifyLval lv
   | StartOf lv -> simplifyLval lv
-  | AddrOf (Mem e, NoOffset) -> 
+  | AddrOf (Mem e, NoOffset) ->
       BinOp (IndexPI,simplifyExp e,zero,typeOf e)
-  | AddrOf ((_,off) as lv) -> 
-      (match getOutermostOffset off with 
-	Index (i,NoOffset) -> 
+  | AddrOf ((_,off) as lv) ->
+      (match getOutermostOffset off with
+	Index (i,NoOffset) ->
 	  let lvs = Lval (stripOffset lv) in
 	  simplifyExp (BinOp (IndexPI, lvs, i, typeOf lvs))
       | _ -> e)
@@ -621,9 +621,9 @@ let rec expEqual e1 e2 : bool=
   | SizeOfE e1, SizeOfE e2 -> expEqual e1 e2
   | AlignOf a, AlignOf b -> Util.equals a b
   | AlignOfE e1, AlignOfE e2 -> expEqual e1 e2
-  | BinOp (op1,ea1,ea2,t1), BinOp (op2,eb1,eb2,t2) -> 
+  | BinOp (op1,ea1,ea2,t1), BinOp (op2,eb1,eb2,t2) ->
       op1=op2 && (expEqual ea1 eb1) && (expEqual ea2 eb2) && Util.equals t1 t2
-  | UnOp (op1,ea1,t1), UnOp (op2,eb1,t2) -> 
+  | UnOp (op1,ea1,t1), UnOp (op2,eb1,t2) ->
       op1=op2 && (expEqual ea1 eb1) && Util.equals t1 t2
 (*  | Question (ea1,ea2,ea3), Question (eb1,eb2,eb3) ->
       (expEqual ea1 eb1) && (expEqual ea2 eb2) && (expEqual ea3 eb3)
@@ -635,16 +635,16 @@ let rec expEqual e1 e2 : bool=
   | StartOf _, Lval _ -> expEqual e2 e1
   | AddrOf _, Lval _ -> expEqual e2 e1
   | Lval _, StartOf lv -> expEqual e1 (Lval lv)
-  | Lval _, AddrOf (Mem e, NoOffset) -> 
+  | Lval _, AddrOf (Mem e, NoOffset) ->
       expEqual e1 e
   | Lval _, AddrOf ((bb,bo) as b) ->
-      (match getOutermostOffset bo with 
+      (match getOutermostOffset bo with
 	Index (zero,NoOffset) -> expEqual e1 (Lval (stripOffset b))
       | _ -> false)
   | AddrOf lv1, AddrOf lv2 -> lvalEqual lv1 lv2
   | AddrOf lv1, StartOf lv2 ->expEqual e1 (Lval lv2)  (* ?? *)
   | StartOf lv1, AddrOf lv2 ->expEqual e2 e1
-  | StartOf lv1, StartOf lv2 ->lvalEqual lv1 lv2 
+  | StartOf lv1, StartOf lv2 ->lvalEqual lv1 lv2
   | _,_ -> Util.equals e1 e2
 
 (* Compare lvals *)
@@ -654,7 +654,7 @@ and lvalEqual lv1 lv2 : bool=
     (Var v1, off1), (Var v2, off2) -> v1.vid = v2.vid && (offsetEqual off1 off2)
   | (Mem e1, off1), (Mem e2, off2) ->
       (expEqual e1 e2) && (offsetEqual off1 off2)
-  | (Mem e1, NoOffset), (Var _, off2) -> 
+  | (Mem e1, NoOffset), (Var _, off2) ->
       (match getOutermostOffset off2 with
 	Index (zero, NoOffset) -> expEqual e1 (Lval (stripOffset lv2))
       |	_ -> false)
@@ -681,7 +681,7 @@ let rec compareExp e1 e2 : int option =
   if amandebug then Marshal.to_channel cechn e1 [];
   if amandebug then Marshal.to_channel cechn e2 [];
   let e1 = simplifyExp e1 in
-  let e2 = simplifyExp e2 in 
+  let e2 = simplifyExp e2 in
   let b =
   if (expEqual e1 e2) then Some 0
   else if compareExpOp e1 (<) e2 then Some ~-1
@@ -691,7 +691,7 @@ let rec compareExp e1 e2 : int option =
   in
   if amandebug then begin
     pr "";
-    ignore (Pretty.printf "compare %a , %a = %s\n" d_exp e1 d_exp e2 
+    ignore (Pretty.printf "compare %a , %a = %s\n" d_exp e1 d_exp e2
 	      (match b with None -> "None" | Some n -> string_of_int n));
   end;
   b
@@ -701,9 +701,9 @@ and compareExpOp e1 op e2 : bool =
   let isAdd op = (op = PlusA || op = PlusPI || op = IndexPI) in
   match e1,e2 with
     Const (CInt64 (a,_,_)), Const (CInt64 (b,_,_)) -> op a b
-  | Const _, _ 
+  | Const _, _
   | _, Const _ -> false
-  | BinOp (op1,ea,eb,_), BinOp(op2,ec,ed,_) 
+  | BinOp (op1,ea,eb,_), BinOp(op2,ec,ed,_)
     when isAdd op1 && isAdd op2 ->
 	((expEqual ea ec) && (compareExpOp eb op ed)) ||
 	((expEqual ea ed) && (compareExpOp eb op ec)) ||
@@ -720,7 +720,7 @@ and compareExpOp e1 op e2 : bool =
       ((compareExpOp eb op zero) && (expEqual ea e2)) ||
       ((compareExpOp ea op zero) && (expEqual eb e2))
   | _ -> false
-    
+
 
 (******************************************************************************)
 
@@ -746,7 +746,7 @@ let rec numberNodesAndPeephole f =
     (* Do peephole optimization *)
   if amandebug then pr "Trying peephole ... \n";
   Array.iteri
-    (fun i nd -> 
+    (fun i nd ->
       match nd.skind with
 	Instr instList ->
 	  nd.skind <- Instr (removePeephole instList)
@@ -758,30 +758,30 @@ let rec numberNodesAndPeephole f =
 (* eliminateRedundancy:
    This is the entry-point to the redundancy eliminator.
 *)
-and eliminateRedundancy (f : fundec) : fundec = 
+and eliminateRedundancy (f : fundec) : fundec =
   if useRedundancyElimination then begin
 
     ignore (numberNodesAndPeephole f);
 
     (* The cin values corresponding to the nodes array *)
-    let cin = Array.make !numNodes latUnknown in   
+    let cin = Array.make !numNodes latUnknown in
 
     (* The cout values as above *)
-    let cout = Array.make !numNodes latUnknown in  
-    
+    let cout = Array.make !numNodes latUnknown in
+
     (* The number of CHECK instructions *)
     let countCheckInstrs = Array.length !checkInstrs in
-    
+
     if amandebug then pr "- - - - Function %s contains %d CHECKS\n" f.svar.vname countCheckInstrs;
 
     (* Show variables *)
     if amandebug then begin
-      List.iter (fun v -> pr "Var %d: %s vaddrof:%b\n" v.vid v.vname v.vaddrof ) 
+      List.iter (fun v -> pr "Var %d: %s vaddrof:%b\n" v.vid v.vname v.vaddrof )
 	(f.sformals @ f.slocals);
     end;
 
     (* When processing a CHECK, I find all the other redundant CHECKs and flag them.
-       i.e. All the simultaneously flagged elements are identical, and good 
+       i.e. All the simultaneously flagged elements are identical, and good
        candidates for elimination *)
     checkFlags := Array.make countCheckInstrs false;
 
@@ -791,25 +791,25 @@ and eliminateRedundancy (f : fundec) : fundec =
     (* stats_total := !stats_total + countCheckInstrs; *)
 
     (* Process each CHECK Call  *)
-    for i=0 to (countCheckInstrs - 1) do      
+    for i=0 to (countCheckInstrs - 1) do
       if not (!checkProcessed.(i)) then begin (* Skip the already-processed ones *)
 	!checkProcessed.(i) <- true;
 
 	(* Let other functions know the current CHECK *)
 	checkBeingProcessed := !checkInstrs.(i);
-	
-	if amandebug then begin 
-	  pr "";	  
+
+	if amandebug then begin
+	  pr "";
 	  ignore (printf "Processing %d: %a\n" i d_instr !checkInstrs.(i));
 
 	  (* Some temporary stuff for inspection by a ocamlmktop manufactured toplvl *)
-	  
+
           if i = 4 && false then begin
-	    match !checkInstrs.(i) with 
-	      Call (_,_,ee,_) -> doMarshal ee 
+	    match !checkInstrs.(i) with
+	      Call (_,_,ee,_) -> doMarshal ee
 	    | _ -> ()
           end
-	  
+
 	end;
 
 	(* Get a list of all the Lvals that are used in the arguments to
@@ -817,8 +817,8 @@ and eliminateRedundancy (f : fundec) : fundec =
 	checkLvals := getCheckedLvals !checkInstrs.(i);
 
 	(* Look for an aliased variable somewhere in these lvals
-	   If one exists, then we'll have to be more conservative *)	  
-	checkHasAliasedVar := List.fold_right 
+	   If one exists, then we'll have to be more conservative *)
+	checkHasAliasedVar := List.fold_right
 	    (fun lv acc -> acc || (lvalHasAliasedVar lv))
 	    !checkLvals
 	    false;
@@ -837,19 +837,19 @@ and eliminateRedundancy (f : fundec) : fundec =
 
 	  (* Mark all the similar ones as "processed" *)
 	  Array.iteri (fun i a -> !checkProcessed.(i) <- !checkProcessed.(i) || a) !checkFlags;
-	  
+
 	  (* Set the cin for the entry point. We do need a check at this point *)
 	  (match f.sbody.bstmts with
-	    h :: t -> cin.(h.sid) <- latCheckNeeded; 
+	    h :: t -> cin.(h.sid) <- latCheckNeeded;
 	      if amandebug then pr "Entry node = %d\n" h.sid
 	  | _ -> ());
-	  
+
 	  (* Find cin,cout, till fixed-point *)
 	  let reachedFixedPoint = ref false in
 	  let nIter = ref 0 in
-	  
+
 	  (* .. with utter disrespect to functional programming ... *)
-	  while not !reachedFixedPoint do 
+	  while not !reachedFixedPoint do
 	    nIter := !nIter + 1;
 	    reachedFixedPoint := true;
 
@@ -860,7 +860,7 @@ and eliminateRedundancy (f : fundec) : fundec =
 	      cin.(i) <- newCin;
 	      let newCout = evalCout !nodes.(i) (lat_max cin.(i) cout.(i))  in
 	      if newCout <> cout.(i) then reachedFixedPoint := false;
-	      cout.(i) <- newCout;	    
+	      cout.(i) <- newCout;
 	    done; (* for *)
 
 	    (* Show that we're actually doing some real work in here *)
@@ -874,20 +874,20 @@ and eliminateRedundancy (f : fundec) : fundec =
 	    end;
 
 	  done; (* while *)
-	  
+
 	  if amandebug then pr "Reached fixed point in %d iterations\n" !nIter;
 
      	  (* Now, actually remove the redundant CHECKs *)
 	  Array.iteri
 	    (fun i nd ->
 	      match nd.skind with
-	      Instr instList -> 
+	      Instr instList ->
 		nd.skind <- Instr (removeRedundancies cin.(i) instList i)
 	      |	_ -> ())
 	    !nodes;
-	  
+
 	end (* if markSimilar .. else ... *)
-	
+
       end (* if not checkProcessed *)
       else
 	if amandebug then begin
@@ -913,55 +913,55 @@ and eliminateRedundancy (f : fundec) : fundec =
    node_number = index of the Instr in the nodes array ... just for debugging
 *)
 and removeRedundancies (cin_start : lattice) instList node_number =
-  (* The loop. 
-     cin_local = current cin value. 
+  (* The loop.
+     cin_local = current cin value.
      instList = remaining instr's
      The processed instr's are accumulated in filteredList  *)
   let rec removeRedundanciesLoop (cin_local : lattice) instList filteredList =
     match instList with
       [] -> List.rev filteredList (* filteredList happens to be inverted *)
-    | h :: t -> 
+    | h :: t ->
 	(* Is this a candidate for elimination ? *)
 	let index = find_in_array !checkInstrs h in
-	if index >= 0 && !checkFlags.(index) then begin	
+	if index >= 0 && !checkFlags.(index) then begin
 	  let h2 = (* A debugging hack ... let the index be shown in the .c file in the line number info *)
-	    match h with 
-	      Call (p1,(Lval(Var f,p2)) ,p3,loc) when amandebug && false -> 
+	    match h with
+	      Call (p1,(Lval(Var f,p2)) ,p3,loc) when amandebug && false ->
 	      (* THIS LINE MUST BE REMOVED. Its not standard ocaml and may not compile in the future *)
-		Call (p1,Lval (Var f, p2),p3, 
-		      {loc with file = loc.file ^ "_$" ^ 
+		Call (p1,Lval (Var f, p2),p3,
+		      {loc with file = loc.file ^ "_$" ^
 			(string_of_int node_number) ^ "_" ^
 			(string_of_int index) ^  (getLatValDescription cin_local.latType)})
 	    | _ -> h
 	  in
 	  match cin_local.latType with (*------------------------------------------------------------*)
-	    Live var -> (* The value of this CHECK is already live in some var 
+	    Live var -> (* The value of this CHECK is already live in some var
 			   We keep the cin value as it is *)
 	      stats_removed := !stats_removed + 1;
-	      if amandebug then 
-		pr "%s %d removed! (replaced by live var %s)\n" (getCallName h) index var.vname;	  
-	      if amanDontRemove 
-	      then removeRedundanciesLoop cin_local t (h2 :: filteredList) 
+	      if amandebug then
+		pr "%s %d removed! (replaced by live var %s)\n" (getCallName h) index var.vname;
+	      if amanDontRemove
+	      then removeRedundanciesLoop cin_local t (h2 :: filteredList)
 	      else
-		(match h with 
-		  Call (Some destlv,_,_,loc) -> (* replace with an assignment: var2 = var *) 
-		    removeRedundanciesLoop cin_local t 
-		      ((Set (destlv, 
+		(match h with
+		  Call (Some destlv,_,_,loc) -> (* replace with an assignment: var2 = var *)
+		    removeRedundanciesLoop cin_local t
+		      ((Set (destlv,
 			     Lval (Var var, NoOffset), loc)) :: filteredList)
 		| _ -> raise (Failure "non-Call in checkInstrs array"))
 
-	  | NotNeeded -> (* This CHECK has already been performed, and the result is live 
+	  | NotNeeded -> (* This CHECK has already been performed, and the result is live
 			    We keep the cin value unchanged *)
 	      stats_removed := !stats_removed + 1;
 	      if amandebug then pr "%s %d removed!\n" (getCallName h) index;
-	      if amanDontRemove 
-	      then removeRedundanciesLoop cin_local t (h2 :: filteredList)	      
-	      else removeRedundanciesLoop cin_local t (filteredList) ;	      
-	
+	      if amanDontRemove
+	      then removeRedundanciesLoop cin_local t (h2 :: filteredList)
+	      else removeRedundanciesLoop cin_local t (filteredList) ;
+
 	  | Unknown | Needed -> (* This CHECK can't be removed.
 				   We have to recompute cin. *)
-	      if amandebug then 
-		pr "%s %d kept (lattice = %s)\n" (getCallName h2) 
+	      if amandebug then
+		pr "%s %d kept (lattice = %s)\n" (getCallName h2)
 		  index (getLatValDescription cin_local.latType);
 
 	      removeRedundanciesLoop (evalCoutInstr cin_local h2) t (h2 :: filteredList)
@@ -978,13 +978,13 @@ and removeRedundancies (cin_start : lattice) instList node_number =
    Uses peephole optimization to remove CHECKs.
 *)
 and removePeephole instList =
-  (List.fold_right 
-     (fun inst acc -> 
-       try 
-	 (peepholeReplace inst) :: acc 
+  (List.fold_right
+     (fun inst acc ->
+       try
+	 (peepholeReplace inst) :: acc
        with PeepholeRemovable ->
 	 stats_removed := !stats_removed + 1;
-	 if amandebug then begin 
+	 if amandebug then begin
 	   pr "";
 	   ignore (Pretty.printf "Removed by peephole: %a@!" d_instr inst);
 	 end;
@@ -998,19 +998,19 @@ and removePeephole instList =
 *)
 and peepholeReplace (chk : instr) : instr =
   match chk with
-    Call (_, Lval(Var{vname="CHECK_POSITIVE"},_), [Const (CInt64 (c,_,_))],_) 
+    Call (_, Lval(Var{vname="CHECK_POSITIVE"},_), [Const (CInt64 (c,_,_))],_)
     when c >= Int64.zero -> raise PeepholeRemovable
 
-  | Call (_, Lval(Var{vname="CHECK_LBOUND"},_), [a;b],_) 
+  | Call (_, Lval(Var{vname="CHECK_LBOUND"},_), [a;b],_)
     when expEqual a b -> raise PeepholeRemovable
   | Call (_, Lval(Var{vname="CHECK_LBOUND"},_),
-	  [CastE (_,StartOf (a, aoff)); CastE (_, AddrOf(b,Index(zero,boff))) ] ,_) 
+	  [CastE (_,StartOf (a, aoff)); CastE (_, AddrOf(b,Index(zero,boff))) ] ,_)
     when a=b && aoff=boff -> raise PeepholeRemovable
 
   | Call (_, Lval(Var{vname="CHECK_STOREFATPTR"},_), [a;b],_)
       when (compareWithoutCasts a b) -> raise PeepholeRemovable
 
-  | Call (_, Lval(Var{vname="CHECK_BOUNDS"},_), [lo;hi;mid;_],_) 
+  | Call (_, Lval(Var{vname="CHECK_BOUNDS"},_), [lo;hi;mid;_],_)
       when intervalContainsExp lo hi mid -> raise PeepholeRemovable
 
   | Call (_, Lval(Var{vname="CHECK_STOREPTR"},_), [e],_)
@@ -1029,7 +1029,7 @@ and intervalContainsExp (lo:exp) (hi:exp) (mid:exp) : bool =
     Lval lv, (* For the new simplifyExp function *)
     BinOp (IndexPI, lvv, c,_),
     BinOp (IndexPI, lvi, c2, _)
-    when (expEqual lo lvv) && (expEqual lo lvi) ->      
+    when (expEqual lo lvv) && (expEqual lo lvi) ->
       ((compareExp c2 zero) >= Some 0) &&
       ((compareExp c  c2)   > Some 0)
   | StartOf lv, (* this case is probably unused *)
@@ -1040,14 +1040,14 @@ and intervalContainsExp (lo:exp) (hi:exp) (mid:exp) : bool =
 	Index (c2, NoOffset) ->
 	  ((compareExp c2 zero) >= Some 0) &&
 	  ((compareExp c  c2)   > Some 0)
-      |	_ -> false);      
-  | _ -> 
+      |	_ -> false);
+  | _ ->
       false
 
 
 (* minLatticeValue:
    Compute the least possible lattice value for an instr
-   This instr is assumed to be not flagged. Flagged CHECK Calls must be 
+   This instr is assumed to be not flagged. Flagged CHECK Calls must be
    processed specially.
    This is a very subtle and important function
 *)
@@ -1056,49 +1056,49 @@ and minLatticeValue (inst : instr) : lattice =
   let isLvalClobbering lval : bool =
     ((List.mem lval !checkLvals) || (* Directly modifying the argument to the CHECK *)
     (!checkHasAliasedVar &&         (* Possibly, indirectly modifying *)
-     (match lval with 
+     (match lval with
        (Mem _,_) -> true
      | _ -> false)))
-  in  
+  in
   if amanNonConservative then latCheckNotNeeded
   else
     match inst with
-      Set (lval,exp,_) -> 
+      Set (lval,exp,_) ->
 	if isLvalClobbering lval
 	then latCheckNeeded
 	else latCheckNotNeeded
     | Call (Some lval,Lval(Var f,_),_,_) when isLvalClobbering lval ->
 	latCheckNeeded
     | Call (_,Lval(Var f,_),args,_) ->
-	if (isCheckCall_str f.vname) 
+	if (isCheckCall_str f.vname)
 	then  latCheckNotNeeded (* CHECK's are non-clobbering *)
 	else  latCheckNeeded    (* Other functions may clobber *)
-    | Call _ -> latCheckNeeded 
-    | Asm  _ -> latCheckNeeded 
+    | Call _ -> latCheckNeeded
+    | Asm  _ -> latCheckNeeded
 
 
 (* evalCin:
    Evaluates the cin for a given CFG node.
-   cin = max (cout_predecessors) 
+   cin = max (cout_predecessors)
    If two pred's have Live values in different variables, we choose Needed
    as a safe upper-bound (see the lat_max function) *)
 and evalCin (nd : stmt) cout at_least =
-  List.fold_right 
-    (fun a b -> lat_max b cout.(a.sid)) 
+  List.fold_right
+    (fun a b -> lat_max b cout.(a.sid))
     nd.preds at_least
 
 
 (* evalCout:
    Evaluates the cout for a given CFG node.
-   The calculation is based on the cin at the beginning of the same node and we 
+   The calculation is based on the cin at the beginning of the same node and we
    have to iterate through all the instr's in the node.
    The cout is reset to NotNeeded, or Live right after a check that is being
    processed (flagged in checkFlags) *)
 and evalCout (nd : stmt) cin_start : lattice = (* TODO: Look at the args of the check *)
   match nd.skind with
-    Instr instList -> 
+    Instr instList ->
       List.fold_left evalCoutInstr cin_start instList
-  | _ -> cin_start	
+  | _ -> cin_start
 
 (* evalCoutInstr:
    Evaluate the cout of an instr based on its cin. See evalCout for info
@@ -1109,13 +1109,13 @@ and evalCoutInstr (cin : lattice) (inst : instr) : lattice =
     if cin.latWeight = wtLIVE then cin else newcin
   in
   let index = find_in_array !checkInstrs inst in
-  if index >= 0 && !checkFlags.(index) 
-  then 
+  if index >= 0 && !checkFlags.(index)
+  then
     match !checkInstrs.(index) with
       Call (Some (Var var, NoOffset),_,_,_) -> preserveLiveCin (latLive var)
     | Call (None,_,_,_) -> cin (* matth *)
     | _ -> failwith "non-Call in checkInstrs array"
-  else if checkImplies inst !checkBeingProcessed 
+  else if checkImplies inst !checkBeingProcessed
   then preserveLiveCin latCheckNotNeeded
   else lat_max cin (minLatticeValue inst)
 
@@ -1125,7 +1125,7 @@ and evalCoutInstr (cin : lattice) (inst : instr) : lattice =
 *)
 and checkImplies (a : instr) (b : instr) : bool =
   let showInfo = ref false in
-  let ret = 
+  let ret =
   match a, b with
     Call (_,Lval(Var{vname="CHECK_UBOUNDNULL"},_),[b1;p1;_],_),
     Call (_,Lval(Var{vname="CHECK_UBOUNDNULL"},_),[b2;p2;_],_) ->
@@ -1134,8 +1134,8 @@ and checkImplies (a : instr) (b : instr) : bool =
       (compareExp p1 p2) >= Some 0
   | _ -> false
   in
-  if amandebug && !showInfo && ret then begin 
-    ignore (printf "REDDBG: checkImplies@?@[%a@?==%b==>@?%a@]@!" d_instr a ret d_instr b) 
+  if amandebug && !showInfo && ret then begin
+    ignore (printf "REDDBG: checkImplies@?@[%a@?==%b==>@?%a@]@!" d_instr a ret d_instr b)
   end;
   ret
 
@@ -1145,18 +1145,18 @@ and checkImplies (a : instr) (b : instr) : bool =
 and numberNodes () =
   let rec numberNodesRec (i : int) = function
       [] -> ()
-    | node :: rest -> 
-	node.sid <- i; 
+    | node :: rest ->
+	node.sid <- i;
 	!nodes.(i) <- node;
-	
+
 	numberNodesRec (i - 1) rest
-  in 
+  in
   nodes := Array.make !numNodes dummyStmt;
-  numberNodesRec (!numNodes - 1) !nodeList 
+  numberNodesRec (!numNodes - 1) !nodeList
 
 
 (* filterChecks:
-   Process a list of stmt's, 
+   Process a list of stmt's,
    find the CHECK Calls in the Instr's inside them
    and return an array of all such Calls found *)
 and filterChecks (stmts : stmt list) : instr list =
@@ -1174,17 +1174,17 @@ and filterChecks (stmts : stmt list) : instr list =
    checkInstrs.(index) and a candidate for being redundant *)
 and markSimilar (index : int) : int =
   let count = ref 0 in
-  Array.iteri 
+  Array.iteri
     (fun i chk -> !checkFlags.(i) <- isSimilar !checkInstrs.(index) chk;
       if !checkFlags.(i) then count := !count + 1;
-      if (i != index) && (!checkFlags.(i)) 
+      if (i != index) && (!checkFlags.(i))
       then (if amandebug then pr "%d == %d\n" index i))
     !checkInstrs; (* Perhaps , we only need to iter thru index - (length-1) *)
   !count
 
 (* isSimilar:
    markSimilar relies on this function to decide whether two CHECKs are simular
-   i.e. whether they do and return the same thing 
+   i.e. whether they do and return the same thing
 
    Two CHECKs are similar if they have the same function being called and
    1. All arguments are identical, or
@@ -1193,14 +1193,14 @@ and markSimilar (index : int) : int =
 and isSimilar (a : instr) (b : instr) : bool =
   match a,b with
     Call (_,Lval(Var ax,_),argsa,_) , Call (_,Lval(Var bx,_),argsb,_) ->
-      if (false && amandebug && 
+      if (false && amandebug &&
 	  ax.vname="CHECK_STOREPTR" && bx.vname="CHECK_STOREPTR" &&
 	  not (expListEqual argsa argsb))
       then doMarshal [argsa;argsb];
       ax.vname = bx.vname &&
-      ((expListEqual argsa argsb) || 
+      ((expListEqual argsa argsb) ||
        (ax.vname = "CHECK_FETCHEND" && (expListEqual (List.tl argsa) (List.tl argsb))) ||
-       (ax.vname = "CHECK_FETCHLENGTH" && (expListEqual (List.tl argsa) (List.tl argsb))))   
+       (ax.vname = "CHECK_FETCHLENGTH" && (expListEqual (List.tl argsa) (List.tl argsb))))
   | _,_ -> false
 
 
@@ -1215,40 +1215,40 @@ and isSimilar (a : instr) (b : instr) : bool =
 *)
 and getCheckedLvals (check : instr) : lval list =
   let rec getLvalsFromExp (e : exp) : lval list =
-    match e with 
+    match e with
       Const _
-    | SizeOf _ 
+    | SizeOf _
     | SizeOfE _
-    | SizeOfStr _ 
+    | SizeOfStr _
     | AlignOf _ -> []
     | AlignOfE _ -> []
     | UnOp (_,e1,_) -> getLvalsFromExp e1
     | BinOp (_,e1,e2,_) -> (getLvalsFromExp e1) @ (getLvalsFromExp e2)
-(*    | Question (e1,e2,e3) -> 
+(*    | Question (e1,e2,e3) ->
 	(getLvalsFromExp e1) @ (getLvalsFromExp e2) @ (getLvalsFromExp e3)
 *)
     | CastE (_,e1) -> getLvalsFromExp e1
     | AddrOf (Var _, NoOffset) -> []
     | AddrOf (Mem e, NoOffset) -> getLvalsFromExp e
-    | AddrOf lv -> 
-	(match getOutermostOffsetLval lv with 
+    | AddrOf lv ->
+	(match getOutermostOffsetLval lv with
 	  NoOffset -> []
-	| Index (i, _) -> 
-	    (getLvalsFromExp i) @ getLvalsFromExp (Lval (stripOffset lv)) 
-	| Field _ -> 
+	| Index (i, _) ->
+	    (getLvalsFromExp i) @ getLvalsFromExp (Lval (stripOffset lv))
+	| Field _ ->
 	    getLvalsFromExp (Lval (stripOffset lv)))
     | StartOf lv -> getLvalsFromExp (Lval lv)
     | Lval ((Mem e1, NoOffset) as lv) -> lv :: (getLvalsFromExp e1)
     | Lval ((Var v, NoOffset) as lv) -> [lv]
-    | Lval ((_, Field _) as lv) -> 
+    | Lval ((_, Field _) as lv) ->
 	lv :: (getLvalsFromExp (Lval (stripOffset lv)))
-    | Lval ((_, Index (i,_)) as lv) -> 
+    | Lval ((_, Index (i,_)) as lv) ->
 	lv :: (getLvalsFromExp i) @ (getLvalsFromExp (Lval (stripOffset lv)))
-  in  
+  in
   match check with
-    Call (_,Lval(Var checkName,_),args,_) -> 
+    Call (_,Lval(Var checkName,_),args,_) ->
       let someargs =
-	if checkName.vname = "CHECK_FETCHLENGTH" || checkName.vname = "CHECK_FETCHEND" 
+	if checkName.vname = "CHECK_FETCHLENGTH" || checkName.vname = "CHECK_FETCHEND"
 	then List.tl args
 	else args
       in
@@ -1263,16 +1263,16 @@ and lvalHasAliasedVar (lv : lval) : bool =
     (Var v, NoOffset) -> v.vaddrof
   | (Mem e, _) -> true (* This is a memory location. *)
   | (Var v, Field (_, off)) -> lvalHasAliasedVar (Var v, off)
-  | (Var v, Index (e, off)) -> (expHasAliasedVar e) 
+  | (Var v, Index (e, off)) -> (expHasAliasedVar e)
       || (lvalHasAliasedVar (Var v, off))
-  
 
-and expHasAliasedVar (e : exp) : bool = 
+
+and expHasAliasedVar (e : exp) : bool =
   match e with
-    Const _ 
+    Const _
   | SizeOf _
   | SizeOfE _
-  | SizeOfStr _ 
+  | SizeOfStr _
   | AlignOf _
   | AlignOfE _ -> false
   | UnOp (_,e1,_) -> expHasAliasedVar e1
@@ -1281,12 +1281,12 @@ and expHasAliasedVar (e : exp) : bool =
   | AddrOf lv -> lvalHasAliasedVar lv
   | StartOf lv -> lvalHasAliasedVar lv
   | Lval lv -> lvalHasAliasedVar lv
-    
+
 
 (*----------------------------------------------------------------------------*)
-(* 
+(*
 let optimGlobinit (f : fundec) : fundec =
-*)  
+*)
 
 
 (*----------------------------------------------------------------------------*)
@@ -1299,14 +1299,14 @@ let rec eliminateAllChecks (f : fundec) (checkName : string) : fundec =
       |	Instr l -> s.skind <- Instr (removeCheck checkName l)
       | _ -> ())
       !nodes;
-    f  
+    f
 
 and removeAllChecks (i : instr list) : instr list =
   let rec removeAllChecksLoop (acc : instr list) : instr list -> instr list = function
     [] -> acc
   | hd :: rest ->
       match hd with
-      | Call(_,Lval(Var x,_),args,l) when isCheckCall_str x.vname -> removeAllChecksLoop acc rest	  
+      | Call(_,Lval(Var x,_),args,l) when isCheckCall_str x.vname -> removeAllChecksLoop acc rest
       |	_ -> removeAllChecksLoop (hd :: acc) rest
   in List.rev (removeAllChecksLoop [] i)
 
@@ -1316,9 +1316,9 @@ and removeCheck (checkName : string) (i : instr list) : instr list =
   | hd :: rest ->
       match hd with
       | Call(_,Lval(Var x,_),args,l) when (checkName.[0] != 'C') && (strstr x.vname checkName) ->
-	  removeCheckLoop checkName acc rest	  
-      | Call(_,Lval(Var x,_),args,l) when x.vname = checkName -> 
-	  removeCheckLoop checkName acc rest	  
+	  removeCheckLoop checkName acc rest
+      | Call(_,Lval(Var x,_),args,l) when x.vname = checkName ->
+	  removeCheckLoop checkName acc rest
       |	_ -> removeCheckLoop checkName (hd :: acc) rest
   in List.rev (removeCheckLoop checkName [] i)
 
@@ -1332,7 +1332,7 @@ let getStatistics () : doc =
   dprintf
     "\n  Total CHECKs \t\t %d\n  Null-check-remover \t eliminated %d\n  Redundancy eliminator  eliminated %d \n  Summary \t\t %d (%.2f%%) kept, %d (%.2f%%) eliminated\n"
     t n r  (t-n-r) (100*(t-n-r) // t) (n+r) (100*(n+r)//t)
-   
+
 
 (*  ,,---.     	       |                    |                          	      *)
 (*  ||    |            |	      	    | 			     	      *)
@@ -1365,18 +1365,18 @@ let optimFun (f : fundec) (isGlobinit : bool) =
   (* Carry out the optimizations, one at a time *)
 
   (* Remove all checks ... useful to see which tests make a difference *)
-  (match !checkToRemove with 
+  (match !checkToRemove with
     None -> ()
   | Some check -> optimizedF := eliminateAllChecks !optimizedF check);
 
-  if isGlobinit then    
+  if isGlobinit then
     optimizedF := numberNodesAndPeephole !optimizedF
   else begin
     (* Remove redundant CHECK_NULL *)
     if amandebug then begin pr "Null Checks"; pr "\n"; end ;
 
     optimizedF := nullChecksOptim !optimizedF;
-    
+
     (* Remove other redundant checks *)
     if amandebug then begin pr "Other Redundant Checks"; pr "\n"; end ;
     optimizedF := eliminateRedundancy !optimizedF;
@@ -1392,7 +1392,7 @@ let optimFile file =
     ignore(printf "\n-------------------------------------------------\n");
     ignore(printf "OPTIM MODULE STARTS\n\n")
   end;
- 
+
   (* Replace every function definition by its optimized version*)
   file.globals <- List.map
       (function
@@ -1402,16 +1402,16 @@ let optimFile file =
 
   (* ab: ... and the global initializer *)
   (match file.globinit with
-    Some f when not amanSkipGlobInit -> 
+    Some f when not amanSkipGlobInit ->
       file.globinit <- Some (optimFun f true)
   | _ -> ());
-  
+
   if debug
   then begin
     ignore(printf "\n\nOPTIM MODULE ENDS\n");
     ignore(printf "--------------------------------------------------\n")
   end;
-  
+
   flush stdout;
 
   file

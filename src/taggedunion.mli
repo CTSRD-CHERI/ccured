@@ -13,7 +13,7 @@ val processTaggedUnionsAfterMarking: Cil.file -> unit
    the kind RTTI. *)
 val removeRttiFromFields: unit -> unit
 
-(* If lv.f is a __data field of a tagged union, 
+(* If lv.f is a __data field of a tagged union,
    "tagForDataField lv f" returns lv.__tag
    Otherwise, returns None*)
 val tagForDataField: Cil.lval -> Cil.fieldinfo -> Cil.lval option

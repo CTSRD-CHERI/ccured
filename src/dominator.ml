@@ -1,11 +1,11 @@
 (*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
@@ -34,7 +34,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *)
-type flowgraph = { size: int;  
+type flowgraph = { size: int;
 			 entry: int;
 			 succ: int list array;
 			 pred: int list array}
@@ -68,7 +68,7 @@ type flowgraph = { size: int;
      every execution path from i to exit includes i
 
   [Muchnick section 8.11]
-  
+
   Dominance frontier for a variable:
     DF(x) = {y | (exists z in Pred(y) s.t. x dom z) and not x sdom y}
 
@@ -243,7 +243,7 @@ let dominFast flowgraph =
       idomOf.(k) <- Set.insert idomOf.(k) i;
     end;
   done;
-  
+
 (*
   (Array.get idomOf,
    fun i -> if i = flowgraph.entry then
@@ -273,7 +273,7 @@ let postorder f i =
   print_string "Computing postorder (comparing fast and slow versions)!\n";
   let ps = postorderSlow f i in
   let pf = postorderFast f i in
-  let name n = Printf.sprintf "node_%d" n in 
+  let name n = Printf.sprintf "node_%d" n in
   print_string ("(slow) " ^ String.concat " " (List.map name ps) ^ "\n");
   print_string ("(fast) " ^ String.concat " " (List.map name pf) ^ "\n");
   if ps = pf then pf else failwith "postorder failed!"
@@ -319,52 +319,52 @@ let analyze flowgraph =
 open Cil
 open Pretty
 class gatherSuccPredClass succ pred son lva = object
-	inherit nopCilVisitor 
-	method vstmt v = 
+	inherit nopCilVisitor
+	method vstmt v =
 		succ.(v.sid) <- List.map (fun s -> s.sid) v.succs ;
 		pred.(v.sid) <- List.map (fun s -> s.sid) v.preds ;
-		son.(v.sid) <- ref v ; 
+		son.(v.sid) <- ref v ;
 		DoChildren
 end
 
-let computeDominance f = 
-(* spr: temporarily commented out because I don't know what it does *) 
+let computeDominance f =
+(* spr: temporarily commented out because I don't know what it does *)
 (*	let size = match f.smaxstmtid with
-		Some(i) -> i 
+		Some(i) -> i
 	| None -> failwith "computeDominanceFrontier: smaxstmtid = None"
-	in 
+	in
 *)
 (* spr: temporarily replacing the above code with the following line: *)
-  let size = 10 in 
+  let size = 10 in
 
 (*	Printf.printf "%s size = %d\n" f.svar.vname size ; *)
 	let succ = Array.make size [] in
 	let pred = Array.make size [] in
 	let stmt_of_node = Array.make size (ref dummyStmt) in
-	let lvalue_of_loop = Array.make size [] in 
+	let lvalue_of_loop = Array.make size [] in
 	let gatherSuccPred = (new gatherSuccPredClass succ pred stmt_of_node
 		lvalue_of_loop) in
-	ignore (visitCilBlock gatherSuccPred f.sbody) ; 
-  let flowgraph = { 
+	ignore (visitCilBlock gatherSuccPred f.sbody) ;
+  let flowgraph = {
 		entry = 0;
 		size =  size;
 		succ = succ;
-		pred = pred; } 
+		pred = pred; }
 	in
   let di = analyze (flowgraph) in
 (*
-	let result = Array.make size [] in 
+	let result = Array.make size [] in
 	for i = 0 to (size-1) do
 		let dom = di.idom i in
 		let l = Set.toList dom in
-		ignore ( Pretty.printf "Node[%d] idom: %a\n" 
+		ignore ( Pretty.printf "Node[%d] idom: %a\n"
 			i (docList (chr ',' ++ break) (fun x -> dprintf "%d" x)) l)  ;
 	done ;
 	for i = 0 to (size-1) do
 		let this_set = Set.singleton i in
 		let dfplus = di.dfplus this_set in
 		let l = Set.toList dfplus in
-		result.(i) <- l ; 
+		result.(i) <- l ;
 		let changed_by_this_stmt = match (!(stmt_of_node.(i))).skind with
 			Instr(il) -> List.fold_left (fun acc elt -> match elt with
 				Set(lv,_,_) -> lv :: acc
@@ -373,12 +373,12 @@ let computeDominance f =
 			| Asm(_,_,(sll),_,_,_) -> (List.map (fun (s,lv) -> lv) sll) @ acc
 			) [] il
 		| _ -> []
-		in 
-		List.iter (fun elt -> 
-			lvalue_of_loop.(elt) <- changed_by_this_stmt @ 
-				lvalue_of_loop.(elt) 
-		) l ; 
-		Pretty.printf "Node[%d] dfplus: %a\n" 
+		in
+		List.iter (fun elt ->
+			lvalue_of_loop.(elt) <- changed_by_this_stmt @
+				lvalue_of_loop.(elt)
+		) l ;
+		Pretty.printf "Node[%d] dfplus: %a\n"
 			i (docList (chr ',' ++ break) (fun x -> dprintf "%d" x)) l
 	done ;
 *)
