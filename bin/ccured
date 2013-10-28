@@ -42,11 +42,9 @@ use lib "$FindBin::Bin/../lib"; # The libraries are in the lib directory
 use lib "$FindBin::Bin/../cil/bin"; # The libraries are in the lib directory
 use lib "$FindBin::Bin/../cil/lib"; # The libraries are in the lib directory
 
-# Read the configuration script. Must be in the same directory as the
-# top-level script
+# Read the configuration.
 use App::Cilly::CilConfig;
-
-$::ccuredhome="$::cilhome/..";
+use CCuredConfig;
 if($::archos eq "x86_WIN32") {
     #Use windows-style paths for cl:
     $::ccuredhome=`cygpath -wa "$::ccuredhome"`;

@@ -261,6 +261,7 @@ MY_AC_CONFIG_FILES(Makefile)
 MY_AC_CONFIG_FILES(mk/config.mk)
 MY_AC_CONFIG_FILES(lib/gc/GNUCC/Makefile)
 MY_AC_CONFIG_EXE_FILES(bin/ccured.bat)
+MY_AC_CONFIG_EXE_FILES(lib/CCuredConfig.pm)
 MY_AC_CONFIG_FILES(src/ccuredversion.ml)
 
 AC_OUTPUT()
