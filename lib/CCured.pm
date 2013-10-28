@@ -50,7 +50,8 @@ use App::Cilly::CilConfig;
 
 $::default_is_merge = 1;
 
-our @ISA = qw(Cilly);
+use parent qw(App::Cilly);
+use App::Cilly::CilCompiler;
 
 my $base = "$::ccuredhome/src/ccured";
 # Select the most recent executable
