@@ -51,9 +51,6 @@ $::ccuredhome="$::cilhome/..";
 
 $::default_is_merge = 1;
 
-# NOTE: If perl chokes, complaining about 'our', or
-# "Array found where operator expected", it's because
-# you need perl version 5.6.0 or later.
 our @ISA = qw(Cilly);
 
 my $base = "$::ccuredhome/src/ccured";
