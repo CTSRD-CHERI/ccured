@@ -1,11 +1,11 @@
 #
 #
-# Copyright (c) 2001-2002, 
+# Copyright (c) 2001-2002,
 #  George C. Necula    <necula@cs.berkeley.edu>
 #  Scott McPeak        <smcpeak@cs.berkeley.edu>
 #  Wes Weimer          <weimer@cs.berkeley.edu>
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
 # met:
@@ -60,17 +60,17 @@ my $base = "$::ccuredhome/obj/$::archos/ccured";
 # Select the most recent executable
 my $mtime_asm = int((stat("$base.asm.exe"))[9]);
 my $mtime_byte = int((stat("$base.byte.exe"))[9]);
-my $use_debug = 
+my $use_debug =
         grep(/--bytecode/, @ARGV) ||
         grep(/--ocamldebug/, @ARGV) ||
         ($mtime_asm < $mtime_byte);
-if($use_debug) { 
+if($use_debug) {
     $ENV{"OCAMLRUNPARAM"} = "b" . $ENV{"OCAMLRUNPARAM"}; # Print back trace
-} 
+}
 
 
-my $compiler = 
-    $base . 
+my $compiler =
+    $base .
     ($use_debug ? ".byte.exe" : ".asm.exe");
 
 sub setDefaultArguments {
@@ -123,7 +123,7 @@ sub collectOneArgument {
         $self->{OPTIMIZE} = 1; return 1;
     }
     if($arg eq '--nogc') {
-        $self->{NOGC} = 1; 
+        $self->{NOGC} = 1;
         return 1;
     }
     if($arg eq '--ocamldebug') {
@@ -142,7 +142,7 @@ sub collectOneArgument {
         # Fall through to pass this argument on to CCured
     }
     push @{$self->{CCUREDARGS}}, $arg if $arg eq '--verbose';
-    
+
     # See if the super class understands this
     return $self->SUPER::collectOneArgument($arg, $pargs);
 }
@@ -227,16 +227,16 @@ sub link_after_cil {
     my @srcs = @{$psrcs};
     if(! $self->{NOCURE} && ! $self->{NOLIB}) {
         push @srcs,
-        "$::ccuredhome/obj/$::archos/ccured_" . 
+        "$::ccuredhome/obj/$::archos/ccured_" .
             ($self->{MODENAME} eq "MSLINK" ? "MSVC" : $self->{MODENAME}) .
             ($self->{RELEASELIB} ? "_releaselib" : "_debug") .
-                ".$self->{LIBEXT}";        
+                ".$self->{LIBEXT}";
     }
     # !! Not all versions of gcc sypport rdynamic
     if(! $self->{RELEASELIB}) {
         push @{$ldargs}, "-rdynamic";
     }
-    my $res = $self->SUPER::link_after_cil(\@srcs, 
+    my $res = $self->SUPER::link_after_cil(\@srcs,
                                            $dest, $ppargs, $ccargs, $ldargs);
     if($self->{SHOWSTAGES}) {
         print STDERR "Linked the cured program\n";
@@ -245,7 +245,7 @@ sub link_after_cil {
 }
 
 
-#################### THE CURE 
+#################### THE CURE
 
 sub afterCil {
     my ($self) = @_;
@@ -280,14 +280,14 @@ sub CillyCommand {
             }
             # Copy a few things from the lib dir to the output dir
             foreach my $tocopy ('styles.css', 'browser_blank.html',
-                                'pixel.gif', 'bullet.gif', 
+                                'pixel.gif', 'bullet.gif',
                                 'browser_code.js', 'browser_help.html') {
                 my @src_stat = stat("$::ccuredhome/lib/$tocopy");
                 my $src_mtime = $src_stat[9];
                 my @dst_stat = stat("$browserdir/$tocopy");
                 my $dst_mtime = $dst_stat[9];
                 if(! -f "$browserdir/$tocopy" || $dst_mtime < $src_mtime) {
-                    File::Copy::copy("$::ccuredhome/lib/$tocopy", 
+                    File::Copy::copy("$::ccuredhome/lib/$tocopy",
                                      "$browserdir/$tocopy");
                   }
             }
@@ -310,7 +310,7 @@ sub CillyCommand {
         push @cmd, '--doCxxPP', '--cxxppout', "$dir$base.cxx.c";
     }
     if(defined $ENV{OCAMLDEBUG} || $self->{OCAMLDEBUG}) {
-        my @idirs = ("src", "src/frontc", 
+        my @idirs = ("src", "src/frontc",
                      "src/ccured", "src/ext", "obj/$::archos");
 	my @iflags = map { ('-I', "$::ccuredhome/$_") } @idirs;
         unshift @cmd, 'ocamldebug', '-emacs', @iflags;
@@ -318,7 +318,7 @@ sub CillyCommand {
     if($self->{VERBOSE}) {
         print "Running CCured ";
         my $fstname = ref $psrcs->[0] ? $psrcs->[0]->{filename} : $psrcs->[0];
-        if(@{$psrcs} > 1) { 
+        if(@{$psrcs} > 1) {
             print "(in merge mode) on $fstname ... to produce $aftercil->{filename}\n";
         } else {
             print "on $fstname to produce $aftercil->{filename}\n";
