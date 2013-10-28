@@ -65,7 +65,6 @@ if($use_debug) {
     $ENV{"OCAMLRUNPARAM"} = "b" . $ENV{"OCAMLRUNPARAM"}; # Print back trace
 }
 
-
 my $compiler =
     $base .
     ($use_debug ? ".byte" : ".native");
@@ -181,7 +180,6 @@ EOF
    my @cmd = ($compiler, '--help');
    $self->runShell(@cmd);
 }
-
 
 sub preprocess_before_cil {
     my($self, $src, $dest, $ppargs) = @_;
@@ -316,20 +314,17 @@ sub CillyCommand {
         print "Running CCured ";
         my $fstname = ref $psrcs->[0] ? $psrcs->[0]->{filename} : $psrcs->[0];
         if(@{$psrcs} > 1) {
-            print "(in merge mode) on $fstname ... to produce $aftercil->{filename}\n";
+            print "(in merge mode) on $fstname ... to produce $aftercil->{filename} ";
         } else {
-            print "on $fstname to produce $aftercil->{filename}\n";
+            print "on $fstname to produce $aftercil->{filename} ";
         }
+	print "using cmd @cmd \n";
     }
-    confess "$self produced bad aftercil file: $aftercil"
-	unless $aftercil->isa('OutputFile');
     return ($aftercil, @cmd);
 }
 
-
 sub MergeCommand {
     my ($self, $ppsrc, $dir, $base) = @_;
-
     return ('', $compiler, '--onlyMerge', '--mergeKeepAnnotations');
 }
 
