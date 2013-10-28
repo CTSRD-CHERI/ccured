@@ -56,10 +56,10 @@ $::default_is_merge = 1;
 # you need perl version 5.6.0 or later.
 our @ISA = qw(Cilly);
 
-my $base = "$::ccuredhome/obj/$::archos/ccured";
+my $base = "$::ccuredhome/src/ccured";
 # Select the most recent executable
-my $mtime_asm = int((stat("$base.asm.exe"))[9]);
-my $mtime_byte = int((stat("$base.byte.exe"))[9]);
+my $mtime_asm = int((stat("$base.native"))[9]);
+my $mtime_byte = int((stat("$base.byte"))[9]);
 my $use_debug =
         grep(/--bytecode/, @ARGV) ||
         grep(/--ocamldebug/, @ARGV) ||
@@ -71,7 +71,7 @@ if($use_debug) {
 
 my $compiler =
     $base .
-    ($use_debug ? ".byte.exe" : ".asm.exe");
+    ($use_debug ? ".byte" : ".native");
 
 sub setDefaultArguments {
     my $self = shift;
