@@ -1,38 +1,36 @@
-#!/bin/bash
-# 1. [Optional] Install OCaml using Opam.  Instructions are here:
-#
-#    http://opam.ocaml.org/doc/Quick_Install.html
-#
-#    Or you could install OCaml using your platform's package manager.
-#
-# 2. Install ocamlfind.  In Opam, you run:
-#
-#    $ opam update && opam install ocamlfind
-#
-# 3. Install Cil from source into a base location of your choice.
-#
-#    $ git clone git@github.com:kerneis/cil.git
-#    $ cd git && ./configure --prefix=$INSTALL_BASE && make && make install
-#
-#    [Use gmake on FreeBSD.]
-#
-#    Cil installs some Perl modules that are needed by the CCured
-#    driver script.  Set your PERL5LIB envvar to point to them.  For
-#    example, if the CilConfig.pm was installed above into
-#    $INSTALL_BASE/lib/perl5/App/Cilly/CilConfig.pm,
-#    then set PERL5LIB to include $INSTALL_BASE/lib/perl5:
-#
-#    $ export PERL5LIB=$PERL5LIB:$INSTALL_BASE/lib/perl5
-#
-# 4. Install and build CCured.  Ensure first that you have installed
-#    the Boehm-Weiser GC package for your platform.
-#
-#    $ git clone git@github.com:pmundkur/ccured-hack.git  ccured
-#    $ cd ccured && ./configure && make
-#
-#    On FreeBSD, the last two steps might need to be (in order to pick up the Boehm-GC):
-#    CPPFLAGS=-I/usr/local/include CFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure && gmake
-#
-#    Currently, FreeBSD will most likely fail at the C header patching
-#    step.  Support for the FreeBSD/Clang C headers is coming soon.
-#
+1. [Optional] Install OCaml using Opam.  Instructions are here:
+
+   http://opam.ocaml.org/doc/Quick_Install.html
+
+   Or you could install OCaml using your platform's package manager.
+
+2. Install ocamlfind.  In Opam, you run:
+
+   $ opam update && opam install ocamlfind
+
+3. Install Cil from source into a base location of your choice.
+
+   $ git clone git@github.com:kerneis/cil.git
+   $ cd git && ./configure --prefix=$INSTALL_BASE && make && make install
+
+   [Use gmake on FreeBSD.]
+
+   Cil installs some Perl modules that are needed by the CCured
+   driver script.  Set your PERL5LIB envvar to point to them.  For
+   example, if the CilConfig.pm was installed above into
+   $INSTALL_BASE/lib/perl5/App/Cilly/CilConfig.pm,
+   then set PERL5LIB to include $INSTALL_BASE/lib/perl5:
+
+   $ export PERL5LIB=$PERL5LIB:$INSTALL_BASE/lib/perl5
+
+4. Install and build CCured.  Ensure first that you have installed
+   the Boehm-Weiser GC package for your platform.
+
+   $ git clone git@github.com:pmundkur/ccured-hack.git  ccured
+   $ cd ccured && ./configure && make
+
+   On FreeBSD, the last two steps might need to be (in order to pick up the Boehm-GC):
+   CPPFLAGS=-I/usr/local/include CFLAGS=-I/usr/local/include LDFLAGS=-L/usr/local/lib ./configure && gmake
+
+   Currently, FreeBSD will most likely fail at the C header patching
+   step.  Support for the FreeBSD/Clang C headers is coming soon.
