@@ -1,15 +1,15 @@
 #!/bin/bash
-# 1. [Optional] Install OCaml using opam.  Instructions are here:
+# 1. [Optional] Install OCaml using Opam.  Instructions are here:
 #
 #    http://opam.ocaml.org/doc/Quick_Install.html
 #
-#    Or you could install ocaml using your platform's package manager.
+#    Or you could install OCaml using your platform's package manager.
 #
-# 2. Install ocamlfind.  In opam, you run:
+# 2. Install ocamlfind.  In Opam, you run:
 #
 #    $ opam update && opam install ocamlfind
 #
-# 3. Install cil from source into a base location of your choice.
+# 3. Install Cil from source into a base location of your choice.
 #
 #    $ git clone git@github.com:kerneis/cil.git
 #    $ cd git && ./configure --prefix=$INSTALL_BASE && make && make install
