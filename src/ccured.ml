@@ -480,6 +480,10 @@ let main () = begin
   Arg.parse argDescr Ciloptions.recordFile usageMsg;
   Cil.initCIL ();
   Type.init ();
+(*
+  XXX: Why is this needed?  It causes CIL to barf, since these symbols
+  also come in via ccuredcheck.h.  Commenting out for now.
+
   (* Now change the type of some builtins for CCured *)
   Hashtbl.add Cil.gccBuiltins
     "GCC_VARARGS_START" (Cil.ulongType, [ ], false);
@@ -489,7 +493,7 @@ let main () = begin
     "GCC_STDARG_START" (Cil.ulongType, [ ], false);
   Hashtbl.add Cil.msvcBuiltins
     "GCC_STDARG_START" (Cil.ulongType, [ ], false);
-
+*)
   let files = List.rev !Ciloptions.fileNames in
 
   (**********************************************************************
