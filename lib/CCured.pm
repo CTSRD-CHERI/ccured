@@ -171,11 +171,15 @@ CCured specific options:
   --commPrintLn      Emit #line directives only as comments
 
 
- The --leavealone files are not cured.
+  The --leavealone files are not cured.
 
-  All other arguments starting with -- are passed to the CCured engine.
+  All other option arguments starting with -- are passed to the CCured engine.
 
-The following are the arguments of the CCured engine
+  NOTE: If the help message from the engine below says the option takes an
+        argument (i.e. is in the form "--opt <arg>"), please specify it to this
+        wrapper script as "--opt=<arg>".
+
+The following are the arguments of the CCured engine.
 EOF
    my @cmd = ($compiler, '--help');
    $self->runShell(@cmd);
