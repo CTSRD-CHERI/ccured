@@ -13,14 +13,14 @@
 
 
 #ifndef CCURED_NO_GC
-/* We use the preprocessor to replace the calls to the allocation functions 
+/* We use the preprocessor to replace the calls to the allocation functions
  * with our own versions. Note that this happens after curing. */
   #define malloc      ccured_malloc
   #define calloc      ccured_calloc
   #define realloc     ccured_realloc
   #define free        ccured_free
   #define explicit_gc ccured_explicit_gc
-  
+
 #endif
 
 // Define some prototypes for functions used by boxing
@@ -33,8 +33,8 @@ extern void* wrapperAlloc(unsigned int);
 extern void wrapperFree(void*);
 extern char* wrapperStrdup(char *);
 
-/* weimer. GN: Wes, Wes! I spent so much time trying to fix a bug due to this 
- * define. __cdecl on Windows is a keyword not a macro. You made it 
+/* weimer. GN: Wes, Wes! I spent so much time trying to fix a bug due to this
+ * define. __cdecl on Windows is a keyword not a macro. You made it
  * disappear and functions were going nowhere. */
 #if !defined(_MSVC) && !defined(__cdecl)
   #define __cdecl
@@ -65,15 +65,15 @@ void *   __scalar2pointer(unsigned long  l , int  fid , int  lid ) ;
 #endif
 
 
-/* It's not possible to write a setjmp wrapper per se, because you'd be 
- * seting the wrong context: the saved context is invalidated when the 
+/* It's not possible to write a setjmp wrapper per se, because you'd be
+ * seting the wrong context: the saved context is invalidated when the
  * wrapper returns. So, instead we define some macros. */
 // GN: changed to account for splitting the arguments of functions
 #ifdef CCURED_SPLIT_ARGUMENTS
  #define _setjmp_w(fatpbuf_p, fatpbuf_b)                                    \
    ( CHECK_WILDP_WRITE_ATLEAST(fatpbuf_p, fatpbuf_b, sizeof(jmp_buf)),    \
      _setjmp(fatpbuf_p) )
- 
+
  // similar versions for setjmp and __sigsetjmp
  // (at this time, untested)
  #define setjmp_w(fatpbuf_p, fatpbuf_b)                                   \
@@ -86,7 +86,7 @@ void *   __scalar2pointer(unsigned long  l , int  fid , int  lid ) ;
  #define _setjmp_w(fatpbuf)                                                \
    ( CHECK_WILDP_WRITE_ATLEAST(fatpbuf._p, fatpbuf._b, sizeof(jmp_buf)),    \
      _setjmp(fatpbuf._p) )
- 
+
  // similar versions for setjmp and __sigsetjmp
  // (at this time, untested)
  #define setjmp_w(fatpbuf)                                                \
@@ -123,9 +123,9 @@ void *   __scalar2pointer(unsigned long  l , int  fid , int  lid ) ;
 #endif
 
 
-/* Define this if you want to omit the null checks. Note that this is not 
- * safe because the null check is sometimes used to prevent you from 
- * obtaining a safe pointer as follows: & 0[some_number]. Use it for 
+/* Define this if you want to omit the null checks. Note that this is not
+ * safe because the null check is sometimes used to prevent you from
+ * obtaining a safe pointer as follows: & 0[some_number]. Use it for
  * experimentation only */
 // #define OMIT_NULL_CHECK
 
@@ -172,16 +172,16 @@ extern size_t strlen(const char *);
 // of a pointer, not the _p component because that one can be
 // adjusted through arithmetic. In each case pass the component
 // that is NULL if the pointer is an integer (_e for FSEQ and
-// _b for all others). 
+// _b for all others).
 //#define CHECK_RETURNPTR(p)  __CHECK_RETURNPTR(p  FILE_AND_LINE)
 
 // sm: as for CHECK_GETFRAME itself, I'm changing this to a macro
 // to ensure inline expansion even when optimization is turned off
 
-/* gn: If gcc inlines the function containing the CHECK_RETURNPTR then 
- * CHECK_GETFRAME will obtain the frame address of the wrong function. To 
- * prevent this I have changed box.ml to add a special volatile temporary 
- * first in the argument list and use its address as the frame address */        
+/* gn: If gcc inlines the function containing the CHECK_RETURNPTR then
+ * CHECK_GETFRAME will obtain the frame address of the wrong function. To
+ * prevent this I have changed box.ml to add a special volatile temporary
+ * first in the argument list and use its address as the frame address */
 #define CHECK_RETURNPTR(p, pTopOfFrame) CCURED_CHECK(__CHECK_RETURNPTR(p, pTopOfFrame))
 #ifdef _MSVC
   #define __CHECK_RETURNPTR(p, pTopOfFrame)                      \
@@ -220,9 +220,9 @@ extern size_t strlen(const char *);
 #define CHECK_STOREPTR(where, p, pTopOfFrame) \
 		CCURED_CHECK(__CHECK_STOREPTR(where, p, (void*)(pTopOfFrame)  FILE_AND_LINE))
 INLINE_STATIC_CHECK
-void __CHECK_STOREPTR(void **where, 
-		      void *p, 
-		      void* pTopOfFrame 
+void __CHECK_STOREPTR(void **where,
+		      void *p,
+		      void* pTopOfFrame
 		      CCURED_FAIL_EXTRA_PARAMS)
 {
   #if defined _GNUCC || defined _MSVC
@@ -241,7 +241,7 @@ void __CHECK_STOREPTR(void **where,
       return;
     }
 
-    // matth: If where is less than and within a stone's throw of the frame 
+    // matth: If where is less than and within a stone's throw of the frame
     // pointer, then it is in the current stack frame.  Allow all writes.
     if ((uintptr_t)pTopOfFrame - (uintptr_t)where < 0x100000U) {
       return;
@@ -260,7 +260,7 @@ void __CHECK_STOREPTR(void **where,
     }
     // If this is an address in main or above, let it alone
     if(p >= __ccuredStackBottom) return;
-    
+
     #ifndef DISABLE_HEAPIFY
       // the usual code
       delta >>= 20;  // Look +- 1MB from the frame (UNSOUND). We need a better way to do this
@@ -309,7 +309,7 @@ void __CHECK_FUNCTIONPOINTER(void *p, void *b, int nrActualArgs
   // non-pointer check
   if (!b) {
     NON_POINTER_FAIL((unsigned long)p  CCURED_FAIL_EXTRA_ARGS);
-    return; // If we do not stop 
+    return; // If we do not stop
   }
 
   // the check below allows 'nrActualArgs' to exceed the number of args
@@ -394,7 +394,7 @@ void __CHECK_FSEQ2SAFE(void *bend, void *p,
     if(src_element_len >= destlen) { // This will be optimized in most cases
       return;
     }
-#endif    
+#endif
     // bend - p does not underflow because of previous check
     if(((uintptr_t)bend - (uintptr_t)p) < destlen) {
       CCURED_FAIL(FAIL_UBOUND CCURED_FAIL_EXTRA_ARGS);
@@ -431,7 +431,7 @@ void __CHECK_FSEQALIGN(unsigned int sz,
 
 //Check that a sequence is aligned after doing arithmetic.  We need this if
 //sz is not a power of two, to guard against wraparounds.  This is the same
-//check that CHECK_SEQALIGN does for casts, but we need this even if 
+//check that CHECK_SEQALIGN does for casts, but we need this even if
 //CCURED_ALLOW_PARTIAL_ELEMENTS_IN_SEQUENCE is defined.
 #define CHECK_SEQARITH(sz,p,base,bend) \
       CCURED_CHECK(__CHECK_SEQALIGN(sz,p,base,bend FILE_AND_LINE))
@@ -505,12 +505,12 @@ void __CHECK_SEQ2SAFE(void *base, void *bend,
     CCURED_FAIL(FAIL_UBOUND CCURED_FAIL_EXTRA_ARGS);
   }
   // ensure p - base <= bend - base - destlen
-  if(pmb > (unsigned int)(emb - destlen)) { 
+  if(pmb > (unsigned int)(emb - destlen)) {
     // This could be either a lbound or a ubound failure
     // We define a separate function because otherwise gcc will not inline this
     LBOUND_OR_UBOUND_FAIL(base, p CCURED_FAIL_EXTRA_ARGS);
   }
-#endif  
+#endif
 }
 
 /* //Read a string:  Allow access to the terminating NULL */
@@ -536,7 +536,7 @@ void __CHECK_SEQN_WRITE(void *base, void *bend,
 {
   // It's okay to write a 0 when p == bend.
   // But p==bend could also be caused by p == NULL, so check for that.
-  if (isnul 
+  if (isnul
       && p == bend
       && (noint || bend)) {
     return;
@@ -559,7 +559,7 @@ void __CHECK_FSEQN_WRITE(void *bend,
 {
   // It's okay to write a 0 when p == bend.
   // But p==bend could also be caused by p == NULL, so check for that.
-  if (isnul 
+  if (isnul
       && p == bend
       && (noint || bend)) {
     return;
@@ -583,7 +583,7 @@ void __CHECK_STRING_WRITE(void *p,
   if (!p) {
     NON_POINTER_FAIL((unsigned long)p  CCURED_FAIL_EXTRA_ARGS);
   }
-  if(!isnul 
+  if(!isnul
      && (*((char*)p) == 0)) {
     CCURED_FAIL(FAIL_UBOUND CCURED_FAIL_EXTRA_ARGS);
   }
@@ -715,7 +715,7 @@ void __CHECK_POSITIVE(int x  CCURED_FAIL_EXTRA_PARAMS)
 #define CHECK_FSEQARITH(p, plen, p_x, bend, checkAlign) \
       CCURED_CHECK(__CHECK_FSEQARITH(p, plen, p_x, bend, checkAlign FILE_AND_LINE))
 INLINE_STATIC_CHECK
-void __CHECK_FSEQARITH(void *p, 
+void __CHECK_FSEQARITH(void *p,
                        unsigned int plen,  //element size
                        void *p_x,
                        void *bend,
@@ -732,8 +732,8 @@ void __CHECK_FSEQARITH(void *p,
 }
 
 // A combination of FSEQARITH and FSEQ2SAFE
-// 
-// 
+//
+//
 #define CHECK_FSEQARITH2SAFE(p,bend,ppi,srclen,plen,foraccess,noint,checkAlign) \
       CCURED_CHECK(__CHECK_FSEQARITH2SAFE(p,bend,ppi,srclen,plen,foraccess,noint,checkAlign  FILE_AND_LINE))
 INLINE_STATIC_CHECK
@@ -807,7 +807,7 @@ INLINE_STATIC_CHECK void * __CHECK_FETCHNULLTERMEND1(char *p CCURED_FAIL_EXTRA_P
     return NULL; // If we do not stop
   }
 
-  
+
   len = strlen(p);
   return p + len;
 }
@@ -865,20 +865,20 @@ INLINE_STATIC_CHECK void * __CHECK_FETCHNULLTERMEND_GEN(void *p, int sz CCURED_F
 #endif // CCURED_USE_STRINGS
 
 // verify that we are casting correctly
-/* The RTTI is the address of an entry in an array of integers. Each integer 
- * is the offset of the parent's entry from the current one, or zero for 
+/* The RTTI is the address of an entry in an array of integers. Each integer
+ * is the offset of the parent's entry from the current one, or zero for
  * void (the root of the class hierarchy) */
 
 struct RTTI_ELEMENT {
   int index; /* The index within the RTTI_ARRAY of this entry */
   char *name; /* The name of the type */
   int parentDelta; /* The difference between the index of the parent's entry
-                      and the current entry. This is the only field that 
+                      and the current entry. This is the only field that
                       matters */
 };
 
 //helper for __CHECK_RTTICAST. Also used for CCURED_HASUNIONTAG
-//Note: the caller should check whether the pointer is NULL.  If so, don't 
+//Note: the caller should check whether the pointer is NULL.  If so, don't
 // call this, since it's safe to cast it to any pointer type.
 static
 int __CHECK_HASRTTITYPE(struct RTTI_ELEMENT *srtti,
@@ -962,7 +962,7 @@ void __CHECK_UNIONTAG(int tag CCURED_FAIL_EXTRA_PARAMS) {
   }
 }
 
-/* We are writing to part of a tagged union field. 
+/* We are writing to part of a tagged union field.
    If this field is currently selected, do nothing.
    Otherwise, zero the whole union before setting the new tag or data values.*/
 INLINE_STATIC_CHECK
@@ -974,25 +974,25 @@ void CHECK_INITUNIONFIELD(int selected, void* p, unsigned int size) {
 
 /************** TAG MANIPULATION ************** */
 
-/* We have one tag bit per aligned data word. The tag bit value is 1 if the 
- * data word contains a _b component of a WILD pointer (i.e. the second word 
- * of a WILD pointer) and 0 if it contains an integer or the _p component of 
- * a WILD pointer. A very important invariant is that a tag bit sequence 
- * "01" denotes two data words that contain a WILD pointer (with the fields 
- * _p and _b in that order). To maintain this invariant we have to write the 
- * bits "01" whenever we write a pointer and we have to clear the tag bit 
- * for word "w" when we write an integer in the word "w". Note that this 
- * means that we might be overwriting the _p field of a stored pointer and 
- * we would not notice. This might mask some programming errors but it is 
- * not unsound because the _p field will be checked against the _b field 
+/* We have one tag bit per aligned data word. The tag bit value is 1 if the
+ * data word contains a _b component of a WILD pointer (i.e. the second word
+ * of a WILD pointer) and 0 if it contains an integer or the _p component of
+ * a WILD pointer. A very important invariant is that a tag bit sequence
+ * "01" denotes two data words that contain a WILD pointer (with the fields
+ * _p and _b in that order). To maintain this invariant we have to write the
+ * bits "01" whenever we write a pointer and we have to clear the tag bit
+ * for word "w" when we write an integer in the word "w". Note that this
+ * means that we might be overwriting the _p field of a stored pointer and
+ * we would not notice. This might mask some programming errors but it is
+ * not unsound because the _p field will be checked against the _b field
  * next time it is used. All we need for soundness is to know that the _b
  * fields are intact. */
-/* The way we write the tags is to first clear the tags for all the words we 
- * are writing. Then, if some of the words contain pointers (such as when 
- * writing structures containing pointers and non-pointers) we just set 
+/* The way we write the tags is to first clear the tags for all the words we
+ * are writing. Then, if some of the words contain pointers (such as when
+ * writing structures containing pointers and non-pointers) we just set
  * those particular bits. An exception is made when we write just pointers.*/
-/* Bits are counted from 0 starting with the least-significant bit in the 
- * first tag word. The tag words (4 or 8 bytes each) are written in little-endian 
+/* Bits are counted from 0 starting with the least-significant bit in the
+ * first tag word. The tag words (4 or 8 bytes each) are written in little-endian
  * notation. So, if I have a block of memory containing one fat pointer, with
  * a valid base and ptr, it looks like: */
 /*
@@ -1034,7 +1034,7 @@ typedef struct tagAddr
 
 // given a TAGADDR, retrieve either a 0 or 1
 #define READ_TAG(addr) ((*((addr).word) >> (addr).bit) & 1)
-   
+
 
 // first, we give definitions for the tag functions in the normal
 // case where tags are in effect
@@ -1070,9 +1070,9 @@ TAGADDR __CHECK_FETCHTAGADDR(void *base,            // Base
 INLINE_STATIC_CHECK
 unsigned CHECK_FETCHTAGBIT(void *base,            // start of memory area.
                                                   // Always aligned
-                           unsigned int bwords,   /* # of words in the memory 
+                           unsigned int bwords,   /* # of words in the memory
                                                    * area */
-                           void *p)               /* pointer to word we're 
+                           void *p)               /* pointer to word we're
                                                    * interested in  */
 {
   // composition of READ_TAG and CHECK_FETCHTAGADDR, above
@@ -1101,13 +1101,13 @@ void CHECK_ZEROTAGS(void *base,  /* The base of the tagged area */
                     unsigned int nrbwords, // Number of data words in the area
                     void *where, /* The address of the first word whose tag
                                     must be cleared */
-                    unsigned int size /* The size in bytes of the memory 
-                                       * range for which we must clear the 
+                    unsigned int size /* The size in bytes of the memory
+                                       * range for which we must clear the
                                        * tag */
-                    ) 
+                    )
 {
   char *wherec = (char*)where;
-    
+
 
   // Adjust for the offset. Not necessary anymore.
   // wherec += offset;
@@ -1175,9 +1175,9 @@ void CHECK_COPYTAGSBACK(void *bsrc, /* base of src */
 #define CHECK_WILDPOINTERREAD(b,n,w) CCURED_CHECK(__CHECK_WILDPOINTERREAD(b,n,w  FILE_AND_LINE))
 INLINE_STATIC_CHECK
 void __CHECK_WILDPOINTERREAD(void *base, /* The base of the tagged area */
-                             unsigned int nrWords, /* No of words in the 
+                             unsigned int nrWords, /* No of words in the
                                                     * area*/
-                             void *where /* The address in the area from 
+                             void *where /* The address in the area from
                                           * where the pointer will be read */
                              CCURED_FAIL_EXTRA_PARAMS)
 {
@@ -1185,9 +1185,9 @@ void __CHECK_WILDPOINTERREAD(void *base, /* The base of the tagged area */
   U32 * where_b = 1 + (U32*)where;
   TAGADDR tag;
   U32 memTag;
-  
+
   // We do not support unaligned reads of pointers
-  if((uintptr_t)where_b & CC_ALIGNED_PTR_MASK) { 
+  if((uintptr_t)where_b & CC_ALIGNED_PTR_MASK) {
     CCURED_FAIL(FAIL_UNALIGNED  CCURED_FAIL_EXTRA_ARGS);
   }
 
@@ -1200,7 +1200,7 @@ void __CHECK_WILDPOINTERREAD(void *base, /* The base of the tagged area */
     return;
   }
   // Houston, we have a problem! Somebody messed with our pointers.
-  
+
   // We give it one more chance. Maybe the word that would be read for base
   // is 0, in which case everything is still safe. This will handle the case
   // when an area has been initialized with 0 and the tags are all 0
@@ -1342,10 +1342,10 @@ void __CHECK_WILDP_WRITE_ATLEAST(
   void *b,    // base of the home area to be written
   int n       // number of bytes to write
   CCURED_FAIL_EXTRA_PARAMS)
-{                         
+{
   // words in the home area
   unsigned nwords = CHECK_FETCHLENGTH(p, b, 0);
-  
+
 #ifndef NO_CHECKS
   if (n < 0) {
     CCURED_FAIL(FAIL_LBOUND CCURED_FAIL_EXTRA_ARGS);
@@ -1430,7 +1430,7 @@ INLINE_STATIC_CHECK void  __ccured_verify_nul(char const *p, int len)
   CCURED_FAIL(FAIL_STRINGBOUND  FILE_AND_LINE);
 }
 
-//matth: put __ptrof here so it can be inlined.  (The versions of __ptrof 
+//matth: put __ptrof here so it can be inlined.  (The versions of __ptrof
 //that operate on non-safe arguments are still in ccuredlib.c)
 
 INLINE_STATIC_CHECK
@@ -1448,8 +1448,8 @@ void* __ptrof(void *x) {
  #define GCC_STDARG_START(last) ({ __builtin_va_list tmp; \
                                    __builtin_stdarg_start(tmp, last);\
                                    (unsigned long)tmp; })
-         /* CIL will get rid of the necessary machinery for 
-          * builtin_varargs_start. So, we must use the __builtin_stdarg_start 
+         /* CIL will get rid of the necessary machinery for
+          * builtin_varargs_start. So, we must use the __builtin_stdarg_start
           * even in this case  */
  #define GCC_VARARGS_START()    GCC_STDARG_START(0)
  #else
@@ -1457,14 +1457,14 @@ void* __ptrof(void *x) {
  #define GCC_VARARGS_START()     GCC_STDARG_START(0)
  #endif
 #endif
-/* 
+/*
  *
- * Copyright (c) 2001-2002, 
+ * Copyright (c) 2001-2002,
  *  George C. Necula    <necula@cs.berkeley.edu>
  *  Scott McPeak        <smcpeak@cs.berkeley.edu>
  *  Wes Weimer          <weimer@cs.berkeley.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
