@@ -470,6 +470,11 @@ let main () = begin
   Stats.reset Stats.SoftwareTimer; (* No performance counters *)
 (*  Formatcil.test (); *)
   Arg.parse argDescr Ciloptions.recordFile usageMsg;
+  if !E.verboseFlag then begin
+    Printf.eprintf "Running CCured with options:\n";
+    Array.iteri (fun i a -> Printf.eprintf " argv[%d]: %s\n" i a)
+      Sys.argv;
+  end;
   Cil.initCIL ();
   Type.init ();
 (*
