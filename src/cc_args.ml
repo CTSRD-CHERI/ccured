@@ -36,8 +36,6 @@
  *)
 
 (* Keep here the globally-visible flags *)
-let doCheck= ref false   (* Whether to check CIL *)
-
 let logCalls = ref false (* Whether to produce a log with all the function
                           * calls made *)
 let logWrites = ref false (* Whether to produce a log with all the mem
@@ -58,10 +56,6 @@ let printStats = ref false
 (* marked with #pragma cilnoremove(whatever) are kept; when used with *)
 (* cilly.asm.exe, the effect is to slice the input on the noremove symbols *)
 let sliceGlobal = ref false
-
-
-let printStages = ref false
-
 
 let doCxxPP = ref false
 

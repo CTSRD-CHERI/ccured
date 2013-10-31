@@ -50,7 +50,6 @@ module type FRONTEND =
     val parse : string -> (unit -> Cil.file)
 
   end
-
                                         (* Use the frontc frontend *)
 module F : FRONTEND = Frontc
 module C = Cil
@@ -60,7 +59,6 @@ open Pretty
 open Trace
 
 let binary_file_suffix = "bin" (* extension for binary "Cil.file"s *)
-
 
 (*
  * [weimer] Mon Apr 29 13:33:45 PDT 2002
@@ -91,7 +89,7 @@ let binary_file_suffix = "bin" (* extension for binary "Cil.file"s *)
  *)
 
 let parseOneFile (fname:string) : Cil.file = begin
-  if !Cc_args.printStages then ignore (E.log "Parsing %s\n" fname);
+  if !Cilutil.printStages then ignore (E.log "Parsing %s\n" fname);
   let cil =
     if Filename.check_suffix fname binary_file_suffix then
       Stats.time "loading binary files" Cil.loadBinaryFile fname
@@ -102,7 +100,7 @@ let parseOneFile (fname:string) : Cil.file = begin
   (* See if we had errors *)
   if !E.hadErrors then
     E.s (E.error "We had errors during parsing\n");
-  if !Cc_args.doCheck then begin
+  if !Cilutil.doCheck then begin
     ignore (E.log "Checking CIL after CABS2CIL\n");
     ignore (CK.checkFile [] cil);
   end;
@@ -134,7 +132,6 @@ let defaultChannel = ref None
 
 
 let main () = begin
-
   Cil.useLogicalOperators := false;
 
   (* what stages should we run? *)
@@ -209,7 +206,6 @@ let main () = begin
 
   let dumpFCG = ref false in
 
-
   let default_stages =
     Printf.sprintf "(default stages:%s%s%s%s%s%s%s)\n"
       (if !doMerge then " merge" else " (no merge)")
@@ -228,7 +224,7 @@ let main () = begin
     "", Arg.Unit (fun () -> ()), "\n\t\tStage Control Options\n"
     ^ default_stages;
 
-    "--stages", Arg.Unit (fun _ -> Cc_args.printStages := true),
+    "--stages", Arg.Unit (fun _ -> Cilutil.printStages := true),
         "print the stages of CCured as they happen";
     "--noMerge", Arg.Unit (fun () -> doMerge := false),
         "do not merge multiple input files" ;
@@ -313,15 +309,11 @@ let main () = begin
                         ^"inner pointers that are not SAFE and may need "
                         ^"Deputy annotation.");
 
-
     (* Merging Options *)
     "", Arg.Unit (fun () -> ()), "\n\t\tMerging Options\n" ;
 
     "--mergeKeepAnnotations", Arg.Unit (fun _ -> mergeOutputHasAnnotations := true),
                 ": merger output retains CIL pragmas and attributes";
-    "--ignore-merge-conflicts",
-                 Arg.Unit (fun _ -> Mergecil.ignore_merge_conflicts := true),
-                  "ignore merging conflicts";
 
     (* Globinit Options *)
     "", Arg.Unit (fun () -> ()), "\n\t\tGlobal Initializer Options\n" ;
@@ -503,7 +495,7 @@ let main () = begin
    **********************************************************************)
   if !E.verboseFlag then ignore (E.log "Using CCured %s\n"
                                    Ccuredversion.ccuredVersion);
-  if !Cc_args.printStages then ignore (E.log "Stage 1: Parsing\n") ;
+  if !Cilutil.printStages then ignore (E.log "Stage 1: Parsing\n") ;
   let cils = Stats.time "parsing" (fun () ->
     List.map parseOneFile files) () in
 
@@ -514,7 +506,7 @@ let main () = begin
     | _, None -> ()
     | [one], Some(x,fname,bin) ->
         if not !Rmtmps.keepUnused then begin
-          if !Cc_args.printStages then
+          if !Cilutil.printStages then
             ignore (E.log "Stage 1.1: Removing unused temporaries\n") ;
           (trace "sm" (dprintf "removing unused temporaries\n"));
           Rmtmps.removeUnusedTemps one;
@@ -541,7 +533,7 @@ let main () = begin
   | _, [one] -> one
   | false, lst -> E.s (E.error "Too many input files with no merging")
   | true, lst ->
-      if !Cc_args.printStages then ignore (E.log "Stage 2: Merging\n") ;
+      if !Cilutil.printStages then ignore (E.log "Stage 2: Merging\n") ;
       Mergecil.merge lst "merged"
   ) () in
 
@@ -551,7 +543,7 @@ let main () = begin
    * Merge input files into one file.
    **********************************************************************)
   if not !Rmtmps.keepUnused then begin
-    if !Cc_args.printStages then
+    if !Cilutil.printStages then
       ignore (E.log "Stage 2.1: Removing unused temporaries\n") ;
     (trace "sm" (dprintf "removing unused temporaries\n"));
     Rmtmps.removeUnusedTemps merged;
@@ -599,7 +591,7 @@ let main () = begin
    **********************************************************************)
   let cxx =
     if !Cc_args.doCxxPP then begin
-      if !Cc_args.printStages then ignore (E.log "Stage 3: Preprocess C++\n") ;
+      if !Cilutil.printStages then ignore (E.log "Stage 3: Preprocess C++\n") ;
       let cxx = Stats.time "CXXPP" Cxxpp.cxxFile merged in
       (match !cxxppChannel with
         None -> ()
@@ -628,7 +620,7 @@ let main () = begin
    **********************************************************************)
   let globinit = match !doGlobInit with
     true ->
-      if !Cc_args.printStages then ignore (E.log "Stage 4: Glob-Init\n") ;
+      if !Cilutil.printStages then ignore (E.log "Stage 4: Glob-Init\n") ;
       Globinit.doFile cxx
   | false -> cxx
   in
@@ -664,12 +656,12 @@ let main () = begin
     false, _ -> globinit
   | true, false -> globinit
   | true, _ -> begin
-      if !Cc_args.printStages then ignore (E.log "Stage 5: Inference\n") ;
+      if !Cilutil.printStages then ignore (E.log "Stage 5: Inference\n") ;
       (trace "sm" (dprintf "calling markptr\n"));
-      if !Cc_args.printStages then ignore (E.log "Collecting constraints\n");
+      if !Cilutil.printStages then ignore (E.log "Collecting constraints\n");
       let marked = Stats.time "markptr" Markptr.markFile globinit in
       (* Solve the graph *)
-      if !Cc_args.printStages then ignore (E.log "Solving constraints\n");
+      if !Cilutil.printStages then ignore (E.log "Solving constraints\n");
       (trace "sm" (dprintf "invoking the solver\n"));
       (Ccutil.tryFinally
          (fun _ ->
@@ -744,14 +736,14 @@ let main () = begin
   let cured = match !doCure with
     false -> infer
   | true -> begin
-      if !Cc_args.printStages then ignore (E.log "Stage 5: Curing\n") ;
+      if !Cilutil.printStages then ignore (E.log "Stage 5: Curing\n") ;
       (trace "sm" (dprintf "invoking the boxer\n"));
       let cured = Stats.time "cure" Cure.cureFile infer in
-      if !Cc_args.doCheck then
+      if !Cilutil.doCheck then
         ignore (CK.checkFile [CK.NoCheckGlobalIds] cured);
 
       if not !Rmtmps.keepUnused then begin
-        if !Cc_args.printStages then
+        if !Cilutil.printStages then
           ignore (E.log "Stage 5.1: Removing unused temporaries\n") ;
         (trace "sm" (dprintf "removing unused temporaries\n"));
         Rmtmps.removeUnusedTemps cured;
@@ -785,7 +777,7 @@ let main () = begin
    * Program Transformations
    **********************************************************************)
   if !doTransform then begin
-    if !Cc_args.printStages then ignore (E.log "Stage 6: Transformations\n") ;
+    if !Cilutil.printStages then ignore (E.log "Stage 6: Transformations\n") ;
 
     (* AST Slicer Stuff *)
     (match !doASTSlicerEnumerate with
@@ -848,7 +840,7 @@ let main () = begin
   let optim = match !doOpt with
     false -> cured
   | true -> begin
-      if !Cc_args.printStages then ignore (E.log "Stage 7: Optimization\n") ;
+      if !Cilutil.printStages then ignore (E.log "Stage 7: Optimization\n") ;
       (trace "sm" (dprintf "invoking the optimizer\n"));
       Optim.checkToRemove := None;
       let optimized1 = Stats.time "Optim" Seoptim.optim cured in
@@ -925,7 +917,7 @@ let main () = begin
       close_out variant_out)
     !optimElimAll;
 
-  if !Cc_args.printStages then ignore (E.log "CCured complete\n");
+  if !Cilutil.printStages then ignore (E.log "CCured complete\n");
   (* weimer: check those types *)
   if !doTypeSizeCheck then
     ignore (Stats.time "type-size-check" Curestats.checkTypeSizes optim);
