@@ -944,6 +944,7 @@ let failed = ref false
 let wrapMain () =
   (* This code implements a "try finally clause". We first run the "main" and
    * we produce a continuation *)
+  Printexc.record_backtrace true;
   let term =
     try
       main ();
@@ -952,8 +953,10 @@ let wrapMain () =
     with e ->
       (* Main did throw an exception. Print a message about it and then exit *)
       (fun () ->
+        let exc = Printexc.get_backtrace () in
         print_string ("Uncaught exception: " ^ (Printexc.to_string e)
                       ^ "\n");
+        print_string exc;
         exit 2)
   in
   begin
