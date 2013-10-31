@@ -4,6 +4,9 @@
 // - after CCured (with CCURED_POST) defined
 // - in the library
 
+#include <stdint.h>
+#include <sys/types.h>
+
 // Grab the annotations. If we are after CCured this will define them away
 #include "ccuredannot.h"
 
