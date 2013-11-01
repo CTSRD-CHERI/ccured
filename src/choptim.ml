@@ -153,8 +153,21 @@ let rec eval_exp exp s =
 	with Failure _ ->
 	  BinOp(op,ev1,ev2,t)
     end
+    | Question(p,e1,e2,t) -> begin
+      let pv = eval_exp p s in
+      match pv with
+        Const(CInt64(0L,_,_))
+      | Const(CReal(0.0,_,_))
+      | Const(CChr('\000')) -> eval_exp e2 s
+      | Const(CInt64(_,_,_))
+      | Const(CReal(_,_,_))
+      | Const(CChr(_)) -> eval_exp e1 s
+      | Const(CEnum(pe,_,_)) -> eval_exp (Question(pe,e1,e2,t)) s
+      | _ -> Question(pv,e1,e2,t)
+    end
     | CastE(t,e) -> eval_exp e s
     | AddrOf(lv) -> let (addr,tau) = lval_denotes lv s in addr
+    | AddrOfLabel(_) -> failwith "eval_exp: addrOfLabel"
     | StartOf(l) -> eval_lval l s
   in
   if result =? !base_address then zero else result
