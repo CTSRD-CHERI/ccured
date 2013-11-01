@@ -83,6 +83,7 @@ let enumerate out (f : Cil.file) =
     | Instr(il) -> doIL il base i
     | Return(_,_)
     | Goto(_,_)
+    | ComputedGoto(_,_)
     | Continue(_)
     | Break(_) -> emit base i st_ht s
     | If(e,b1,b2,_) ->
@@ -175,7 +176,7 @@ let annotate (f : Cil.file) ei = begin
   (* Create a prototype for the logging function *)
   let printfFun =
     let fdec = emptyFunction "printf" in
-    let argf  = makeLocalVar fdec "format" charConstPtrType in
+    let _argf = makeLocalVar fdec "format" charConstPtrType in
     fdec.svar.vtype <- TFun(intType, Some [ ("format", charConstPtrType, [])],
                             true, []);
     fdec
@@ -359,6 +360,7 @@ let mark_file (f : Cil.file) (names : (string, mark) Hashtbl.t) =
     | Instr(il) -> doIL il base i default
     | Return(_,_)
     | Goto(_,_)
+    | ComputedGoto(_,_)
     | Continue(_)
     | Break(_) ->
         mark ws s (check base i default) ; incr i
