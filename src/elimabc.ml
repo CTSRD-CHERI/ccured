@@ -32,7 +32,6 @@
  *
  *)
 
-
 (*
  * this analysis eliminates array bound checks when it can prove that
  * they will always succeed
@@ -79,7 +78,6 @@ let stmts = ref [] (* for easy traversal of all stmts *)
 
 (* indicates that an expression isn't of the form that we can match *)
 exception NoMatch
-
 
 (*-----------------------------------------------------------------*)
 let starts_with (s : string) (prefix : string) : bool =
@@ -289,11 +287,9 @@ let isInfinity (n:node) : bool =
     | (PosInfty|NegInfty) -> true
     | _ -> false
 
-
 let zeroNode = ref (newZeroNode())
 let posInftyNode = ref (newPosInftyNode())
 let negInftyNode = ref (newNegInftyNode())
-
 
 (* add a regular edge from n1 to n2 with weight c *)
 let addedEdge (n1 : node ref) (n2 : node ref) (weight : int) : bool =
@@ -361,7 +357,6 @@ let cleanup_cedges (n : node) =
       n.cpreds <- reduce_cedges (List.sort comp n.cpreds);
     end
 
-
 (*
  * add a special (cf join) edge from n1 to n2
  * need to actually add infinity edges to avoid bad applications of diamond rule
@@ -372,7 +367,6 @@ let addJEdge (n1 : node ref) (n2 : node ref) : unit =
     !n1.jsuccs <- n2 :: (!n1.jsuccs);
     !n2.jpreds <- n1 :: (!n2.jpreds);
   end
-
 
 let addAssignEdge n1 n2 w = addEdge n1 n2 w
 
@@ -418,7 +412,6 @@ let clearVarGraph () =
 let _ = clearVarGraph()
 ;;
 
-
 (* do some cleanup on the graph to make it more readable -- dump lots of
  * edges
  * this function makes the graph unusable for check elimination
@@ -457,7 +450,6 @@ let untransclose () =
       H.iter doNode varnodes;
     end
 ;;
-
 
 (**************************************************************)
 (*                                                            *)
@@ -558,7 +550,6 @@ let d_jedges () (n : node) =
     | _ ->
         Pretty.nil
 
-
 let node_print_filter (n : node) =
   true
     (*  (n.nkind = Phi || n.nkind = PtrPhi) *)
@@ -593,7 +584,6 @@ let dumpVarGraph () =
       close_out graphOutChannel;
     end
 ;;
-
 
 (*******************************************************************)
 (*                                                                 *)
@@ -685,7 +675,6 @@ let or4 (a1,b1,c1,d1) (a2,b2,c2,d2) =
 
 let and4 (a1,b1,c1,d1) (a2,b2,c2,d2) =
   (a1&&a2, b1&&b2, c1&&c2, d1&&d2)
-
 
 exception GiveUp of string
 
@@ -883,7 +872,6 @@ let do_diamonds () : unit =
     end
 ;;
 
-
 let prod_map2 (f : 'a -> 'b -> 'c) (xs : 'a list) (ys : 'b list) : 'c list =
   List.flatten( List.map (fun a -> List.map (f a) ys) xs )
 let prod_iter2 (f : 'a -> 'b -> unit) (xs : 'a list) (ys : 'b list) : unit =
@@ -1032,7 +1020,6 @@ let do_hexagons () =
     end
 ;;
 
-
 (* ... seems to cause blowup on switch2.c ?? *)
 let do_cleanup_cedges () =
     H.iter (fun _ nr -> cleanup_cedges !nr) varnodes
@@ -1084,10 +1071,9 @@ let path_from_to_lt (src : node ref) (dest : node ref) (weight : int)
     end
 ;;
 
-
 (*******************************************************************)
 (*                                                                 *)
-(* Redudant check elimination:                                     *)
+(* Redundant check elimination:                                     *)
 (* For each check, store a continuation to run                     *)
 (* when the graph is complete - return ChangeTo ...                *)
 (* to eliminate/change it or DoChildren to leave it be             *)
@@ -1108,7 +1094,6 @@ let maybeRemoveCheck (i:instr) : instr list visitAction =
       Not_found -> DoChildren
 ;;
 
-
 (*******************************************************************)
 (*                                                                 *)
 (* pattern matching on CIL expressions                             *)
@@ -1116,7 +1101,6 @@ let maybeRemoveCheck (i:instr) : instr list visitAction =
 (*******************************************************************)
 
 let instrnum = ref 0
-
 
 (*
  *
@@ -1128,8 +1112,6 @@ let instrnum = ref 0
  * match_iPc intvar + const
  * match_pPiPc ptr + intvar + const
  *)
-
-
 
 (* return (v, c) if e is of the form (variable v + constant c) *)
 let rec match_vPc (e:exp) : (varinfo option * int) =
@@ -1282,13 +1264,11 @@ and branchExp (e : exp) =
 	  | _ -> raise NoMatch
 ;;
 
-
 (***********************************************************)
 (*                                                         *)
 (* check disection                                         *)
 (*                                                         *)
 (***********************************************************)
-
 
 (* we can extract the ptr that we're checking from the args *)
 let checkedExp (chk : string) (args : exp list) : exp list =
@@ -1314,8 +1294,6 @@ let checkedExp (chk : string) (args : exp list) : exp list =
 
     | _ -> raise NoMatch
 
-
-
 (* is this a check we care about?  for gathering statistics / debug printing *)
 let interestingCheck  (i : instr) =
   match i with
@@ -1328,7 +1306,6 @@ let interestingCheck  (i : instr) =
             | _ -> false
         end
     | _ -> false
-
 
 (* convert check *)
 and seq2safe_to_seq2fseq (args : exp list) (loc : location) : instr =
@@ -1344,7 +1321,6 @@ and seq2safe_to_fseq2safe (args : exp list) (loc: location) : instr =
     | _ -> failwith "seq2safe_to_seq2fseq: args changed"
 
 ;;
-
 
 (***********************************************************)
 (*                                                         *)
@@ -1378,9 +1354,9 @@ let rec lookup (env,_ : varsmap) (v : varinfo) =
         Not_found ->
           failwith (sprint ~width:80 (dprintf
              "Bug in elimabc: varinfo %s::%s : %a not found in env"
-                            !currentFnName
-                            v.vname
-                            d_type v.vtype ))
+             !currentFnName
+             v.vname
+             d_type v.vtype ))
 
 and ptrlookup(_,penv : varsmap) (v : varinfo) =
   if v.vglob || (not (isPAType v)) then
@@ -1396,11 +1372,10 @@ and ptrlookup(_,penv : varsmap) (v : varinfo) =
              v.vname
              d_type v.vtype ))
 
-
 and bind (env,penv : varsmap) (b : binding) = (b::env, penv)
 and bindptr (env,penv : varsmap) (b : binding) = (env, b::penv)
 
-  (* maybe useful for debugging if nodes are actually labeled *)
+(* maybe useful for debugging if nodes are actually labeled *)
 and newenv () = (
   List.map (fun vi -> (vi, newNode vi !instrnum Phi (*IntNode*) )) (!vars),
   List.map (fun vi -> (vi, newNode vi !instrnum PtrPhi (*PtrNode*) )) (!ptrvars)
@@ -1408,7 +1383,6 @@ and newenv () = (
 
 and find (bs : binding list) (v : varinfo) = List.assq v bs
 ;;
-
 
 (***********************************************************)
 (*                                                         *)
@@ -1465,7 +1439,6 @@ let rec doFundec (fd : fundec) (stmts : stmt list) : unit =
 
 and doBlock (envo : varsmap option) (b : block) : varsmap option =
   List.fold_left doStmt envo b.bstmts
-
 
 (* invariant about the returned varsmap option:
  * anything which jumps (goto,return,break,continue) returns None
@@ -1637,7 +1610,6 @@ and doStmt (envo : varsmap option) (s : stmt) : varsmap option =
       postenv;
     end
 
-
 (* need to use abslocs b/c can only get pts to sets for exps that exist in
    the program *)
 
@@ -1764,7 +1736,6 @@ and doInstr (env:varsmap) (i : instr) =
 
     | Asm _ -> env
 
-
 and doCheck (env : varsmap) (i : instr) =
   match i with
     | (Call (None, Lval(Var chk,_), args, loc)) when isCheckCall_str chk.vname ->
@@ -1868,8 +1839,8 @@ and doCheck (env : varsmap) (i : instr) =
                     let (pn, pn', env'') = newp p env' in
                     let pred = xPcLEQlastp pn pn' xn xn' c in
                     let remove = (fun () ->
-                                          if pred() then ChangeTo []
-                                          else DoChildren)
+                                    if pred() then ChangeTo []
+                                    else DoChildren)
                     in
                       registerCheckCode i remove;
                       env''
@@ -1880,8 +1851,8 @@ and doCheck (env : varsmap) (i : instr) =
                     let (pn, pn', env'') = newp p env' in
                     let pred = pPxPcNoOverflow pn pn' xn xn' c in
                     let remove = (fun () ->
-                                          if pred() then ChangeTo []
-                                          else DoChildren)
+                                    if pred() then ChangeTo []
+                                    else DoChildren)
                     in
                       registerCheckCode i remove;
                       env''
@@ -1893,8 +1864,8 @@ and doCheck (env : varsmap) (i : instr) =
                     let p1 = xPcLEQlastp pn pn' xn xn' c in
                     let p2 = pPxPcNoOverflow pn pn' xn xn' c in
                     let remove = (fun () ->
-                                          if p1() && p2() then ChangeTo []
-                                          else DoChildren)
+                                    if p1() && p2() then ChangeTo []
+                                    else DoChildren)
                     in
                       registerCheckCode i remove;
                       env''
@@ -1907,11 +1878,11 @@ and doCheck (env : varsmap) (i : instr) =
                     let lb = xPcGEQfirstp pn pn' xn xn' c in
                     let change =
                       (fun () ->
-                               match (lb(), ub()) with
-                                 | true,true -> ChangeTo []
-                                 | false,true -> ChangeTo [seq2safe_to_seq2fseq args loc]
-                                 | true,false -> ChangeTo [seq2safe_to_fseq2safe args loc]
-                                 | false,false -> DoChildren
+                         match (lb(), ub()) with
+                         | true,true -> ChangeTo []
+                         | false,true -> ChangeTo [seq2safe_to_seq2fseq args loc]
+                         | true,false -> ChangeTo [seq2safe_to_fseq2safe args loc]
+                         | false,false -> DoChildren
                       )
                     in
                       registerCheckCode i change;
@@ -1923,8 +1894,8 @@ and doCheck (env : varsmap) (i : instr) =
                     let (pn, pn', env'') = newp p env' in
                     let pred = xPcGEQfirstp pn pn' xn xn' c in
                     let remove = (fun () ->
-                                          if pred() then ChangeTo []
-                                          else DoChildren)
+                                    if pred() then ChangeTo []
+                                    else DoChildren)
                     in
                       registerCheckCode i remove;
                       env''
@@ -1934,8 +1905,8 @@ and doCheck (env : varsmap) (i : instr) =
                     let (xn, xn', env') = newx xo env in
                     let pred = xPcGEQzero xn xn' c in
                     let remove = (fun () ->
-                                          if pred() then ChangeTo []
-                                          else DoChildren)
+                                    if pred() then ChangeTo []
+                                    else DoChildren)
                     in
                       registerCheckCode i remove;
                       env'
@@ -2056,7 +2027,6 @@ and joinVar (a : binding list) (b : binding list) (x : varinfo) : binding =
 			 "Bug! joinVar can't find %s::%s"
 			 !currentFnName x.vname ))
 
-
 (* ptr.last edges go other way at control flow join *)
 and joinPtrVar (a : binding list) (b : binding list) (x : varinfo) : binding =
   try
@@ -2094,7 +2064,6 @@ and joinPtrVar (a : binding list) (b : binding list) (x : varinfo) : binding =
 
 class elimChecksVisitorClass = object (self)
   inherit nopCilVisitor
-
 
   (* compute constraint graph for the function *)
   method vfunc (fd : fundec) : fundec visitAction =
@@ -2207,7 +2176,6 @@ end;;
 
 let elimChecksVisitor = new elimChecksVisitorClass;;
 
-
 (***************************************************************************)
 (*                                                                         *)
 (* a way to eliminate all matchable checks and show non-matchable checks   *)
@@ -2233,7 +2201,7 @@ let printUnmatchedChecks () : unit =
     ignore(E.log "--------------------------\n");
   end
 
-  (* give cannonical string rep of exp *)
+(* give canonical string rep of exp *)
 let rec stringExp (e : exp) : string =
   match e with
     | Const _ -> "c"
@@ -2300,7 +2268,6 @@ and stringBinop (b : binop) : string =
     | BOr -> "|"
     | LAnd -> "&&"
     | LOr -> "||"
-
 
 (* for performance testing purposes - eliminate all recognizable checks *)
 class elimAllChecksVC = object (self)
@@ -2375,7 +2342,6 @@ let elimAllChecksFile (f : Cil.file) : Cil.file =
     f
  end
 ;;
-
 
 (**************************************************************)
 (*                                                            *)
