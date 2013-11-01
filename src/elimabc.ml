@@ -1430,7 +1430,8 @@ let rec doFundec (fd : fundec) (stmts : stmt list) : unit =
         (venv, penv)
     in
 
-    doBlock (Some env) fd.sbody;
+    let post = doBlock (Some env) fd.sbody in
+    assert (post = None);
 
     (* connect the graphs *)
     List.iter connectStmts stmts;
@@ -1445,7 +1446,7 @@ and doBlock (envo : varsmap option) (b : block) : varsmap option =
  *  and registers its post-env to connect to its successor's pre-envs later
  * any control flow join (stmt with multiple predecessors) gets a
  *  phi node as its pre-env and envo phis into it
- * a stmt whose only sucessor is the thing that follows it in a block
+ * a stmt whose only successor is the thing that follows it in a block
  *  (egs If, Block, Instr -- NOT Loop nor Switch)
  *  just returns Some(post-env) - if it's the last stmt in the block
  *  Loop and If will phi it into the right thing
@@ -1504,7 +1505,7 @@ and doStmt (envo : varsmap option) (s : stmt) : varsmap option =
 
       | Return _ -> None
 
-      | (Goto (_, loc) | Break (loc) | Continue (loc)) ->
+      | (Goto (_,_) | ComputedGoto (_,_) | Break (_) | Continue (_)) ->
           begin
             H.add stmtPosts s.sid env;
             None;
@@ -2214,8 +2215,11 @@ let rec stringExp (e : exp) : string =
     | UnOp (op,e,_) -> (stringUnop op) ^ "(" ^ (stringExp e) ^ ")"
     | BinOp (op, e1, e2, _) ->
         (stringBinop op) ^ " " ^ (stringExp e1) ^ " " ^ (stringExp e2)
+    | Question(p,e1,e2,_) ->
+        (stringExp p) ^ " ? " ^ (stringExp e1) ^ " : " ^ (stringExp e2)
     | CastE(t,e) -> "(" ^ (stringType t) ^ ")" ^ (stringExp e)
     | AddrOf lv -> "&(" ^ (stringLval lv) ^ ")"
+    | AddrOfLabel _ -> "addrof_l"
     | StartOf lv -> (stringLval lv)
 
 and stringLval (lv : lval) : string =

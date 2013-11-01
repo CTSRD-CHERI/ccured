@@ -314,8 +314,6 @@ let d_curelval () (lv: curelval) : doc =
     N.d_opointerkind lv.plvk
     d_expmeta lv.lvm
 
-
-
 let nodeOfType (t: typ) (what: exp) =
   match N.nodeOfAttrlist (typeAttrs t) with
     Some n -> n
@@ -343,7 +341,6 @@ let isCompatFunction (e: exp) : bool =
   | _ -> false
 
 let extraGlobInit : stmt clist ref = ref empty
-
 
 (* For each local that is moved to the heap we keep the field of the heap
  * structure where it lives *)
@@ -438,7 +435,6 @@ let isAllocFunction name =
   isSome (getAllocInfo name)
 
 (********************************************************************)
-
 
             (* Same for offsets *)
 type offsetRes =
@@ -5277,6 +5273,13 @@ and curestmt (s: Cil.stmt) : stmt clist =
   try
     match s.skind with
     | Break _ | Continue _ | Goto _ -> single s
+
+    | ComputedGoto (e, l) ->
+        currentLoc := l;
+        let (_, doe, e') = cureExp (CastE(voidPtrType, e)) in
+        s.skind <- Instr [];
+        CConsL(s, CConsR(doe, mkStmt (ComputedGoto (e', l))))
+
     | Return (None, l) ->
         currentLoc := l;
         CConsL(unregisterStmt (), CSeq(CList !heapifiedFree, single s))
