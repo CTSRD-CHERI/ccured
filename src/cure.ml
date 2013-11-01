@@ -138,7 +138,6 @@ let mkOfField = function
   | fn -> E.s (bug "mkOfField: not a metadata field: %s\n" fn)
 
 
-
 (* Check if a certain kind has certain metadata *)
 let pkHas (mk: mkind) (k: N.opointerkind) : bool =
   match mk, k with
@@ -155,7 +154,6 @@ let pkHas (mk: mkind) (k: N.opointerkind) : bool =
         (* The order of the fields is very important, because it must match
          * the code in the library. *)
 let mkOrder = [MKBase; MKEnd; MKRtti; MKMetaPointer]
-
 
 (* For each pointer kind, store a list of the metadata that it needs, in the
  * right order. *)
@@ -185,7 +183,7 @@ type cureexp =
     { et: typ; (* The type of the whole cureexp *)
       ep: exp; (* This is the main expression. For a non-pointer it is THE
                 * expression. For a pointer it is the _p component *)
-      ek: N.opointerkind; (* The kind of ths pointer. This is always the
+      ek: N.opointerkind; (* The kind of this pointer. This is always the
                            * result of kindOfType et  *)
       em: expmeta; (* The meta data for the value, corresponding to the ek *)
     }
@@ -196,8 +194,6 @@ and expmeta = { _b: exp option; (* A base *)
                 _t: exp option; (* A RTTI *)
                 _mp: exp option (* A pointer to metadata for pointed-to obj *)
               }
-
-
 
 let emNone : expmeta = { _b = None; _e = None; _t = None; _mp = None}
 let emMeta (m: exp) : expmeta = { emNone with _mp = Some m}
@@ -231,8 +227,6 @@ let d_expmeta () (em: expmeta) =
     nil
   else
     (docList ~sep:(chr ',' ++ break) (fun x -> x)) () fields
-
-
 
 let emHas (mk: mkind) (em: expmeta) : bool =
   match mk, em with
@@ -280,7 +274,6 @@ let checkExpMeta (em: expmeta) (k: N.opointerkind) : bool =
                d_mkind mk d_expmeta em))
     mkOrder;
   true
-
 
 let d_cureexp () (ce: cureexp) =
   dprintf "CE(@[P=%a,@?M=%a%a@])\n"
@@ -349,7 +342,6 @@ let isCompatFunction (e: exp) : bool =
     Lval (Var v, NoOffset) -> hasAttribute "compat" v.vattr
   | _ -> false
 
-
 let extraGlobInit : stmt clist ref = ref empty
 
 
@@ -360,27 +352,21 @@ let heapifiedLocals: (string, lval) H.t = H.create 7
 (* Expresssions denoting the things to free at the end of the function *)
 let heapifiedFree: stmt list ref = ref []
 
-           (* After processing an expression, we create its type, a list of
-            * instructions that should be executed before this exp is used,
-            * and a replacement exp *)
+(* After processing an expression, we create its type, a list of
+ * instructions that should be executed before this exp is used,
+ * and a replacement exp *)
 type expRes =
     typ * stmt clist * exp
 
-
-
-
-
-
-
 type allocInfo = {
   mutable aiZeros: bool;              (* Whether the allocator initializes the
-                                      * memory it allocates *)
+                                       * memory it allocates *)
   mutable aiGetSize: exp list -> exp; (* Extract the size argument out of a
-                                     * list of arguments *)
+                                       * list of arguments *)
   mutable aiNewSize: exp -> exp list -> exp list;
-                                    (* Rewrite the argument list with a new
-                                     * size *)
-  }
+                                      (* Rewrite the argument list with a new
+                                       * size *)
+}
 
 let allocFunctions : (string, allocInfo) H.t = H.create 13
 
@@ -434,8 +420,6 @@ let ccuredallocPragma (name: string) (args: attrparam list) : unit =
   (* Add to the hash *)
   H.add allocFunctions name ai
 
-
-
 let getAllocInfo fname =
   try
     (* strip the pointer-kind suffix
@@ -453,15 +437,12 @@ let getAllocInfo fname =
 let isAllocFunction name =
   isSome (getAllocInfo name)
 
-
-
 (********************************************************************)
 
 
             (* Same for offsets *)
 type offsetRes =
     typ * stmt clist * offset * exp * N.opointerkind
-
 
 (*** Helpers *)
 let castVoidStar e = mkCast e voidPtrType
@@ -478,12 +459,10 @@ let prefix p s =
 let theFile : global list ref = ref []
 let consGlobal (x : global) l = x :: l
 
-
 (**** Make new types ****)
 
-
-    (* For each new type name, keep track of various versions, usually due
-     * to varying attributes *)
+(* For each new type name, keep track of various versions, usually due
+ * to varying attributes *)
 let typeNames : (string, location A.alphaTableData ref) H.t = H.create 17
 
 let newTypeName (prefix: string) =
@@ -504,6 +483,7 @@ and baseTypeName = function
   | TInt(IShort,_) -> "", "short"
   | TInt(IUShort,_) -> "", "ushort"
   | TInt(IChar,_) -> "", "char"
+  | TInt(IBool,_) -> "", "bool"
   | TInt(IUChar,_) -> "", "uchar"
   | TInt(ISChar,_) -> "", "schar"
   | TInt(ILong,_) -> "", "long"
@@ -526,12 +506,10 @@ and baseTypeName = function
       let polypref, name = baseTypeName t in
       polypref, "a_" ^ name
 
-
 (**** Inspect the curing style attribute *)
 let extractPointerTypeAttribute al =
   let k, why = N.kindOfAttrlist al in
   k
-
 
 let extractArrayTypeAttribute al =
   filterAttributes "sized" al <> []
@@ -542,7 +520,6 @@ let newStringName () =
   incr stringId;
   "__string" ^ (string_of_int !stringId)
 
-
 let isNullTerm = function
     N.SeqN | N.FSeqN | N.SeqNT | N.FSeqNT | N.String | N.ROString -> true
   | _ -> false
@@ -551,8 +528,6 @@ let isNullTerm = function
  * (never know where to put this kind of stuff in ML) *)
 let stringListContains (str:string) (sl:string list) : bool =
   List.exists (fun s -> s = str) sl
-
-
 
 (***** Convert some pointers in types to fat pointers ************)
 let sizedArrayTypes : (typsig, typ) H.t = H.create 123
@@ -683,7 +658,6 @@ let getFieldsOfMeta (t: typ) : (mkind * offset) list =
     end
   | _ ->  E.s (bug "getFieldsOfMeta %a\n" d_type t)
 
-
 let readFieldsOfMeta (t: typ) (m: lval) : expmeta =
   if isMetaType t then
     let metaFields = getFieldsOfMeta t in
@@ -780,7 +754,6 @@ let getFieldsOfMerge (t: typ) : offset * offset =
     end
   | _ -> E.s (bug "getFieldsOfMerge %a\n" d_type t)
 
-
 (* Given an expression of a fat type, return three expressions, encoding the
  * pointer, the base and the end. Also return the type of the first
  * expression *)
@@ -804,9 +777,8 @@ let rec readFieldsOfFat (e: exp) (et: typ) : typ * exp * expmeta =
   else
     (et, e, emNone)
 
-
-    (* Create a new temporary of a fat type and set its pointer and base
-     * fields *)
+(* Create a new temporary of a fat type and set its pointer and base
+ * fields *)
 
 let setFatPointer (t: typ) (ce: cureexp) : stmt clist * lval =
   let tmp = makeTempVar !CC.currentFunction t in
@@ -826,7 +798,6 @@ let setFatPointer (t: typ) (ce: cureexp) : stmt clist * lval =
 let readPtrField (e: exp) (t: typ) : exp =
   let (tptr, ptr, _) = readFieldsOfFat e t in ptr
 
-
 let rec kindOfType t =
   (* Since t was fixed up, it has a qualifier if it is a pointer *)
   (* If it is a named type, look at the real type *)
@@ -844,7 +815,6 @@ let rec kindOfType t =
       | _ -> N.Scalar
   end
   | _ -> N.Scalar
-
 
 let rec maybeStackPointer (what: exp) : bool =
  (* matth: Any casts on 'what' are probably casts to the lhs type.  We're
@@ -916,7 +886,6 @@ let pkMakeScalarMeta (k: N.opointerkind) : expmeta =
   | _ -> E.s (unimp "pkMakeNullMeta: offsetof for field of kind %a"
                 N.d_opointerkind k)
 
-
 (** The constructor for cureexp. Extracts the kind and the packages the
   * cureexp.*)
 let mkCureexp (t: typ) (ep: exp) (em: expmeta) =
@@ -946,7 +915,6 @@ let pkTypePrefix (pk: N.opointerkind) =
   | N.FSeqRC -> "fseqrcp_"
   | _ -> E.s (bug "pkTypeName")
 
-
 let pkQualName (pk: N.opointerkind)
                (acc: string list)
                (dobasetype: string list -> string list) : string list =
@@ -975,7 +943,6 @@ let pkQualName (pk: N.opointerkind)
 
 (****** the CHECKERS ****)
 
-
 let checkFunctionPointer (whatp:exp) (whatm:expmeta) whatkind nrargs =
   begin
     match whatkind with
@@ -998,7 +965,6 @@ let checkFunctionPointer (whatp:exp) (whatm:expmeta) whatkind nrargs =
         E.s (error "Function pointer is of kind %a. Arithemtic or casting of integers into function pointers is not supported\n"
                N.d_opointerkind whatkind)
   end
-
 
 (* When we compute attributes we ignore the ptrnode attribute, but keep the
    split and maybeStackPtr info *)
@@ -1029,14 +995,11 @@ let ignorePtrNode al =
     | _ -> Attr("nosplit", []) :: newAttrs
 let typeSigCure t = typeSigWithAttrs ignorePtrNode t
 
-
-
 (* Keep track of the fixed composite types. Index by full name *)
 let fixedComps : (int, unit) H.t = H.create 113
 let metaDataTable : (typsig, typ option) H.t = H.create 113
 let metaDataComps : (int, compinfo) H.t = H.create 13
 let checkMetaDataComps : (int, unit) H.t = H.create 13
-
 
 (* This function indicates whether a type is a split type. Note that
  * in cases like void and int, where split and nosplit are equivalent,
@@ -1057,7 +1020,6 @@ let rec isSplitType (t: typ) : bool =
   | TVoid _ | TInt _ | TFloat _ | TEnum _ | TBuiltin_va_list _ ->
       false (* TODO: correct? irrelevant? *)
 
-
 (* We need to remember the original function types (pre-fixupType) in
  * order to properly set the type of a compatible function in
  * varStartInput. *)
@@ -1072,7 +1034,6 @@ let getOriginalFunctionType (t: typ) : typ =
   try
     H.find originalFunctionTypes (typeSigCure t)
   with Not_found -> t (*E.s (bug "Original function type not stored!")*)
-
 
 let rec fixupType t =
   match t with
@@ -1103,7 +1064,6 @@ let rec fixupType t =
       res
   end
   | _ -> fixit t
-
 
 and fixit t =
   (* First replace the _ptrnode attribute *)
@@ -1529,8 +1489,6 @@ let finalizeMetaDataComp (ci: compinfo) : unit =
   | _ -> E.s (bug "finalizeMetaDataComp: comp metadata is not a stub comp")
 
 
-
-
 (* Create the preamble (in reverse order). Must create it every time because
  * we must consider the effect of "defaultIsWild" *)
 let preamble () =
@@ -1573,7 +1531,6 @@ let mkPointerTypeKind (bt: typ) (k: N.opointerkind) =
   if N.isC k then t else fixupType t
 
 (***** Conversion functions *******)
-
 
 (***** Address of ******)
 let pkAddrOf (lv: curelval) : (cureexp * stmt clist) =
@@ -1650,7 +1607,6 @@ let isIntOrPtrType (t : typ) : bool =
   | TPtr _ -> true
   | _ -> false
 
-
 (* sm: localize the -1 that goes on in calculating array ends, to *)
 (* facilitate experimenting with policy *)
 let nulltermArrayEndIndex
@@ -1723,10 +1679,6 @@ let arrayPointerToIndex (lv: curelval) : curelval =
   | _ -> E.s (bug "arrayPointerToIndex on a non-array (%a)"
                 d_plaintype lv.lvt)
 
-
-
-
-
 (************* END of pointer qualifiers *************)
 
 
@@ -1774,7 +1726,6 @@ let containsSizedArray t =
       | TFun _ -> ExistsFalse
       | _ -> ExistsMaybe) t
 
-
 (* Create tags for types along with the newly created fields and initializers
  * for tags and for the length  *)
 (* Check whether the type contains an embedded array *)
@@ -1812,8 +1763,6 @@ let mustBeTagged v =
     taggable' &&
     (!N.defaultIsWild || hasAttribute "tagged" v.vattr)
 
-
-
 (* Everytime you register a local variable, remember here *)
 let hasRegisteredAreas = ref true
 
@@ -1833,7 +1782,6 @@ let unregisterStmt () =
     call None (Lval(var CC.unregisterFrameFun.svar)) []
   else
     mkEmptyStmt ()
-
 
 (* Create a compound initializer for a tagged type *)
 let splitTagType (tagged: typ)
@@ -1864,7 +1812,6 @@ let makeTagCompoundInit (tagged: typ)
     (* Leave the rest alone since it will be initialized with 0 *)
     ,
   dfld
-
 
 let debugBitfields = false
 (* Since we cannot take the address of a bitfield we treat accesses to a
@@ -1999,8 +1946,6 @@ let checkZeroTags base lenExp lv t =
   with Not_found ->
     mkEmptyStmt ()
 
-
-
 let cureLocal (l: varinfo) =
   let newa, newt = moveAttrsFromDataToType l.vattr l.vtype in
   l.vattr <- N.replacePtrNodeAttrList N.AtVar newa;
@@ -2014,7 +1959,6 @@ let cureLocal (l: varinfo) =
                           d_plaintype l.vtype
                           d_attrlist l.vattr);
 *)
-
 
 (****** CONVERSION FUNCTIONS *******)
 
@@ -2090,7 +2034,6 @@ let fseqToSafe (p: exp)
   in
   p, theCheck
 
-
 let seqToSafe (p: exp) (pm: expmeta)
               (desttyp: typ)
               (foraccess: bool)
@@ -2118,7 +2061,6 @@ let seqToSafe (p: exp) (pm: expmeta)
   in
   p, theCheck
 
-
 let elementSize (srctype: typ) (desttyp: typ) : exp =
   let dest_baset =
     match unrollType desttyp with
@@ -2136,7 +2078,6 @@ let elementSize (srctype: typ) (desttyp: typ) : exp =
   match !msvcMode, unrollType src_baset with
     true, TVoid _ -> one
   | _ -> SizeOf src_baset
-
 
 (* fseqnWrite does checks similar to fseq2safe, but it calls CHECK_FSEQN_WRITE
    instead, which allows writing nul to the character past the end pointer. *)
@@ -2164,7 +2105,6 @@ let fseqnWrite (p: exp)
   in
   p, theCheck
 
-
 let seqnWrite  (p: exp)
                (pm: expmeta)
                (desttyp: typ)
@@ -2191,7 +2131,6 @@ let seqnWrite  (p: exp)
   in
   p, theCheck
 
-
 let indexToSafe (p: exp) (desttyp: typ)
                 (em: expmeta)
                 (foraccess: bool) (noint: bool) : exp * stmt clist =
@@ -2199,7 +2138,6 @@ let indexToSafe (p: exp) (desttyp: typ)
   (* We know that this is not an integer at this point. *)
   let p'', acc'' = seqToSafe p' p'meta desttyp foraccess true in
   p'', append acc' acc''
-
 
 let nulltermToSeq (p: exp) : exp * expmeta * stmt clist =
   (* Make a new temporary variable *)
@@ -2220,7 +2158,6 @@ let nulltermToFseq (p: exp) : exp * exp * exp * stmt clist =
   single (call (Some (var tmpend))
             (Lval (var func.svar))
             (p :: args))
-
 
 (* Conversion to a string is with a bounds check.
  * But make the check pass if p == e.  e points to the terminating nul,
@@ -2266,7 +2203,6 @@ let indexToROString (p: exp) (pm: expmeta) : exp * stmt clist =
   p,
   single (call None (Lval (var CC.checkStringMax.svar))
             [ castVoidStar p; b ])
-
 
 (* Convert an RTTI to SAFE.  *)
 (* if p is null and the test type is a pointer type,
@@ -2331,7 +2267,6 @@ let fromTable (oldk: N.opointerkind)
   | _ -> E.s (bug "Called fromTable on a non-table")
 
 
-
 (* from table *)
 let fromTableCureexp (ce: cureexp) : stmt clist * cureexp =
   let newk = N.stripT ce.ek in
@@ -2359,7 +2294,6 @@ let nullCheckAfterBoundsCheck (k: N.opointerkind) =
   | N.FSeq | N.FSeqC | N.FSeqN | N.FSeqNC -> false
   | N.String | N.ROString -> false
   | _ -> true
-
 
 (* Convert an address into an curelval *)
 let addressToLval (ae: cureexp) (off: offset) (foraccess: bool)
@@ -2392,8 +2326,8 @@ let addressToLval (ae: cureexp) (off: offset) (foraccess: bool)
       addr1meta
   in
   (* If the kind of the address is not WILD or INDEX we must do a null
-  * check. For WILD and INDEX the bounds check will also take care of
-  * the null *)
+   * check. For WILD and INDEX the bounds check will also take care of
+   * the null *)
   let doaddr2 =
     (* Catch the case &v->f when v is Safe and f is the first field. In that
      * case we do not need to do a null check *)
@@ -2417,7 +2351,6 @@ let addressToLval (ae: cureexp) (off: offset) (foraccess: bool)
       lvm = addr1meta; } in
   res, doaddr2
 
-
 let checkWild (p: exp) (size: exp) (b: exp) (blen: exp) : stmt =
   let src_baset =
     match unrollType (typeOf p) with
@@ -2430,8 +2363,8 @@ let checkWild (p: exp) (size: exp) (b: exp) (blen: exp) : stmt =
     [ castVoidStar b; blen;
       castVoidStar p; SizeOf (src_baset); size]
 
-  (* Check index when we switch from a sequence type to Safe, in preparation
-   * for accessing a field.  *)
+(* Check index when we switch from a sequence type to Safe, in preparation
+ * for accessing a field.  *)
 let beforeField (inlv: curelval)
                 (foraccess: bool)
                 (noint: bool) : curelval * stmt clist =
@@ -2508,8 +2441,6 @@ let rec beforeIndex (inlv: curelval)
   | _ -> E.s (unimp "beforeIndex on unexpected pointer kind %a"
                 N.d_opointerkind inlv.plvk)
 
-
-
 (***** Create function descriptors ******)
 let functionDescriptors : (int, varinfo) H.t = H.create 13
 let definedFunctionIds : (int, bool) H.t = H.create 13
@@ -2578,7 +2509,6 @@ let getFunctionDescriptor (vi: varinfo) : exp =
   in
   mkAddrOf (Var descr, Field(pfunfld, NoOffset))
 
-
 (******* Start of *******)
 let rec pkStartOf (lv: curelval) : (cureexp * stmt clist) =
   match unrollType lv.lvt with
@@ -2611,7 +2541,6 @@ let isWildOrTaggedAttribute (va: attributes) : bool =
   (match N.nodeOfAttrlist va with
     Some n when n.N.kind = N.Wild -> true | _ -> false)
   || hasAttribute "tagged" va
-
 
 let varStartInput (vi: varinfo) : curelval =
   (* Look out for wild function pointers *)
@@ -2682,7 +2611,6 @@ let needsSeqAlignCheck baset: bool =
 (*       ignore (E.log "  Not adding alignment check due to arithmetic.\n") *)
 (*   end; *)
   needed
-
 
 let pkArithmetic (e1: cureexp)
                  (bop: binop)  (* Either PlusPI or MinusPI or IndexPI *)
@@ -2770,7 +2698,6 @@ let pkArithmetic (e1: cureexp)
 *)
       mkCureexp et' p'' p'meta, acc'
 
-
   (* If we are doing arithmetic on tables we just do it directly. This is
    * UNSAFE since we might skip into the next table *)
   | N.FSeqT | N.FSeqNT | N.SeqT | N.SeqNT | N.WildT | N.IndexT ->
@@ -2781,7 +2708,6 @@ let pkArithmetic (e1: cureexp)
              N.d_opointerkind e1.ek)
 
   | _ -> E.s (bug "pkArithmetic(%a)" N.d_opointerkind e1.ek)
-
 
 (* Various reasons why we might want to check an LV *)
 type checkLvWhy =
@@ -2916,10 +2842,7 @@ let checkBounds (why: checkLvWhy)
                   N.d_opointerkind lv.plvk)
   end
 
-
-
 (****************************************************)
-
 
 (*******************************************************
  **
@@ -3472,7 +3395,6 @@ let withIterVar (doit: varinfo -> 'a) : 'a =
   iterVarRef := newv :: !iterVarRef;
   res
 
-
 (* given that we're going to write a pointer to 'lval', return true *)
 (* if it is allowed to point to the stack, and therefore the corresponding *)
 (* check should be omitted *)
@@ -3679,8 +3601,6 @@ let rec addOffsetExpMeta (off: offset) (em: expmeta) : expmeta =
   else
     em
 
-
-
 (*** Check a read. This is used only when we read a WILD pointer ***)
 class checkReadClass (getbaselen: unit -> exp * exp) = object
   method gsTryIt (t: typ)
@@ -3710,8 +3630,6 @@ class checkReadClass (getbaselen: unit -> exp * exp) = object
   method gsArrayElem (_: typ) (where: lval) (idx: exp) : lval =
     addOffsetLval (Index(idx, NoOffset)) where
 end
-
-
 
 (**** Check a write. For WILD areas we must set the tags. And whenever we
     * write a pointer we must check that it is not a stack pointer *)
@@ -3802,8 +3720,6 @@ class checkWriteClass (pkind: N.opointerkind)
     addOffsetExpMeta (Index(idx, NoOffset)) what_em
 
 end
-
-
 
 (* Return just the code to check the memory operation *)
 let rec checkMem (why: checkLvWhy)
@@ -3936,7 +3852,6 @@ class checkReturnValueClass = object
 
 end
 
-
 (* Now create the scanner for checking return types *)
 let checkReturnScanner : exp scanner = new checkReturnValueClass
 
@@ -3949,9 +3864,7 @@ let checkReturnValue
   else
     empty
 
-
 (********** Initialize variables ***************)
-
 
 (*** A scanner for initializing a type *)
 class initializeTypeClass (mustZero: bool)
@@ -4089,7 +4002,6 @@ let rec initializeType
   let initScanner = new initializeTypeClass mustZero endo in
   genScanner initScanner t lv acc
 
-
 (* Create and accumulate the initializer for a variable *)
 let initializeVar (acc: stmt clist)
                   (v: varinfo) : stmt clist =
@@ -4127,7 +4039,6 @@ let initializeVar (acc: stmt clist)
     let doinit = initializeType v.vtype (not v.vglob) None in
     doinit (Var v, NoOffset) acc
   end
-
 
 (* ww: now that we have wide-character string literals, we need to make
  * globals arrays that have base types that are not just charType
@@ -4250,7 +4161,6 @@ let rec stringLiteral
 
     | _ -> E.s (unimp "String literal to %a" N.d_opointerkind k)
   end
-
 
 (*************** Handle Allocation ***********)
 let pkAllocate (ai:  allocInfo) (* Information about the allocation function *)
@@ -4683,13 +4593,10 @@ let getFieldsOfSized (t: typ) : fieldinfo * fieldinfo =
     end
    | _ -> E.s (bug "getFieldsOfSized %a\n" d_type t)
 
-
-
-
-  (* Scan a list of types and compute a list of qualifiers that distinguish the
-   * various possible combinations of qualifiers
-   * If you call this with the optional hashtable, mangleTypes will populate
-   * the table with all of the non-SAFE nodes that caused this mangling. *)
+(* Scan a list of types and compute a list of qualifiers that distinguish the
+ * various possible combinations of qualifiers
+ * If you call this with the optional hashtable, mangleTypes will populate
+ * the table with all of the non-SAFE nodes that caused this mangling. *)
 let mangleTypes (deep: bool) ?(mangledNodes: N.node IH.t option)
   (types: typ list) : string =
   (* Keep a hash table of composite types that we have descended into
@@ -4734,10 +4641,10 @@ let mangleTypes (deep: bool) ?(mangledNodes: N.node IH.t option)
 
     | TNamed (t, _) -> qualNames acc t.ttype
 
-          (* We only go into struct that we created as part of "sized" or
-           * "seq" or "fatp". Or if the struct is polymorphic itself, we get
-           * and use its mangling. Or, we go into structs if we use
-           * deepMangling. *)
+    (* We only go into struct that we created as part of "sized" or
+     * "seq" or "fatp". Or if the struct is polymorphic itself, we get
+     * and use its mangling. Or, we go into structs if we use
+     * deepMangling. *)
     | (TComp (comp, _) as t) -> begin
         if isFatComp comp then
           (* If it is one of our fat type, we mangle the _p field. It carries
@@ -4801,7 +4708,6 @@ let mangleTypes (deep: bool) ?(mangledNodes: N.node IH.t option)
   if allSafe quals then ""
   else (List.fold_left (fun acc x -> x ^ acc) "" quals)
 
-
 let mangleSuffixForVar ~(showwhy:bool) (deep: bool) (name: string)(t: typ)
   : string =
   if showwhy then begin
@@ -4863,7 +4769,6 @@ let printDeepManglingWarnings (f: file) =
     | _ -> ()
   in
   List.iter doOneGlobal f.globals
-
 
 let fixupGlobName vi =
   (* weimer: static things too! *)
@@ -4927,7 +4832,6 @@ let fixupGlobName vi =
       vi.vname <- newname
     end
 
-
 class unsafeVisitorClass = object
   inherit nopCilVisitor
 
@@ -4976,7 +4880,6 @@ class unsafeVisitorClass = object
 end
 
 let unsafeVisitor = new unsafeVisitorClass
-
 
 (* Make an cureexp out of a single expression. Either the type is fat and a
  * composite value is denoted by a single expression or the type is lean. *)
@@ -5075,7 +4978,6 @@ let optimizeFSeqArithChecks (blv: curelval)
 
     | _, _ -> ()
   with Not_found -> ()
-
 
 (*
  * *** Metadata Generation ***
@@ -5353,8 +5255,7 @@ let rec makeMetagenFun (t: typ) (mt: typ) : fundec =
 let getMetagenDefinitions (acc: global list) : global list =
   H.fold (fun _ f l -> GFun (f, locUnknown) :: l) metagenFundecs acc
 
-
-    (************* STATEMENTS **************)
+(************* STATEMENTS **************)
 let rec cureblock (b: block) : block =
   if hasAttribute "nocure" b.battrs then
     visitCilBlock unsafeVisitor b
@@ -5887,7 +5788,6 @@ and callCompatFunction (f: exp) (rlv: lval option) (args: exp list)
   in
   append doa docall
 
-
 (*** Returns true if this function is handled by interceptHelper *****)
 and shouldInterceptHelper func : bool =
   match func with
@@ -6214,7 +6114,6 @@ and interceptHelper
   in
     append doargs (append doTheWork assignResult)
 
-
 (* Given an lvalue, generate all the stuff needed to construct a pointer to
  * it. If foraccess is NoAccess then we will not read/write through this one,
  * but will use it for & or for sizeof. *)
@@ -6413,8 +6312,8 @@ and cureLval1 (b, off) (foraccess: forAccess) : curelval * stmt clist =
   end;
   lvoffset, append startss (append startss2 acc2)
 
-    (* Cure an expression and return the cureexp version of the result. If you
-     * do not care about an cureexp, you can call the wrapper cureexp  *)
+(* Cure an expression and return the cureexp version of the result. If you
+ * do not care about an cureexp, you can call the wrapper cureexp  *)
 and cureExpf (e: exp) : stmt clist * cureexp =
   try
     match e with
@@ -6457,14 +6356,12 @@ and cureExpf (e: exp) : stmt clist * cureexp =
     | Const ( (CWStr s) as it) ->
         E.s (bug "Wide String (%a) without a cast!" d_const it)
 
-
     | CastE (t, e) -> begin
         let t' = if isSplitType t then t else fixupType t in
         let (doe, fe') = cureExpf e in
         let doe1, fe1 = castTo fe' t' in
         append doe doe1, fe1
     end
-
 
     | UnOp (uop, e, restyp) ->
         let restyp' = fixupType restyp in
@@ -6517,7 +6414,6 @@ and cureExpf (e: exp) : stmt clist * cureexp =
         let t' = if isSplitType t then t else fixupType t in
         (empty, mkCureexp !typeOfSizeOf (SizeOf(t')) emNone)
 
-
     | SizeOfE (Lval lv) ->
         (* Intercept the case when we do sizeof an lvalue. This way we can
          * avoid trying to check the safety of reads that might be triggered
@@ -6526,7 +6422,6 @@ and cureExpf (e: exp) : stmt clist * cureexp =
         let blv, _ = cureLval lv NoAccess (* say that we won't access *) in
         (* DRop the side effects *)
         (empty, mkCureexp !typeOfSizeOf (SizeOfE(Lval blv.lv)) emNone)
-
 
     | SizeOfStr s -> (empty, mkCureexp !typeOfSizeOf e emNone)
 
@@ -6548,7 +6443,6 @@ and cureExpf (e: exp) : stmt clist * cureexp =
         let t' = fixupType t in
         (empty, mkCureexp !typeOfSizeOf (AlignOf(t')) emNone)
 
-
     | AlignOfE (Lval lv) ->
         (* Intercept the case when we do sizeof an lvalue. This way we can
          * avoid trying to check the safety of reads that might be triggered
@@ -6564,8 +6458,7 @@ and cureExpf (e: exp) : stmt clist * cureexp =
         (empty, mkCureexp !typeOfSizeOf  (AlignOfE(e')) emNone)
     end
 
-
-        (* Coalesce the address of functions *)
+    (* Coalesce the address of functions *)
     | AddrOf (Var f, NoOffset)
         when f != Poly.getPolyFuncRepresentative f ->
         cureExpf (AddrOf (Var (Poly.getPolyFuncRepresentative f), NoOffset))
@@ -6780,7 +6673,7 @@ and cureinit (v: varinfo) (eio: init option) : init option * stmt clist =
         CompoundInit (t, inifields), None
       end
 
-      (* Compound initializer for a structure *)
+    (* Compound initializer for a structure *)
     | CompoundInit (_, il),
       TComp (ci, _) -> begin
         (* Check if this is a sized array *)
@@ -6843,7 +6736,7 @@ and cureinit (v: varinfo) (eio: init option) : init option * stmt clist =
         end
     end
 
-   (* Compund initializer for an array *)
+    (* Compund initializer for an array *)
     | CompoundInit (_, il),
       TArray (_, leno, _) ->
         (* We iterate over each offset in the original initializer,
@@ -6972,14 +6865,11 @@ and cureinit (v: varinfo) (eio: init option) : init option * stmt clist =
     !iStmts
   end
 
-
-    (* Cure an expression and resolve the cureexp into statements *)
+(* Cure an expression and resolve the cureexp into statements *)
 and cureExp (e : exp) : expRes =
   let (doe, fe) = cureExpf e in
   let (t', doe', e') = cureExp2exp fe in
   (t', append doe doe', e')
-
-
 
 (* sm: find which fields are referenced *)
 class computeUsedFields (used: (fieldinfo, bool) H.t) = object (self)
@@ -6999,7 +6889,6 @@ class computeUsedFields (used: (fieldinfo, bool) H.t) = object (self)
       )
     | _ -> DoChildren
 end
-
 
 (* sm: make a pass over the file and change declared types of arrays *)
 (* of chars to be 1 byte longer *)
