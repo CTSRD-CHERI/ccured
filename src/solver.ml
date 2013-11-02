@@ -519,11 +519,11 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
         if node_of_type tau2 = None then
           ignore (visitCilFile (new findTypeVisitor tau2) the_file) ;
 
-        E.s (E.bug "Solver: cannot link inner pointers:@!%a@!%a@!%a\n"
-          d_type tau1 d_type tau2
-          (docOpt (fun e ->
-            dprintf "%d->%d" e.efrom.id e.eto.id)) !the_edge)  ;
-            E.hadErrors := true
+        ignore (E.s (E.bug "Solver: cannot link inner pointers:@!%a@!%a@!%a\n"
+                       d_type tau1 d_type tau2
+                       (docOpt (fun e ->
+                         dprintf "%d->%d" e.efrom.id e.eto.id)) !the_edge));
+        E.hadErrors := true
         end
     end with e -> begin
       ignore (E.warn "handle_inner_pointers raises %s\n"
@@ -1305,8 +1305,9 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
       not (n.why_kind = UserSpec) &&
       not (is_polymorphic_voidstar n) &&
       not !noteAndIgnoreBadCasts then begin
-      E.s (E.bug "Solver: botched node (left/made it safe) %d (%a)"
-        n.id d_place_nice n.where) ; E.hadErrors := true
+        ignore (E.s (E.bug "Solver: botched node (left/made it safe) %d (%a)"
+                       n.id d_place_nice n.where));
+        E.hadErrors := true
     end ;
 
     if (!noteAndIgnoreBadCasts && (match n.btype with

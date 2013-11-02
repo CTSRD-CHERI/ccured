@@ -1206,8 +1206,8 @@ let recordUserStructure (ci: compinfo) =
       try
         Some (H.find classes totry)
       with Not_found -> begin
-        E.s (warn "Could not find the real version of SO: %s\n" s)
-          None
+        ignore (E.s (warn "Could not find the real version of SO: %s\n" s));
+        None
       end
     else
       None (* Not an SO class *)
