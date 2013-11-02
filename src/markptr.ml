@@ -45,14 +45,12 @@ module N = Ptrnode
 
 module MU = Markutil
 
-
 let lu = locUnknown
 
 let currentFile = ref dummyFile
 let currentResultType = ref voidType
 
 let boxing = ref true
-
 
 let noStackOverflowChecks = ref false
 
@@ -64,9 +62,7 @@ let markedCompInfos: (int, unit) H.t = H.create 17
  * because they point to forward-declared structures *)
 let mustRecomputePointsTo: (int, N.node) H.t = H.create 17
 
-
 let callId = ref (-1)  (* Each call site gets a new ID *)
-
 
 let allocFunctions: (string, unit) H.t = H.create 17
 
@@ -104,7 +100,6 @@ let addAlloca () : unit =
                              :: (!currentFile).globals;
   end
 
-
 (* We keep track of a number of type that we should not unroll *)
 let dontUnrollTypes : (string, bool) H.t = H.create 19
 
@@ -118,7 +113,6 @@ let rec mustUnrollTypeInfo (ti: typeinfo) : bool =
     (* We will also unroll types that name a polymorphic structure *)
   | TComp (ci, _) -> Poly.isPolyComp ci
   | _ -> false)
-
 
 (* if some enclosing context [like the attributes for a field] says that
  * this array should be sized ... we do not want to forget it! *)
@@ -142,7 +136,6 @@ let nodeOfType t =
     end
   | _ -> N.dummyNode
 
-
 (* Pass also the place and the next index within the place. Returns the
  * modified type and the next ununsed index *)
 let rec doType (t: typ) (p: N.place)
@@ -154,6 +147,7 @@ let rec doType (t: typ) (p: N.place)
       E.s (error "Encountered the __builtin_va_list type. This means that you have not used the <stdarg.h> or <vararg.h> macros. We can't help you")
 
 *)
+
   | TPtr (bt, a) -> begin
       match N.nodeOfAttrlist a with
         Some n -> TPtr (bt, a), nextidx (* Already done *)
@@ -168,6 +162,7 @@ let rec doType (t: typ) (p: N.place)
           | _ -> ());
           TPtr (bt', n.N.attr), i'
   end
+
   | TArray(bt, len, a) -> begin
       (* wes: we want a node for the array, just like we have a node for
        * each pointer *)
@@ -237,7 +232,6 @@ and doField (f: fieldinfo) : N.node =
   f.ftype <- t';
   nd
 
-
 (** This is called once for each compinfo DEFINITION. Do not call for
  * declarations. It will process the fields and will add the nodes
  * corresponding to the address of the fields. *)
@@ -306,9 +300,6 @@ let startOfNode (n: N.node) : N.node =
 
   | _ -> n (* It is a function *)
 
-
-
-
 (* Compute the sign of an expression. Extend this to a real constant folding
  * + the sign rule  *)
 type sign = SPos | SNeg | SAny | SLiteral of int64
@@ -348,7 +339,6 @@ let rec signOf = function
       | _ -> SAny
   end
   | _ -> SAny
-
 
 (* Do varinfo. We do the type and for all variables we also generate a node
  * that will be used when we take the address of the variable (or if the
@@ -432,7 +422,7 @@ let checkSizeOfArgument (t: typ) =
 (* Do an expression. Return an expression, a type and a node. The node is
  * only meaningful if the type is a TPtr _. In that case the node is also
  * refered to from the attributes of TPtr. Otherwise the node is N.dummyNode
-  *)
+ *)
 let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
   let markAddrOfLocal lv lvn : unit =
     (* when taking the address of an lvalue, check whether we're taking the
@@ -559,8 +549,6 @@ let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
 
   | Const _ -> (e, typeOf e, N.dummyNode)
 
-
-
 (* Do initializers. *)
 and doInit (vi: varinfo) (i: init) (l: location) : init * typ =
 
@@ -586,7 +574,6 @@ and doInit (vi: varinfo) (i: init) (l: location) : init * typ =
 
   in
   doOne NoOffset NoOffset i
-
 
 and doSet (lv: lval) (e: exp) (l: location) : lval * exp =
   let lv', lvn = doLvalue lv true in
@@ -733,8 +720,6 @@ and doOffset (off: offset) (n: N.node) : offset * N.node =
       Index(e', newo), newn
   end
 
-
-
 (* Now model an assignment of a processed expression into a type *)
 and expToType (e,et,en) t (callid: int) : exp =
   let debugExpToType = false (* !currentLoc.line = 24 *) in
@@ -776,19 +761,13 @@ and doExpAndCastCall e t callid =
   let e' = if isZero e then zero else e in
   expToType (doExp e') t callid
 
-
-
-
-
 (*****************************************************************)
-
 
 (* return the first few items of a list *)
 let rec list_first l n = begin
   if n >= 0 then (List.hd l) :: (list_first (List.tl l) (n-1))
   else []
 end
-
 
 (* Some utility functions for decomposing a function call so that we can
  * process them in a special way *)
@@ -862,7 +841,6 @@ let decomposeCall
           caFormalType = rt; caFormalNode = rt_n }
   in
   resDescr, argDescr
-
 
 let rec doBlock blk =
   if hasAttribute "nocure" blk.battrs then
@@ -959,7 +937,6 @@ and doInstr (i:instr) : instr list =
     E.hadErrors := true;
     [i]
   end
-
 
 and interceptFunctionCalls = function
   | i -> None
@@ -1158,7 +1135,6 @@ and doFunctionCall
   let preinstr' = mapNoCopyList doInstr preinstr in
   preinstr' @ [Call(reso', func', args'', l)]
 
-
 let doFunctionBody (fdec: fundec) =
   MU.currentFunction := fdec;
   (* See if this is a vararg function. Must do this first because we might
@@ -1190,8 +1166,6 @@ let doFunctionBody (fdec: fundec) =
   List.iter doVarinfo fdec.slocals;
   (* Do the body *)
   fdec.sbody <- doBlock fdec.sbody
-
-
 
 (* Now do the globals *)
 let doGlobal (g: global) : global =
@@ -1280,11 +1254,9 @@ let doGlobal (g: global) : global =
         end else
           g
 
-
     | g ->
         if not !boxing then g else
         E.s (bug "Unmatched clause in markPtr::doGlobal")
-
 
   with e -> begin
     (* Try to describe the global *)
@@ -1294,9 +1266,7 @@ let doGlobal (g: global) : global =
     g
   end
 
-
 (********************************************************)
-
 
 (* Now do the file *)
 let markFile fl =
@@ -1327,7 +1297,6 @@ let markFile fl =
   H.clear allocFunctions;
 
   Taggedunion.processTaggedUnions fl;
-
 
   (* Registers the function declarations and definitions. We must do this
    * before looking at the rest of the program to ensure that we can process
@@ -1466,7 +1435,6 @@ let markFile fl =
           MU.theFile :=  g :: !MU.theFile));
   ignore (E.log "after creating the polymorphic instantiations\n");
 
-
   (* Now we add to the globals the automatically generated descriptors *)
   Vararg.addToFileAutoDescr ();
 
@@ -1475,7 +1443,6 @@ let markFile fl =
   (* Now, after we have added the nodes we fix the overrides *)
   if !Cc_args.doCxxPP then
     Markcxx.fixOverrides ();
-
 
   (* Now we must go through the extends hierachy and add ECast edges as
    * appropriate *)
@@ -1494,7 +1461,6 @@ let markFile fl =
                       (N.ECast N.EEK_extends) (Some loc))
       | _, _ -> E.s (bug "markptr: extends relationship"))
     (MU.allExtendsRelationships ());
-
 
   let newfile = {fl with globals = newglobals; globinit = newglobinit} in
 

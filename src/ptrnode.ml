@@ -35,7 +35,6 @@
  *
  *)
 
-
 (* Implements nodes in a graph representing the pointer locations in a
  * program *)
 open Cil
@@ -49,7 +48,6 @@ module E = Errormsg
  * the arrays that are specfically SIZED contain a size field and only the
  * variables that are specifically TAGGED contain tags *)
 let defaultIsWild  = ref false
-
 
 let useRTTI = ref true
 let useFSEQ = ref true
@@ -66,7 +64,6 @@ let printVerboseOutput = ref false
 
 (* Whether to check the chains *)
 let doCheckChains = false
-
 
 (* This function will be set by the Type module *)
 let isSubtype: (typ -> typ -> bool) ref = ref (fun _ _ -> false)
@@ -172,7 +169,7 @@ type node =
       mutable kind: opointerkind;
       mutable why_kind: whykind;
 
-      mutable locked: bool;            (* do not change this kind later *)
+      mutable locked: bool;             (* do not change this kind later *)
       mutable mark: bool;               (* For mark-and-sweep GC of nodes.
                                          * Most of the time is false *)
       mutable rep : (node * chain ) option;
@@ -278,7 +275,7 @@ and edgekind =
                               * int * 1 * 2 x;
                               * int * 3 * 4 y;
                               * We will connect 1 and 3 with ECompat. *)
-    of chain                (* An ECompat edge can always be explained
+    of chain                 (* An ECompat edge can always be explained
                               * using a list of ECast edges *)
   | ESameKind                (* Special edge that does not require
                               * compatibility of the types involved, but does
@@ -322,7 +319,6 @@ and extra_edge_kind_sk =
                               * have the same kind in case we cast from one to
                               * another, but we can ignore types on these edges
                               * since those are checked dynamically. *)
-
 
 (************** CHAINS ********************)
 
@@ -511,7 +507,6 @@ let rec chainToList (c: chain) : (bool * edge) list =
   in
   loop false c []
 
-
 let rec getFirstAndLastNode (sym: bool) (c: chain) : node * node * int =
   match c with
     RSingle e ->
@@ -523,7 +518,6 @@ let rec getFirstAndLastNode (sym: bool) (c: chain) : node * node * int =
   | RList (fn, _, ln, len) ->
       if sym then ln,fn,len else fn,ln,len
   | _ -> E.s (E.bug "getFirstAndLastEdge: %a" d_chain c)
-
 
 (* A helper function for concatenating chains. Call when both of the chains
  * are non-empty. *)
@@ -589,9 +583,6 @@ let mkRTransChain (r1: chain) (r2: chain) =
     | _, _ -> mkRTransHelper r1 r2
   end
 
-
-
-
 (* A mapping from place , index to ids. This will help us avoid creating
  * duplicate nodes *)
 let placeId: (place * int, node) H.t = H.create 1111
@@ -602,8 +593,6 @@ let idNode: (int, node) H.t = H.create 1111
 
 (* Next identifier *)
 let lastNodeId = ref (-1)
-
-
 
 let pkInterface = 0          (* this is an interface node *)
 let pkUpdated = 1            (* we write through this pointer *)
@@ -697,7 +686,6 @@ let setFlag n f why =
   if n.flags.(f) = None then n.flags.(f) <- Some(why)
 (* check a boolean bitflag *)
 let hasFlag n f = n.flags.(f) <> None
-
 
 let canHaveRtti (t: typ) : bool = isVoidType t
 
@@ -819,7 +807,6 @@ let d_whyflag (n: node) () = function
       dprintf "Spread from %d (%a). Transitive from %d"
         near.id d_chain r_near_this orig.id
   | FlUserSpec l -> text "User-specified at " ++ d_loc () l
-
 
 let ptrAttrCustom =
   (* Define a hash table for printing the attributes *)
@@ -980,7 +967,6 @@ class ccuredPrinterClass = object (self)
     super#dGlobal out g
 end
 
-
 let ccuredPrinter = new ccuredPrinterClass
 
 let d_type = printType ccuredInferPrinter
@@ -1105,7 +1091,6 @@ let stripT = function
   | IndexT -> Index
   | x -> x
 
-
 let addT = function
   | Wild -> WildT
   | Seq -> SeqT
@@ -1137,7 +1122,6 @@ let addRTTI = function
 
 let isRTTI k = stripRTTI k <> k
 
-
 let stripC = function
   | SafeC -> Safe
   | WildC -> Wild
@@ -1163,7 +1147,6 @@ let addC = function
   | x -> x
 
 let isC k = stripC k <> k
-
 
 let k2attr = function
     Safe -> Attr("safe", [])
@@ -1302,7 +1285,6 @@ let kindOfAttrlist al =
     end
   in
   loop al
-
 
 (* Replace the ptrnode attribute with the actual qualifier attribute *)
 type whichAttr =
@@ -1479,7 +1461,7 @@ let removePred n pid =
 let setNodePointsTo (n: node) =
   let doOneType = function
       (* This will add points to to pointers embedded in structures or in
-      * functions (function return or arguments) *)
+       * functions (function return or arguments) *)
       TPtr (bt, a) -> begin
         (match nodeOfAttrlist a with
         | Some n' -> ignore (addEdge n n' EPointsTo (Some n.loc))
@@ -1496,8 +1478,8 @@ let setNodePointsTo (n: node) =
 
 
   (* If a structure contains an array, a pointer to that structure also
-  * contains a pointer to the array. We need this information to
-  * properly handle wild pointers. *)
+   * contains a pointer to the array. We need this information to
+   * properly handle wild pointers. *)
   let lookForInternalArrays = function
       TArray(bt,len,al) -> begin
         (match nodeOfAttrlist al with
@@ -1544,10 +1526,8 @@ let newNode ~(p: place) ~(idx: int) ~(bt: typ) ~(al: attributes) : node =
   setNodePointsTo n;
   n
 
-
 (** Dummy node is a node with the ID=0 *)
 let dummyNode = newNode (PGlob "@dummy") 0 voidType []
-
 
 (* Get a node for a place and an index. Give also the base type and the
  * attributes *)
@@ -1557,7 +1537,6 @@ let getNode ~(p: place) ~(idx: int) ~(bt: typ) ~(al: attributes) : node =
   try
     H.find placeId where
   with Not_found -> newNode p idx bt al
-
 
             (** Check that a node points to another node *)
 let rec checkPointsTo (seen: int list) (* To prevent recursion *)
@@ -1576,7 +1555,6 @@ let rec checkPointsTo (seen: int list) (* To prevent recursion *)
         checkPointsTo seen' e.eto nend_id) nstart.succ
     end
   end
-
 
             (* Check that a node does not occur twice in a chain. We use
              * this function to debug circular chains *)
@@ -1632,7 +1610,6 @@ let checkChainEnds (nstart: node) (nend: node) (r: chain) : unit =
     ();
   end
 
-
 (* Override mkRTrans to do some checking *)
 let mkRTrans (r1: chain) (r2: chain) =
   let res = mkRTransChain r1 r2 in
@@ -1649,9 +1626,6 @@ let mkRTrans (r1: chain) (r2: chain) =
   end;
   res
 
-
-
-
 (* Given a flag for a node, produce the original node where the flag
  * originates, the true chain why it originates, and the chain:orig->this *)
 let rec trueSourceOfFlag (n: node) (f:int) : node * whyflag * chain =
@@ -1661,9 +1635,6 @@ let rec trueSourceOfFlag (n: node) (f:int) : node * whyflag * chain =
       orig, why, mkRTrans r_orig_near r_near_n
   | Some w -> n, w, mkRIdent
   | None -> E.s (bug "trueSourceOfFlag(%d, %d)" n.id f)
-
-
-
 
 (* obtain the representative of this equivalence class. Also return the
  * reaons n -> representative *)
@@ -1740,22 +1711,18 @@ let rec trueSourceOfKind (n: node) : node * whykind * chain =
       orig, why, mkRTrans r_orig_near r_near_n
   | w -> n, w, mkRIdent
 
-
 (* Type names, computed in such a way that compatible types have the same id,
  * even if they are syntactically different. Right now we flatten structures
  * but we do not pull common subcomponents out of unions and we do not unroll
  * arrays. *)
 
-
 (* Some structs (those involved in recursive types) are named. This hash maps
  * their name to the ID *)
 let namedStructs : (string, string) H.t = H.create 110
 
-
 (* Keep track of the structs in which we are (to detect loops). When we
  * detect a loop we remember that *)
 let inStruct : (string, bool ref) H.t = H.create 110
-
 
 let rec typeIdentifier (t: typ) : string =
   let res = typeId t in
@@ -1834,8 +1801,6 @@ and attrsId al =
     [] -> "_"
   | _ -> "r" ^ List.fold_left (fun acc (Attr(an,_)) -> acc ^ an) "" al ^ "r"
 
-
-
 (************ Print statistics about the graph ******************)
 let addToHisto (histo: ('a, int ref) H.t) (much: int) (which: 'a) : unit =
   let r = Ccutil.findOrAdd histo which (fun _ -> ref 0) in
@@ -1861,7 +1826,6 @@ let showFirst (showone: 'a -> int -> unit)
 
 (*** Statistics ***)
 
-
 type incompat = node * chain * node
 
 type incompatClass =
@@ -1872,7 +1836,6 @@ type incompatClass =
                                   * node id; for each node also keep a count
                                   * of how many incompats it is part of *)
     }
-
 
 (* Create a list of equivalence classes *)
 let incompatEquivalence: (node * (node * edge) list) list ref = ref []
@@ -2166,9 +2129,6 @@ let printGraphStats () =
   H.clear spreadTo;
   ()
 
-
-
-
 let printInferGraph (c: out_channel) =
 begin
   (* Get the nodes ordered by ID *)
@@ -2185,7 +2145,6 @@ begin
         )))
     allsorted;
 end
-
 
 let printInfer (f: string) (file: Cil.file) =
   begin
@@ -2221,9 +2180,6 @@ let initialize () =
   end;
 
   ()
-
-
-
 
 (************************************************************************
  **
@@ -2336,7 +2292,6 @@ let compToFeature (ci: compinfo) : codeOfInterest =
   { loc = locUnknown; dest = -1; src = -1;
     cKind = CKComp ci.cname }
 
-
 let addInterestingEdge (e: edge) =
   if debugInteresting then
     ignore (E.log "addInterestingEdge(%d->%d)\n" e.efrom.id e.eto.id);
@@ -2438,7 +2393,6 @@ let collectInterestingFeatures (f: file) =
 
       | _ -> ())
 
-
 (* Keep some identifiers for the interesting features *)
 let lastInterestingFeatureId = ref (-1)
 
@@ -2450,7 +2404,6 @@ let useNodeImages = true
 (* We break the output file into several smaller files. We store here the
  * current file index *)
 let currentOutIdx = ref (-1)
-
 
 (* Assign a feature id to an interesting feature. Call this while you are
  * outputting files (it uses currentOutIdx). *)
@@ -2527,8 +2480,6 @@ let markInterestingIndex (e: exp) : doc =
                                src = 0; cKind = CKArith } nil
   | _ -> nil (* No nodes! *)
 
-
-
 let markInterestingBinOp (e1: exp) (b: binop) : doc =
   match b with
     PlusPI | MinusPI | IndexPI -> begin
@@ -2563,7 +2514,6 @@ let colorOfKind (k: opointerkind) =
   match color with
     None -> ""
   | Some c -> "class=\"" ^ c ^ "\""
-
 
 (* For each node we remember in which file we put its definition *)
 let fileOfNode: (int, int) H.t = H.create 111113
@@ -2622,13 +2572,11 @@ let showFeatureCode (code: codeOfInterest) (what: string) : doc =
   with Not_found -> (* Not an interesting feature *)
     text what
 
-
 let showVarname (vi: varinfo) =
   showFeatureCode (varToFeature vi) vi.vname
 
 let showTypename (ti: typeinfo) =
   showFeatureCode (typenameToFeature ti) ti.tname
-
 
 let showCompname (ci: compinfo) =
   let su = if ci.cstruct then "struct" else "union" in
@@ -2689,7 +2637,6 @@ let printBrowserAttributes (what: printBrowserWhat) (a: attributes) : doc =
       | PAVar -> declareNode n color (text "&")
       | _ -> declareNode n color nil
   end
-
 
 (* Parentheses level. An expression "a op b" is printed parenthesized if its
  * parentheses level is >= that that of its context. Identifiers have the
@@ -2811,7 +2758,6 @@ class ccuredBrowserPrinterClass = object (self)
           (* Hopefully the remaining types cannot have node attributes *)
     | t -> super#pType nameOpt () t
 
-
   (* Variable declaration *)
   method pVDecl () (v:varinfo) =
       d_storage () v.vstorage
@@ -2829,7 +2775,6 @@ class ccuredBrowserPrinterClass = object (self)
       | Some i -> text ": " ++ num i ++ text " ")
       ++ printBrowserAttributes PAVar fi.fattr
       ++ text ";"
-
 
   method private pLvalPrec (contextprec: int) () lv =
     if getParenthLevel (Lval(lv)) >= contextprec then
@@ -2865,7 +2810,6 @@ class ccuredBrowserPrinterClass = object (self)
              text "[" ++ self#pExp () e ++ text "]") o
 
   method pVar (v: varinfo) = showVarname v
-
 
   (*** EXPRESSIONS ***)
   method pExp () (e: exp) : doc =
@@ -3376,7 +3320,6 @@ end
 
 let ccuredBrowserPrinter = new ccuredBrowserPrinterClass
 
-
 (** To save space, use an encoding of pointer kinds as small numbers **)
 let kindCodes: (opointerkind, int) H.t = H.create 17
 let nextKindCode = ref 0
@@ -3421,7 +3364,6 @@ let dumpFileEncoding (c: out_channel) =
 let lastEncodedEdgeId = ref (-1)
 (* For each edge we map the edge id (eid) to the edge and the encoding index *)
 let encodedEdges: (int, edge * int) H.t = H.create 1111
-
 
 (* Encode an edge. If the resulting list starts with a negative number then
  * this is an ECompat edge and the encoding is the encoding of its chain *)
@@ -3539,7 +3481,6 @@ let encodeWhyKind (n: node) : int list =
   | SpreadFromNode (n_near, chain, n_source) ->
       (11 + mult * n_source.id) :: n_near.id :: encodeChain chain
 
-
 (** Encoding whyFlag *)
 (* !!! If you change this, change also the decoder in lib/browser_code.js *)
 let emitNodeFlags (c: out_channel) (n: node) =
@@ -3618,8 +3559,6 @@ let emitBrowserNode (c: out_channel) n =
        (docList num) () why_kind ++ text ");\n");
   emitNodeFlags c n
 
-
-
 (** Read a file and print it to the output, while changing some keywords *)
 let copyFileToOutput (fn: string)
                      (out: out_channel)
@@ -3650,7 +3589,6 @@ let copyFileToOutput (fn: string)
     done
   with End_of_file ->
     close_in inch
-
 
 let printBrowser (outdir: string) file =
   if !E.verboseFlag then
@@ -3826,7 +3764,6 @@ let printBrowser (outdir: string) file =
     end) sortedNodes;
   closeNodeFile ();
 
-
   (************** Now create the edge info files *)
 
   currentOutIdx := -1; (* Restart the counter *)
@@ -3862,7 +3799,6 @@ let printBrowser (outdir: string) file =
       emitOneEdge !currentOutChannel eidx e)
     sortedEdges;
   closeEdgeFile ();
-
 
   (** Create the global index file. *)
   (* First collect the globals and the types *)

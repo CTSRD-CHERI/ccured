@@ -188,7 +188,6 @@ let trusted_cast_join k1 k2 =
   else E.s (E.bug "Solver: trusted cast between %a and %a"
     d_opointerkind k1 d_opointerkind k2)
 
-
 (* Spread the RTTI flag, while checking that it only goes to void-ptr. The
  * node n has the rtti flag set *)
 let rec spreadRTTI (n: node) =
@@ -231,8 +230,6 @@ let rec spreadRTTI (n: node) =
   List.iter (fun e -> spreadTo e.ekind false e.eto e) n.succ;
   List.iter (fun e -> spreadTo e.ekind true e.efrom e) n.pred
 
-
-
 (*
  **
  *** The Solver!
@@ -254,7 +251,6 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
       setFlag nto f (FlagSpreadFromNode(from, why_from_to, orig))
     end
   in
-
 
   (* Say that n1 and n2 (which are usually matching inner pointers) must
    * really be equal. This adds an ECompat edge between them and places
@@ -412,7 +408,6 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
    * Set all of the flag starting conditions that we know about.
    *)
   if !E.verboseFlag then ignore (E.log "Solver: Step 0  (Base Case)\n") ;
-
 
   (* loop over all the nodes ... *)
   Hashtbl.iter (fun id n ->
@@ -851,7 +846,6 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
     ) eq_class
   ) compat_eq_classes ;
 
-
   (* Step 4
    * ~~~~~~
    * Push all of the boolean flags around.
@@ -877,7 +871,6 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
     (* See if the edge is going in the right direction *)
     if e.efrom.id = src.id then r1 else mkRSym r1
   in
-
 
   let setFlagsFromListChain dst src r_src_dst lst =
     if doCheckChains then
@@ -999,7 +992,6 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
        * again.  *)
     done
   ) () ;
-
 
   (* Step 5
    * ~~~~~~
@@ -1252,7 +1244,6 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
     | None -> ignore (E.warn "solver: array %a was compared with a non-array but does not have a node\n" d_type tau )
   ) Type.arraysThatHaveBeenComparedWithNonArrays ;
 
-
   (* Step 9
    * ~~~~~~
    * Spread WILD as far as it will go.
@@ -1322,12 +1313,11 @@ let solve (the_file : Cil.file) (node_ht : (int, node) Hashtbl.t) : bool = begin
       TFun _ -> true | _ -> false) &&
       n.kind <> Safe) then begin
       ignore (E.log "Solver: BAD CAST (%a Function Pointer) %a\n"
-        d_opointerkind n.kind d_type n.btype) ;
+                d_opointerkind n.kind d_type n.btype) ;
       n.kind <- Safe;
-    end  ;
+    end ;
 
   ) node_ht ;
-
 
   if suggest_rtti_placement then begin
     iterGlobals the_file (fun g -> match g with

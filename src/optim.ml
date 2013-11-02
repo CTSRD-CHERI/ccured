@@ -101,7 +101,6 @@ let rec printCfgBlock ?(showGruesomeDetails = true) blk =
     printCfgStmt ~showGruesomeDetails:showGruesomeDetails s)
     blk.bstmts;
 
-
 and printCfgStmt ?(showGruesomeDetails = true) s =
   ignore (printf "-------------------------------------------------\n");
   ignore (printf "Id: %d\n" s.sid);
@@ -175,7 +174,6 @@ and dfsLoop (s:stmt) =
     sCount := !sCount - 1;
   end
 
-
 (*-----------------------------------------------------------------*)
 (* The String module should've contained this basic function *)
 let starts_with (s : string) (prefix : string) : bool =
@@ -187,13 +185,11 @@ let starts_with (s : string) (prefix : string) : bool =
   in
   len_p <= len_s && strcmp 0
 
-
 (* Decide whether a call is a CHECK_something *)
 let isCheckCall_str s = starts_with s "CHECK_"
 let isCheckCall_instr : instr -> bool = function
     Call (_,Lval(Var x,_),args,l) when isCheckCall_str x.vname -> true
   | _ -> false
-
 
 (*-----------------------------------------------------------------*)
 (* Print all the CHECK_NULL arguments (without a cast if there is one).
@@ -279,7 +275,6 @@ and createGenKillForInstrList i (l:instr list) =
   (!kill).(i) <- !instrKill;
   allVals := union !allVals !instrGen (* update list of possible flow values *)
 
-
 and createGenKillForInstr i =
   match i with
     Asm _ -> ([],false)
@@ -294,7 +289,6 @@ and createGenKillForInstr i =
                                   * something we know behaves well *)
     when  isCheckCall_str x.vname  -> ([],false)
   | Call _ -> ([],true) (* Otherwise invalidate everything *)
-
 
 (*-----------------------------------------------------------------*)
 (* Remove redundant CHECK_NULLs from a list of instr. Essentially a
@@ -355,7 +349,6 @@ let nullChecksOptim f =
   orderBlock f.sbody.bstmts; (* assign sid *)
   (* sCount+1 was the largest sid assigned *)
 
-
   (* Create gen and kill for all nodes *)
   gen := Array.create !numNodes [];  (* allocate space *)
   kill := Array.create !numNodes false; (* allocate space *)
@@ -385,7 +378,6 @@ let nullChecksOptim f =
     done
   done;
 
-
   if debug then printCfgBlock f.sbody;
   if debug then begin
     ignore (printf "-------------------------------\n");
@@ -407,9 +399,6 @@ let nullChecksOptim f =
     !nodes;
 
   f
-
-
-
 
 (*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*)
 (*  ,,---.     	       |	      	    | 			     	      *)
@@ -440,7 +429,6 @@ let amanNonConservative =
    super-quadratic algo *)
 let amanSkipGlobInit =
   try (Sys.getenv "REDSKIPGLOBINIT") = "1" with _ -> false
-
 
 (******************************************************************************)
 (* Lattice values *)
@@ -500,8 +488,6 @@ let getLatValDescription = function
 (* Just some stuff good for debugging *)
 let printLatVal n = Printf.printf " %s" (getLatValDescription n)
 
-
-
 (******************************************************************************)
 (* Misc. utility functions *)
 
@@ -538,7 +524,6 @@ let rec getOutermostOffset (off : offset) =
   | Index (_, off) -> getOutermostOffset off
 
 let getOutermostOffsetLval (_,lvoff) = getOutermostOffset lvoff
-
 
 (* Helper function that strips the outermost offset of an lval
    e.g. a[3].z[3] -> a[3].z -> a[3] -> a -> invalid_arg!
@@ -583,7 +568,6 @@ let rec compareWithoutCasts e1 e2 : bool =
   | _, CastE (_, e2) -> compareWithoutCasts e1 e2
   | _,_ -> e1 = e2
 
-
 (* Simplify exps in some way *)
 let rec simplifyExp e : exp =
   match e with
@@ -610,7 +594,6 @@ and simplifyLval lv : exp =
       let lv = Lval (stripOffset lv) in
       BinOp (IndexPI,lv,i,typeOf lv)
   | _ -> Lval lv
-
 
 (* Compare exp's for equality *)
 let rec expEqual e1 e2 : bool=
@@ -668,7 +651,6 @@ and offsetEqual off1 off2 : bool =
   | Field (f1,off1), Field (f2,off2) -> f1.fname = f2.fname && (offsetEqual off1 off2)
   | _ -> false
 
-
 let expListEqual el1 el2 =
   List.fold_left2 (fun b e1 e2 -> b && (expEqual e1 e2)) true el1 el2
 
@@ -721,7 +703,6 @@ and compareExpOp e1 op e2 : bool =
       ((compareExpOp ea op zero) && (expEqual eb e2))
   | _ -> false
 
-
 (******************************************************************************)
 
 (* See comments in eliminateRedundancy *)
@@ -753,7 +734,6 @@ let rec numberNodesAndPeephole f =
       | _ -> ())
     !nodes;
   f
-
 
 (* eliminateRedundancy:
    This is the entry-point to the redundancy eliminator.
@@ -899,8 +879,6 @@ and eliminateRedundancy (f : fundec) : fundec =
   end; (* if useRedundancyElimination ... *)
   f (* Return the same thing, mutated *)
 
-
-
 (* removeRedundancies:
    Use the cin information to eliminate redundant CHECKs.
    As there is no cin/cout info stored inside the basic blocks (Instr),
@@ -991,7 +969,6 @@ and removePeephole instList =
 	 acc)
      instList [])
 
-
 (* peepholeReplace:
    Returns a peephole-optimized replacement for a given CHECK.
    Raises PeepholeRemovable if this check can be removed
@@ -1016,7 +993,6 @@ and peepholeReplace (chk : instr) : instr =
   | Call (_, Lval(Var{vname="CHECK_STOREPTR"},_), [e],_)
       when expEqual e zero -> raise PeepholeRemovable
   | _ -> chk
-
 
 (* intervalContainsExp:
    Returns whether mid is in the closed interval [lo,hi]
@@ -1043,7 +1019,6 @@ and intervalContainsExp (lo:exp) (hi:exp) (mid:exp) : bool =
       |	_ -> false);
   | _ ->
       false
-
 
 (* minLatticeValue:
    Compute the least possible lattice value for an instr
@@ -1076,7 +1051,6 @@ and minLatticeValue (inst : instr) : lattice =
     | Call _ -> latCheckNeeded
     | Asm  _ -> latCheckNeeded
 
-
 (* evalCin:
    Evaluates the cin for a given CFG node.
    cin = max (cout_predecessors)
@@ -1086,7 +1060,6 @@ and evalCin (nd : stmt) cout at_least =
   List.fold_right
     (fun a b -> lat_max b cout.(a.sid))
     nd.preds at_least
-
 
 (* evalCout:
    Evaluates the cout for a given CFG node.
@@ -1118,7 +1091,6 @@ and evalCoutInstr (cin : lattice) (inst : instr) : lattice =
   else if checkImplies inst !checkBeingProcessed
   then preserveLiveCin latCheckNotNeeded
   else lat_max cin (minLatticeValue inst)
-
 
 (* checkIncludes:
    Is check b implied by check a?
@@ -1153,7 +1125,6 @@ and numberNodes () =
   in
   nodes := Array.make !numNodes dummyStmt;
   numberNodesRec (!numNodes - 1) !nodeList
-
 
 (* filterChecks:
    Process a list of stmt's,
@@ -1202,7 +1173,6 @@ and isSimilar (a : instr) (b : instr) : bool =
        (ax.vname = "CHECK_FETCHEND" && (expListEqual (List.tl argsa) (List.tl argsb))) ||
        (ax.vname = "CHECK_FETCHLENGTH" && (expListEqual (List.tl argsa) (List.tl argsb))))
   | _,_ -> false
-
 
 (* getCheckedLvals:
    Look at the arguments of a CHECK Call and returns a list of lvals
@@ -1255,7 +1225,6 @@ and getCheckedLvals (check : instr) : lval list =
       List.fold_right (fun e acc -> (getLvalsFromExp ( e)) @ acc) someargs []
   | _ -> raise (Failure "non-Call in checkInstrs array")
 
-
 (* Find an aliased variable in the lval
 *)
 and lvalHasAliasedVar (lv : lval) : bool =
@@ -1265,7 +1234,6 @@ and lvalHasAliasedVar (lv : lval) : bool =
   | (Var v, Field (_, off)) -> lvalHasAliasedVar (Var v, off)
   | (Var v, Index (e, off)) -> (expHasAliasedVar e)
       || (lvalHasAliasedVar (Var v, off))
-
 
 and expHasAliasedVar (e : exp) : bool =
   match e with
@@ -1282,12 +1250,10 @@ and expHasAliasedVar (e : exp) : bool =
   | StartOf lv -> lvalHasAliasedVar lv
   | Lval lv -> lvalHasAliasedVar lv
 
-
 (*----------------------------------------------------------------------------*)
 (*
 let optimGlobinit (f : fundec) : fundec =
 *)
-
 
 (*----------------------------------------------------------------------------*)
 
@@ -1322,8 +1288,6 @@ and removeCheck (checkName : string) (i : instr list) : instr list =
       |	_ -> removeCheckLoop checkName (hd :: acc) rest
   in List.rev (removeCheckLoop checkName [] i)
 
-
-
 let getStatistics () : doc =
   let t = !stats_total in
   let r = !stats_removed in
@@ -1333,7 +1297,6 @@ let getStatistics () : doc =
     "\n  Total CHECKs \t\t %d\n  Null-check-remover \t eliminated %d\n  Redundancy eliminator  eliminated %d \n  Summary \t\t %d (%.2f%%) kept, %d (%.2f%%) eliminated\n"
     t n r  (t-n-r) (100*(t-n-r) // t) (n+r) (100*(n+r)//t)
 
-
 (*  ,,---.     	       |                    |                          	      *)
 (*  ||    |            |	      	    | 			     	      *)
 (*  ||    | ,---.  ,---|  |   |	 ,---. 	,---|  ,---.  ,---.  ,---.  .   ,     *)
@@ -1342,11 +1305,6 @@ let getStatistics () : doc =
 (* 	       	       	       	       	 			    .---+-    *)
 (* 	    (Just a visual marker)     	 			    '---'     *)
 (*vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*)
-
-
-
-
-
 
 (*------------------------------------------------------------*)
 (* Carry out a series of optimizations on a function definition *)
