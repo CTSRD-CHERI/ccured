@@ -123,9 +123,9 @@ type place =
   | PType of string  (* A global typedef *)
   | PStatic of string * string (* A static variable or function. First is
                                 * the filename in which it occurs *)
-  | PLocal of string * string * string (* A local varialbe. The name of the
-                                        * file, the function and the name of
-                                        * the local itself *)
+  | PLocal of string * string * string  (* A local variable. The name of the
+                                         * file, the function and the name of
+                                         * the local itself *)
   | POffset of int * string             (* An offset node, give the host node
                                          * id and a field name *)
   | PField of fieldinfo                 (* A field of a composite type *)
@@ -280,7 +280,7 @@ and edgekind =
   | ESameKind                (* Special edge that does not require
                               * compatibility of the types involved, but does
                               * require that they be of the same KIND. *)
-     of extra_edge_kind_sk   (* See below for uses of ESameKind *)
+    of extra_edge_kind_sk    (* See below for uses of ESameKind *)
   | EPointsTo                (* from's base type included to *)
   | EArgs                    (* From the pointer to the function to the
                               * actual arguments and result values. Before we
@@ -1776,6 +1776,7 @@ and ikId = function
     IChar -> "C"
   | ISChar -> "c"
   | IUChar -> "b"
+  | IBool  -> "B"
   | IInt -> "I"
   | IUInt -> "U"
   | IShort -> "S"
@@ -2218,7 +2219,7 @@ let nodeOfExp (e: exp) : node option =
   | e -> nodeOfAttrlist (typeAttrs (typeOf e))
 
 (** First scan the graph and find out the source points that are of interest.
-  * We'll need to mark them in a special way while pringing the graph *)
+  * We'll need to mark them in a special way while printing the graph *)
 type codeOfInterest = { loc: location;
                         src: int;
                         dest: int;
@@ -2650,6 +2651,7 @@ let additiveLevel = 60
 let comparativeLevel = 70
 let bitwiseLevel = 75
 let getParenthLevel = function
+  | Question(_,_,_,_)       -> 85
   | BinOp((LAnd|LOr),_,_,_) -> 80
                                         (* Bit operations. *)
   | BinOp((BOr|BXor|BAnd),_,_,_) -> bitwiseLevel (* 75 *)
@@ -2670,6 +2672,7 @@ let getParenthLevel = function
                                         (* Unary *)
   | CastE(_,_) -> 30
   | AddrOf(_) -> 30
+  | AddrOfLabel(_) -> 30
   | StartOf(_) -> 30
   | UnOp((Neg|BNot|LNot),_,_) -> 30
 
@@ -2817,6 +2820,12 @@ class ccuredBrowserPrinterClass = object (self)
     match e with
       Const(c) -> d_const () c
     | Lval(l) -> self#pLval () l
+    | Question(p,e1,e2,_) ->
+         self#pExpPrec level () p
+         ++ text " ? "
+         ++ self#pExpPrec level () e1
+         ++ text " : "
+         ++ self#pExpPrec level () e2
     | UnOp(u,e1,_) ->
         let d_unop () u =
           match u with
@@ -2855,7 +2864,8 @@ class ccuredBrowserPrinterClass = object (self)
         text "__alignof__(" ++ self#pExp () e ++ chr ')'
     | AddrOf(lv) ->
         text "& " ++ (self#pLvalPrec addrOfLevel () lv)
-
+    | AddrOfLabel(s) ->
+        text "&& (FIXME:AddrOfLabel)"
     | StartOf(lv) -> self#pLval () lv
 
   method private pExpPrec (contextprec: int) () (e: exp) =
@@ -3006,7 +3016,9 @@ class ccuredBrowserPrinterClass = object (self)
       Label (s, _, true) -> text (s ^ ": ")
     | Label (s, _, false) -> text (s ^ ": /* CIL Label */ ")
     | Case (e, _) -> text "case " ++ self#pExp () e ++ text ": "
-    | Cil.Default _ -> text "default: "
+    | CaseRange (e1, e2, _) ->
+      text "case " ++ self#pExp () e1 ++ text " ... " ++ self#pExp () e2 ++ text ": "
+    | Default _ -> text "default: "
 
   method private pBlock () (blk: block) =
     let rec dofirst () = function
@@ -3025,7 +3037,6 @@ class ccuredBrowserPrinterClass = object (self)
       ++ line
       ++ (dofirst () blk.bstmts)
       ++ unalign ++ line ++ text "}"
-
 
   method private pStmtKind (next: stmt) () = function
       Return(None, l) ->
@@ -3054,6 +3065,14 @@ class ccuredBrowserPrinterClass = object (self)
         | None ->
             ignore (error "Cannot find label for target of goto\n");
             text "goto __invalid_label;"
+    end
+
+    | ComputedGoto (e, l) -> begin
+        currentLoc := l;
+        self#pLineDirective l
+        ++ text "goto "
+        ++ self#pExp () e
+        ++ text ";"
     end
 
     | Break l ->
@@ -3623,7 +3642,7 @@ let printBrowser (outdir: string) file =
         let rec statementSize (acc: int) (s: stmt) =
           match s.skind with
             Instr il -> acc + List.length il
-          | Return _ | Goto _ | Break _ | Continue _ -> acc + 1
+          | Return _ | Goto _ | ComputedGoto _ | Break _ | Continue _ -> acc + 1
           | If(_, bt, bf, _) ->
               blockSize (blockSize (1 + acc) bt) bf
           | Switch (_, b, _, _) -> blockSize (1 + acc) b
@@ -3633,7 +3652,6 @@ let printBrowser (outdir: string) file =
               blockSize (blockSize (1 + List.length il + acc) b) h
           | TryFinally (b, h, _) ->
               blockSize (blockSize (1 + acc) b) h
-
 
         and blockSize (acc: int) (b: block) =
           List.fold_left statementSize acc b.bstmts
