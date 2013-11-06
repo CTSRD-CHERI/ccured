@@ -281,7 +281,7 @@ let main () = begin
     "--cxxppout", Arg.String (outChannel "cxxpp" cxxppChannel) ,
         "the name of the preprocessed C++ file" ;
     "--globinitout", Arg.String (outChannel "globinit" globinitChannel) ,
-        "the name of the global-initializer-containting file" ;
+        "the name of the global-initializer-containing file" ;
     "--inferout", Arg.String (fun s -> Ptrnode.inferFile := Some s) ,
         "the name of the inference file (with graph)" ;
     "--browserout", Arg.String (fun s -> Ptrnode.browserFile := Some s) ,
@@ -427,15 +427,14 @@ let main () = begin
           "turns on generation of code to log memory writes calls in CIL";
     "--makeCFG", Arg.Unit (fun _ -> make_cfg := true),
           "make the file look more like a CFG";
-    "--astslicerList", Arg.String (fun s ->
-        doASTSlicerEnumerate := Some(s)),
+    "--astslicerList", Arg.String (fun s -> doASTSlicerEnumerate := Some(s)),
           "<fname>: enumerate AST slicer points to file <fname>";
     "--astslicerAnnotate", Arg.Unit (fun _ -> doASTSlicerAnnotate := true),
           "annotate AST slicer points (cf. logcalls)";
     "--astslicerKeep", Arg.String (fun s -> astslicerKeep := Some(s)),
-          "keep the AST slicer points listed in this file";
+          "<fname>: keep the AST slicer points listed in this file";
     "--astslicerDrop", Arg.String (fun s -> astslicerDrop := Some(s)),
-          "keep the AST slicer points listed in this file";
+          "<fname>: keep the AST slicer points listed in this file";
     "--astslicer", Arg.Unit (fun _ -> doASTSlicer := true),
           "perform AST slicing";
     "--simplemem", Arg.Unit (fun _ -> doSimplemem := true),
@@ -448,21 +447,20 @@ let main () = begin
     (* Optimization Options *)
     "", Arg.Unit (fun () -> ()), "\n\t\tOptimization Options\n" ;
     "--noSplitPointers", Arg.Unit (fun _ -> Curesplit.dontSplit := true),
-                   "Turn off splitting of fat pointers";
-    "--optimelimall",
-                   Arg.String (fun s -> optimElimAll := s :: !optimElimAll),
-                   "Produce several variants of optimized code";
+          "Turn off splitting of fat pointers";
+    "--optimelimall", Arg.String (fun s -> optimElimAll := s :: !optimElimAll),
+          "Produce several variants of optimized code";
     "--elimabc", Arg.Unit (fun _ -> doElimabc := true),
-           "attempt to eliminate redundant array bounds checks";
+          "attempt to eliminate redundant array bounds checks";
     "--elimabcgraph", Arg.Unit (fun _ -> Elimabc.dumpvargraph := true),
-           "dump variable graph from elimabc phase (useful for debugging)";
+          "dump variable graph from elimabc phase (useful for debugging)";
 
     (* Parsing Options *)
     "", Arg.Unit (fun () -> ()), "\n\t\tParsing Options\n" ;
 
     (* MISC options *)
     "--dumpFCG", Arg.Unit (fun _ -> dumpFCG := true),
-    "dump the function call graph";
+          "dump the function call graph";
 
   ] @ F.args in
   let usageMsg = "Usage: ccured [options] source-files" in
@@ -621,7 +619,7 @@ let main () = begin
   (**********************************************************************
    * STAGE 4
    *
-   * Pull out global initializers (and inline assmebly, if desired)
+   * Pull out global initializers (and inline assembly, if desired)
    **********************************************************************)
   let globinit = match !doGlobInit with
     true ->
