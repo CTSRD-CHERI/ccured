@@ -4319,7 +4319,9 @@ void ccured_fscanf_string_len(FILE *stream, char* what,
       exit(2);
     }
     // Write them out to the new file
-    fwrite(mybuff, read, 1, myfile);
+    if (fwrite(mybuff, read, 1, myfile) != 1)
+      fprintf(stderr, "write truncated for fscanf_string.\n");
+
     // Rewind
     fseek(myfile, 0L, SEEK_SET);
     // And scan
