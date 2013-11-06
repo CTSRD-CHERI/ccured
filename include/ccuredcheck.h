@@ -32,7 +32,7 @@ extern void  freeInternal(void *);
 extern void  freeInternalMinus4(void *);
 
 // We declare this as unsigned int because allocators are made like that
-extern void* wrapperAlloc(unsigned int);
+extern uintptr_t wrapperAlloc(unsigned int);
 extern void wrapperFree(void*);
 extern char* wrapperStrdup(char *);
 

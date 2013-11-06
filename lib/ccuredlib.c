@@ -2303,9 +2303,12 @@ wildp_char strchr_ww(wildp_char s, int chr)
 
 wildp_char fattenstring(char *s)
 {
+  wildp_char ret;
   wildp_void res = malloc_w(1 + strlen(s));
   strcpy(res._p, s);
-  return *(wildp_char*)&res;
+  ret._p = (char *)res._p;
+  ret._b = res._b;
+  return ret;
 }
 
 
@@ -3337,7 +3340,9 @@ int __strlen_n_w(wildp_void p, int n){
 void __verify_nul_w(wildp_char p){
   //matth: this needs to be fixed for performance.  We compute the end of the
   // buffer twice.
-  wildp_void p1 = *(wildp_void*)&p;
+  wildp_void p1;
+  p1._p = p._p;
+  p1._b = p._b;
   __bounds_check_w(p1);
   ccured_verify_nul(p1._p,
 		    (unsigned long)__endof_sw(p1) - (unsigned long)p1._p);
@@ -4736,8 +4741,8 @@ void CHECK_FORMATARGS_f(fseqp_char format) {
 }
 
 #ifndef CCURED_NO_MALLOC
-void *wrapperAlloc(unsigned int sz) {
-  return malloc(sz);
+uintptr_t wrapperAlloc(unsigned int sz) {
+  return (uintptr_t)malloc(sz);
 }
 void  wrapperFree(void* x) { free(x); }
 char* wrapperStrdup(char *str) {
