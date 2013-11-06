@@ -42,6 +42,8 @@ module H = Hashtbl
 module E = Errormsg
 module N = Ptrnode
 
+let debugMark = false
+
 (* We will accumulate the marked globals in here *)
 let theFile: global list ref = ref []
 
@@ -119,7 +121,8 @@ let addFunctionTypeAttribute (a: attribute) (vi: varinfo)  =
 let registerFunction (fi: funinfo) =
   let fvi = match fi with Declared fvi -> fvi | Defined fdec -> fdec.svar in
   let lookup = Alpha.getAlphaPrefix fvi.vname in
-  (* ignore (E.log "Registering function %s\n" fvi.vname); *)
+  if debugMark then
+    ignore (E.log "Registering function %s\n" fvi.vname);
   (* See if it has the format attribute *)
 
   let fl = H.find_all applyToFunctionMemory lookup in
@@ -619,13 +622,13 @@ let registerRttiType (t: typ) : unit =
       ignore (H.find autoNonPtrExtensions ts)
     with Not_found -> begin
       let ename = "NonPointerRTTI:" ^ Pretty.sprint 80 (d_typsig () ts) in
-      (* ignore (E.log "creating an extension for \"%s\"\n" ename); *)
+      if debugMark then
+        ignore (E.log "creating an extension for \"%s\"\n" ename);
       let ex = mkExtension ~subtype_of_void:false ename in
       ex.ex_type <- ExNonPointer t;
       H.add autoNonPtrExtensions ts ex;
     end
   end
-
 
 
 let getRttiForType (t: typ) : exp =

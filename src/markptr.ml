@@ -45,6 +45,8 @@ module N = Ptrnode
 
 module MU = Markutil
 
+let debugMark = false
+
 let lu = locUnknown
 
 let currentFile = ref dummyFile
@@ -125,7 +127,7 @@ let addArraySizedAttribute arrayType enclosingAttr =
     else
       arrayType
 
-(* Grab the node from the attributs of a type. Returns dummyNode if no such
+(* Grab the node from the attributes of a type. Returns dummyNode if no such
  * node *)
 let nodeOfType t =
   match unrollType t with
@@ -257,10 +259,9 @@ let fieldOfNode (n: N.node) (fi: fieldinfo) : N.node =
     let fieldn = N.getNode (N.POffset (n.N.id, fi.fname)) 0 fi.ftype [] in
     (* And add the ESafe edge *)
     let _ = N.addEdge n fieldn N.EOffset (Some !currentLoc) in
-(*
-    ignore (E.log "Created the node %d offset %s for %d\n"
-              fieldn.N.id fi.fname n.N.id);
-*)
+    if debugMark then
+      ignore (E.log "Created the node %d offset %s for %d\n"
+                fieldn.N.id fi.fname n.N.id);
     fieldn
   end else begin
     (* In the original scheme we have one node for the address of a field.
@@ -284,12 +285,13 @@ let startOfNode (n: N.node) : N.node =
       let next =
         match N.nodeOfAttrlist a with
           Some oldn ->
-            (* ignore (E.log "Reusing node %d\n" oldn.N.id); *)
+            if debugMark then
+              ignore (E.log "Reusing node %d\n" oldn.N.id);
             oldn
         | _ ->
             E.s (bug "Array type does not have a node")
             (* Somehow I hope that we never come here. This should be true if
-            * all TArray got a node attribute already
+             * all TArray got a node attribute already
             ignore (warn "Creating a node for array @first\n");
             let next = N.newNode (N.POffset(n.N.id, "@first")) 0 bt a in
             (* !!! We should be remembering this one somewhere *)
@@ -362,8 +364,9 @@ let doVarinfo (vi : varinfo) : unit =
   (* Do the type of the variable. Start the index at 1 *)
   let t', _ = doType vi_vtype place 1 in
   vi.vtype <- t';
-(*  ignore (E.log "Did varinfo: %s. T=%a\n" vi.vname
-            d_plaintype vi.vtype); *)
+  if debugMark then
+    ignore (E.log "Did varinfo: %s. T=%a\n" vi.vname
+              d_plaintype vi.vtype);
   (* Associate a node with the variable itself. Use index = 0 *)
   let n = N.getNode place 0 vi.vtype vi.vattr in
 
@@ -371,9 +374,9 @@ let doVarinfo (vi : varinfo) : unit =
    * created earlier. Merge the attributes and make sure we get the _ptrnode
    * attribute  *)
   vi.vattr <- addAttributes vi.vattr n.N.attr;
-(*  ignore (E.log "varinfo: T=%a. A=%a\n"
-            d_plaintype vi.vtype (d_attrlist true) vi.vattr) *)
-
+  if debugMark then
+    ignore (E.log "varinfo: T=%a. A=%a\n"
+              d_plaintype vi.vtype d_attrlist vi.vattr);
   (* sg: not global and not static means a variable goes on the stack *)
   if (not vi.vglob) && (vi.vstorage <> Static) then
   currentLoc := original_location ;
@@ -579,8 +582,9 @@ and doSet (lv: lval) (e: exp) (l: location) : lval * exp =
   let lv', lvn = doLvalue lv true in
       (* We are writing to it, so mark it as referenced *)
   setReferenced lvn (N.ProgramSyntax(l)) ;
-  (*      ignore (E.log "Setting lv=%a\n lvt=%a (ND=%d)\n"
-        d_plainlval lv' d_plaintype lvn.N.btype lvn.N.id);  *)
+  if debugMark then
+    ignore (E.log "Setting lv=%a\n lvt=%a (ND=%d)\n"
+              d_plainlval lv' d_plaintype lvn.N.btype lvn.N.id);
   let e' = doExpAndCast e lvn.N.btype in
       (* sg: If assigning thru a pointer or to a global, mark adresses in e'
       * as pkEscape. The former is a conservative approximation since
@@ -664,16 +668,17 @@ and doLvalue ((base, off) : lval) (iswrite: bool) : lval * N.node =
   let base', startNode =
     match base with
       Var vi -> begin
-        (* ignore (E.log "doLval (before): %s: T=%a\n"
-                  vi.vname d_plaintype vi.vtype); *)
+        if debugMark then
+          ignore (E.log "doLval (before): %s: T=%a\n"
+                    vi.vname d_plaintype vi.vtype);
         (* doVarinfo vi; It was done when the variable was declared !!! *)
         let vn =
           match N.nodeOfAttrlist vi.vattr with Some n -> n | _ -> N.dummyNode
         in
-        (* Now grab the node for it
-        ignore (E.log "doLval: %s: T=%a (ND=%d)\n"
-                  vi.vname d_plaintype vi.vtype vn.N.id);
-*)
+        (* Now grab the node for it *)
+        if debugMark then
+          ignore (E.log "doLval: %s: T=%a (ND=%d)\n"
+                    vi.vname d_plaintype vi.vtype vn.N.id);
         base, vn
       end
     | Mem e ->
@@ -947,10 +952,11 @@ and doFunctionCall
     (args: exp list)
     (l: location) =
   incr callId; (* A new call id *)
-  (*      ignore (E.log "Call %a args: %a\n"
-                d_plainexp orig_func
-                (docList (fun a -> d_plaintype () (typeOf a)))
-  args); *)
+  if debugMark then
+    ignore (E.log "Call %a args: %a\n"
+              d_plainexp orig_func
+              (docList (fun a -> d_plaintype () (typeOf a)))
+              args);
   let func, ispoly = (* check and see if it is polymorphic *)
     match orig_func with
       (Lval(Var(v),NoOffset)) ->
@@ -1077,9 +1083,10 @@ and doFunctionCall
             true, TPtr(TVoid _, _) -> true
           | _, _ -> false
         in
-        (*            ignore (E.log "Call arg %a: %a -> %s\n"
-                      d_exp a' d_plaintype (typeOf a') fo.vname); *)
         let a' = doExpAndCastCall a ft !callId in
+        if debugMark then
+          ignore (E.log "Call arg %a: %a -> %a: %a\n"
+                    d_exp a d_plaintype (typeOf a) d_exp a' d_plaintype (typeOf a));
         a' :: loopArgs formals args
 
     | _, _ -> E.s (E.unimp "Markptr: not enough arguments in call to %a"
@@ -1110,10 +1117,9 @@ and doFunctionCall
         (* Add the cast from the return type to the destination of the call.
          * Make up a phony expression and a node so that we can call
          * expToType.  *)
-(*
-        ignore (E.log "Call to %a. \n\trt=%a\n\ttypeOFLval(dest') = %a\n"
-                  d_exp func' d_type rt d_plaintype (typeOfLval dest'));
-*)
+        if debugMark then
+          ignore (E.log "Call to %a. \n\trt=%a\n\ttypeOFLval(dest') = %a\n"
+                    d_exp func' d_type rt d_plaintype (typeOfLval dest'));
         let dest't = typeOfLval dest' in
         (* Also add an EArgs edge *)
         let dest'n = nodeOfType dest't  in
@@ -1217,8 +1223,9 @@ let doGlobal (g: global) : global =
 
     | GVarDecl (vi, l) when !boxing ->
         currentLoc := l;
-        (* ignore (E.log "Found GVarDecl of %s. T=%a\n" vi.vname
-                    d_plaintype vi.vtype); *)
+        if debugMark then
+          ignore (E.log "Found GVarDecl of %s. T=%a\n" vi.vname
+                    d_plaintype vi.vtype);
         let ispoly = Poly.isPolyFunc vi in
         if not ispoly then doVarinfo vi;
         if not ispoly then
@@ -1260,8 +1267,9 @@ let doGlobal (g: global) : global =
 
   with e -> begin
     (* Try to describe the global *)
-    ignore (E.log "Markptr: global error (%s) on %a at %t\n"
-              (Printexc.to_string e) d_shortglobal g d_thisloc);
+    if debugMark then
+      ignore (E.log "Markptr: global error (%s) on %a at %t\n"
+                (Printexc.to_string e) d_shortglobal g d_thisloc);
     E.hadErrors := true;
     g
   end
@@ -1406,7 +1414,8 @@ let markFile fl =
    * fixed, so try to regenerate the EPoints to edges *)
   H.iter
     (fun _ n ->
-      (* ignore (E.log "Recomputing PointsTo for node %d\n" n.N.id); *)
+      if debugMark then
+        ignore (E.log "Recomputing PointsTo for node %d\n" n.N.id);
       N.setNodePointsTo n)
     mustRecomputePointsTo;
 
@@ -1425,7 +1434,8 @@ let markFile fl =
   (* Now we must create the copies for the polymorphic functions *)
   Poly.finishInstantiations
     (fun f ->
-(*    ignore (E.log "Marking body of %s after instantiation\n" f.svar.vname);*)
+      if debugMark then
+        ignore (E.log "Marking body of %s after instantiation\n" f.svar.vname);
       let g = doGlobal (GFun(f, locUnknown)) in
       (* Let's drop the cilnoremove things, so that the rmtmps can remove
        * more things  *)
@@ -1433,7 +1443,8 @@ let markFile fl =
         GPragma(Attr("cilnoremove", _), _) -> ()
       | _ ->
           MU.theFile :=  g :: !MU.theFile));
-  ignore (E.log "after creating the polymorphic instantiations\n");
+  if debugMark then
+    ignore (E.log "after creating the polymorphic instantiations\n");
 
   (* Now we add to the globals the automatically generated descriptors *)
   Vararg.addToFileAutoDescr ();
