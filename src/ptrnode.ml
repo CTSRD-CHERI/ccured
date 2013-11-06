@@ -3018,7 +3018,7 @@ class ccuredBrowserPrinterClass = object (self)
     | Case (e, _) -> text "case " ++ self#pExp () e ++ text ": "
     | CaseRange (e1, e2, _) ->
       text "case " ++ self#pExp () e1 ++ text " ... " ++ self#pExp () e2 ++ text ": "
-    | Default _ -> text "default: "
+    | Cil.Default _ -> text "default: "
 
   method private pBlock () (blk: block) =
     let rec dofirst () = function
