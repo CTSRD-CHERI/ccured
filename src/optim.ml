@@ -571,7 +571,7 @@ let rec compareWithoutCasts e1 e2 : bool =
 (* Simplify exps in some way *)
 let rec simplifyExp e : exp =
   match e with
-    Const _ | SizeOf _ | AlignOf _ | SizeOfStr _ -> e
+    Const _ | SizeOf _ | AlignOf _ | SizeOfStr _ | AddrOfLabel _ -> e
   | SizeOfE e' -> SizeOfE (simplifyExp e')
   | AlignOfE e' -> AlignOfE (simplifyExp e')
   | BinOp (op,e1,e2,t) -> BinOp (op, simplifyExp e1, simplifyExp e2, t)
@@ -598,9 +598,9 @@ and simplifyLval lv : exp =
   | _ -> Lval lv
 
 (* Compare exp's for equality *)
-let rec expEqual e1 e2 : bool=
+let rec expEqual e1 e2 : bool =
   e1 == e2 ||
-  match e1,e2 with
+  match e1, e2 with
     Const a, Const b -> a = b
   | SizeOf a, SizeOf b -> Util.equals a b
   | SizeOfE e1, SizeOfE e2 -> expEqual e1 e2
@@ -610,9 +610,9 @@ let rec expEqual e1 e2 : bool=
       op1=op2 && (expEqual ea1 eb1) && (expEqual ea2 eb2) && Util.equals t1 t2
   | UnOp (op1,ea1,t1), UnOp (op2,eb1,t2) ->
       op1=op2 && (expEqual ea1 eb1) && Util.equals t1 t2
-(*  | Question (ea1,ea2,ea3), Question (eb1,eb2,eb3) ->
-      (expEqual ea1 eb1) && (expEqual ea2 eb2) && (expEqual ea3 eb3)
-*)
+  | Question (pa,ea1,ea2,ta), Question (pb,eb1,eb2,tb) ->
+      (expEqual pa pb) && (expEqual ea1 eb1) && (expEqual ea2 eb2)
+      && Util.equals ta tb
   | CastE (t1,e1), CastE (t2,e2) ->(* t1=t2 &&*) (expEqual e1 e2)
   | CastE (_, e1), _ -> expEqual e1 e2
   |  _,CastE (_, e2) -> expEqual e1 e2
@@ -627,10 +627,10 @@ let rec expEqual e1 e2 : bool=
 	Index (zero,NoOffset) -> expEqual e1 (Lval (stripOffset b))
       | _ -> false)
   | AddrOf lv1, AddrOf lv2 -> lvalEqual lv1 lv2
-  | AddrOf lv1, StartOf lv2 ->expEqual e1 (Lval lv2)  (* ?? *)
-  | StartOf lv1, AddrOf lv2 ->expEqual e2 e1
-  | StartOf lv1, StartOf lv2 ->lvalEqual lv1 lv2
-  | _,_ -> Util.equals e1 e2
+  | AddrOf lv1, StartOf lv2 -> expEqual e1 (Lval lv2)  (* ?? *)
+  | StartOf lv1, AddrOf lv2 -> expEqual e2 e1
+  | StartOf lv1, StartOf lv2 -> lvalEqual lv1 lv2
+  | _, _ -> Util.equals e1 e2
 
 (* Compare lvals *)
 and lvalEqual lv1 lv2 : bool=
@@ -1192,8 +1192,9 @@ and getCheckedLvals (check : instr) : lval list =
     | SizeOf _
     | SizeOfE _
     | SizeOfStr _
-    | AlignOf _ -> []
-    | AlignOfE _ -> []
+    | AlignOf _
+    | AlignOfE _
+    | AddrOfLabel _ -> []
     | UnOp (_,e1,_) -> getLvalsFromExp e1
     | BinOp (_,e1,e2,_) -> (getLvalsFromExp e1) @ (getLvalsFromExp e2)
     | Question (p,e2,e3,_) ->
@@ -1243,7 +1244,8 @@ and expHasAliasedVar (e : exp) : bool =
   | SizeOfE _
   | SizeOfStr _
   | AlignOf _
-  | AlignOfE _ -> false
+  | AlignOfE _
+  | AddrOfLabel _ -> false
   | UnOp (_,e1,_) -> expHasAliasedVar e1
   | BinOp (_,e1,e2,_) -> (expHasAliasedVar e1) || (expHasAliasedVar e2)
   | Question (p,e1,e2,_) ->
