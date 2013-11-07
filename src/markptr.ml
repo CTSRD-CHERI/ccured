@@ -1048,7 +1048,8 @@ and doFunctionCall
       [], args
   in
   (* If the function has more actual arguments than formals then mark
-  * the function node as used without prototype  *)
+   * the function node as used without prototype  *)
+  (*
   let make_it_wild =
     if not isva && (noProto ||
                     List.length args' <> List.length formals) then
@@ -1072,6 +1073,7 @@ and doFunctionCall
       end
     else false
   in
+  *)
   (* Now check the arguments *)
   let rec loopArgs formals args =
     match formals, args with
