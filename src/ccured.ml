@@ -217,6 +217,10 @@ let main () = begin
       (if !doOpt then " opt" else " (no opt)")
   in
 
+  (* Handle --verbose separately, to ensure we log everything even
+     if it appears late on the command line. *)
+  Array.iter (fun s -> if s = "--verbose" then E.verboseFlag := true) Sys.argv;
+
   let argDescr = Ciloptions.options @
     [
     (* Stage Control Options *)
