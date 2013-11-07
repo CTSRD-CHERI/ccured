@@ -201,7 +201,7 @@ let rec printChecksBlock blk =
 and printChecksStmt s =
   match s.skind with
     Instr l -> List.iter printChecksInstr l
-  | Return _ | Continue _ | Break _ | Goto _ -> ()
+  | Return _ | Continue _ | Break _ | Goto _ | ComputedGoto _ -> ()
   | If (e,blk1,blk2,_) -> printChecksBlock blk1; printChecksBlock blk2;
   | Switch (e,blk,_,_) -> printChecksBlock blk
   | Loop (blk,_,_,_) -> printChecksBlock blk

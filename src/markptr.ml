@@ -870,6 +870,11 @@ and doStmt (s: stmt) : stmt =
         (*sg:need to mark exp as escaped*)
         expMarkEscape e';
         s.skind <- Return (Some e', l)
+    | ComputedGoto (e, l) ->
+        currentLoc := l;
+        let e' = doExpAndCast e voidPtrType in
+        expMarkEscape e';
+        s.skind <- ComputedGoto (e', l)
     | Instr il ->
         s.skind <- Instr (mapNoCopyList doInstr il)
     | Loop (b, l, lb1, lb2) ->
