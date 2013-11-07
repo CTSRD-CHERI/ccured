@@ -1198,7 +1198,7 @@ and getCheckedLvals (check : instr) : lval list =
     | UnOp (_,e1,_) -> getLvalsFromExp e1
     | BinOp (_,e1,e2,_) -> (getLvalsFromExp e1) @ (getLvalsFromExp e2)
     | Question (p,e2,e3,_) ->
-	(getLvalsFromExp p) @ (getLvalsFromExp e2) @ (getLvalsFromExp e3)
+        (getLvalsFromExp p) @ (getLvalsFromExp e2) @ (getLvalsFromExp e3)
     | CastE (_,e1) -> getLvalsFromExp e1
     | AddrOf (Var _, NoOffset) -> []
     | AddrOf (Mem e, NoOffset) -> getLvalsFromExp e
