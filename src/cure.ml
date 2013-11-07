@@ -6413,6 +6413,24 @@ and cureExpf (e: exp) : stmt clist * cureexp =
                             d_binop bop d_plaintype ce1.et d_plaintype ce2.et)
     end
 
+    | Question (pe, e1, e2, t) -> begin
+        let t' = fixupType t in
+        let (dope, cpe) = cureExpf pe in
+        let (doe1, ce1) = cureExpf e1 in
+        let (doe2, ce2) = cureExpf e2 in
+        (* predicate prelude *)
+        let tmplv = var (makeTempVar !CC.currentFunction ~name:"pred" uintType) in
+        let pre_pred = CConsR (dope, mkSet tmplv cpe.ep) in
+        (* branch preludes *)
+        let ifStmt = If(Lval tmplv, mkBlock (toList doe1),
+                        mkBlock (toList doe2), !currentLoc) in
+        (* prelude *)
+        let prelude = CConsR (pre_pred, mkStmt ifStmt) in
+        (* final exp *)
+        let qe = Question (Lval tmplv, ce1.ep, ce2.ep, t') in
+        prelude, mkCureexp t' qe emNone
+    end
+
     | SizeOf (t) ->
         let t' = if isSplitType t then t else fixupType t in
         (empty, mkCureexp !typeOfSizeOf (SizeOf(t')) emNone)
