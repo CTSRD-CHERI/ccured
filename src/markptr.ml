@@ -873,7 +873,6 @@ and doStmt (s: stmt) : stmt =
     | ComputedGoto (e, l) ->
         currentLoc := l;
         let e' = doExpAndCast e voidPtrType in
-        expMarkEscape e';
         s.skind <- ComputedGoto (e', l)
     | Instr il ->
         s.skind <- Instr (mapNoCopyList doInstr il)
