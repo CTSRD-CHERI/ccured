@@ -533,6 +533,12 @@ let rec doExp ?(inSizeof:bool = false) (e: exp): exp * typ * N.node =
       else
         BinOp (bop, e1', doExpAndCast e2 intType, e1t), e1t, e1n
 
+  | Question (pe, e1, e2, t) ->
+      let t', _ = doType t (N.anonPlace ()) 1 in
+      let e1' = doExpAndCast e1 t' in
+      let e2' = doExpAndCast e2 t' in
+      let pe',_,_ = doExp pe in
+      Question (pe', e1', e2', t'), t', nodeOfType t'
 
   | CastE (newt, e) ->
       let newt', _ = doType newt (N.anonPlace ()) 1 in
