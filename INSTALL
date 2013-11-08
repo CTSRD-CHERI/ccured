@@ -34,3 +34,36 @@
 
    Currently, FreeBSD will most likely fail at the C header patching
    step.  Support for the FreeBSD/Clang C headers is coming soon.
+
+
+FreeBSD-CURRENT Notes:
+----------------------
+
+The ports version of ocaml/ocamlfind is too old.  Instead, install ocaml
+from source using:
+
+   $ ./configure -aspp 'cc -c'
+
+which it makes it avoid defaulting to 'gcc -c'.
+
+Then install opam from source:
+
+   $ wget https://github.com/ocaml/opam/archive/1.1.0.tar.gz
+
+and then do the usual ./configure && make && make install dance.  Opam
+does not need root privilege to install, but it does need a command to
+configure your environment at every login:
+
+   $ eval `opam config env`
+
+You need to do the following _once_ after a fresh install of opam:
+
+   $ opam init
+
+Make sure it can see the ocaml you just installed as the system compiler:
+
+   $ opam switch
+
+After that, you can follow the above steps, from Step 2.
+
+
