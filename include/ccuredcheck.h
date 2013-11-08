@@ -1449,7 +1449,7 @@ void* __ptrof(void *x) {
 #else
  #if __GNUC__ >= 3
  #define GCC_STDARG_START(last) ({ __builtin_va_list tmp; \
-                                   __builtin_stdarg_start(tmp, last);\
+                                   __builtin_va_start(tmp, last);\
                                    (unsigned long)tmp; })
          /* CIL will get rid of the necessary machinery for
           * builtin_varargs_start. So, we must use the __builtin_stdarg_start
