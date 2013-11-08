@@ -376,7 +376,6 @@ extern char * __NULLTERM __ROSTRING strstr(__const char * __NULLTERM __ROSTRING 
 /* Define inline functions which call the internal entry points.  */
 |||
 #ifdef __USE_EXTERN_INLINES
-/* Define inline functions which call the internal entry points.  */
 ===
 @__pattern__@
 #ifndef CCURED
