@@ -587,7 +587,7 @@ let getVarArgCompInfo () : compinfo  =
                 ("tags", TArray(intType,
                                 Some (integer ccured_va_count_max), []),
                          None, [], !currentLoc);
-                ("nextp", voidPtrType, None, [], !currentLoc);
+                ("valist", voidPtrType, None, [], !currentLoc);
               ])
             [] in
         MU.theFile := GCompTag(ci, !currentLoc) :: !MU.theFile;

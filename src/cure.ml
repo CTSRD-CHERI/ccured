@@ -7390,7 +7390,7 @@ let cureFile file =
   (* Pretend that some things are already mangled, to prevent re-mangling.
    * This is also useful to avoid deep mangling and the call to isImported *)
   List.iter (fun n -> H.add mangledNames n (n, ""))
-    [ "__ccured_va_count"; "__ccured_va_tags"; ];
+    [ "__ccured_va_count"; "__ccured_va_tags"; "__ccured_global_va_list"];
 
   (* Go over all globals once to process some pragmas and collect the defined
    * functions *)

@@ -1448,17 +1448,20 @@ void* __ptrof(void *x) {
  #define GCC_VARARGS_START()    0
 #else
  #if __GNUC__ >= 3
- #define GCC_STDARG_START(last) ({ __builtin_va_list tmp; \
-                                   __builtin_va_start(tmp, last);\
-                                   (unsigned long)tmp; })
+ #define GCC_STDARG_START(last) ({ __builtin_va_start(__ccured_global_va_list, last);\
+                                   (unsigned long)0; })
          /* CIL will get rid of the necessary machinery for
-          * builtin_varargs_start. So, we must use the __builtin_stdarg_start
+          * builtin_varargs_start. So, we must use the __builtin_va_start
           * even in this case  */
  #define GCC_VARARGS_START()    GCC_STDARG_START(0)
  #else
  #define GCC_STDARG_START(last) (unsigned long)__builtin_next_arg(last)
  #define GCC_VARARGS_START()     GCC_STDARG_START(0)
  #endif
+#endif
+#ifdef CCURED_POST
+#include <stdarg.h>
+extern va_list __ccured_global_va_list;
 #endif
 /*
  *

@@ -2805,13 +2805,14 @@ seqp_char optarg_q;
 
 int __ccured_va_count = 0;
 int __ccured_va_tags[32];
-typedef struct __ccured_va_localinfo {
-   int next ;
-   int count ;
-   unsigned int tags[32] ;
-   va_list nextp ;
-} CCURED_VAINFO;
+va_list __ccured_global_va_list;
 
+typedef struct __ccured_va_localinfo {
+  int next;
+  int count;
+  unsigned int tags[32];
+  void *valist;
+} CCURED_VAINFO;
 
 //Initialize a CCURED_VAINFO struct using the global vars.
 //This must be the first command in the function, in case other vararg calls
@@ -2820,8 +2821,8 @@ void __ccured_va_init_vs(CCURED_VAINFO *vainfo) {
   vainfo->count = __ccured_va_count;
   memcpy(vainfo->tags, __ccured_va_tags, sizeof(__ccured_va_tags));
 
-  vainfo->next  = -1;
-  // FIX_VARARGS: vainfo->nextp = (va_list)0;
+  vainfo->next   = -1;
+  vainfo->valist = NULL;
 }
 
 //Calls to va_start are replaced by this.  The vainfo should already have been
@@ -2829,23 +2830,32 @@ void __ccured_va_init_vs(CCURED_VAINFO *vainfo) {
 void __ccured_va_start_vs(CCURED_VAINFO *vainfo,
 			  void *pNextArg) {
   vainfo->next  = 0;
-  // FIX_VARARGS: vainfo->nextp = (va_list)pNextArg;
+  vainfo->valist = malloc(sizeof(va_list));
+  va_copy(*(va_list *)vainfo->valist, __ccured_global_va_list);
 }
 
 void __ccured_va_end_vs(CCURED_VAINFO *vainfo) {
   vainfo->next = -1;
+  if (vainfo->valist) {
+    va_end(*(va_list *)vainfo->valist);
+    free(vainfo->valist);
+    vainfo->valist = NULL;
+  }
 }
 
 #ifndef CCURED_NO_VA_COPY
 CCURED_VAINFO * __ccured_va_copy_vsvs(CCURED_VAINFO *src) {
   //matth: copy the structure.  (va_copy allows programmers to iterate
-  //through a va_list more than once by duplicating the next/nextp fields)
-  CCURED_VAINFO * dest;
+  //through a va_list more than once by duplicating the next/valist fields)
+  CCURED_VAINFO *dest;
   if(src->next == -1) {
     CCURED_FAIL(FAIL_VA_NOSTART  FILE_AND_LINE);
   }
   dest = malloc(sizeof(CCURED_VAINFO));
-  memcpy(dest, src, sizeof(CCURED_VAINFO));
+  memcpy(dest->tags, src->tags, sizeof(src->tags));
+  dest->count = src->count;
+  dest->next = src->next;
+  va_copy(*(va_list *)dest->valist, *(va_list *)src->valist);
   return dest;
 }
 #endif // CCURED_NO_VA_COPY
@@ -2855,7 +2865,7 @@ CCURED_VAINFO * __ccured_va_copy_vsvs(CCURED_VAINFO *src) {
 void *__ccured_va_arg_svs(CCURED_VAINFO *vainfo,
 			  unsigned int thisTypeSize,
 			  int thisTypeIndex) {
-  void* lastp = NULL; // FIX_VARARGS: vainfo->nextp;
+  void* lastp = NULL; // FIX_VARARGS: vainfo->valist;
 
   if(vainfo->next == -1) {
     CCURED_FAIL(FAIL_VA_NOSTART  FILE_AND_LINE);
@@ -2870,7 +2880,7 @@ void *__ccured_va_arg_svs(CCURED_VAINFO *vainfo,
       CCURED_FAIL(FAIL_VA_BADTYPE  FILE_AND_LINE);
     }
   }
-  // FIX_VARARGS: our_advance_va_arg(vainfo->nextp, thisTypeSize);
+  // FIX_VARARGS: our_advance_va_arg(vainfo->valist, thisTypeSize);
 
   vainfo->next ++;
   return lastp;
@@ -2887,20 +2897,25 @@ void __ccured_va_start(CCURED_VAINFO *vainfo,
 //    vainfo->count = __ccured_va_count;
 //    memcpy(vainfo->tags, __ccured_va_tags, sizeof(__ccured_va_tags));
 
-  // FIX_VARARGS: vainfo->nextp = (va_list)pNextArg;
+  va_copy(*(va_list *)vainfo->valist, __ccured_global_va_list);
   return;
 }
 
 void __ccured_va_end(CCURED_VAINFO *vainfo) {
 //    vainfo->next = -1;
+  if (vainfo->valist) {
+    va_end(*(va_list *)vainfo->valist);
+    free(vainfo->valist);
+    vainfo->valist = NULL;
+  }
 }
 
 //  #define GET_VA_TAG(tags, idx) ((tags[idx >> 2] >> ((idx & 0x3) << 3)) & 0xFF)
 
 void *__ccured_va_arg(CCURED_VAINFO *vainfo,
-			  unsigned int thisTypeSize,
-			  int thisTypeIndex) {
-  void* lastp = NULL;  // FIX_VARARGS: vainfo->nextp;
+		      unsigned int thisTypeSize,
+		      int thisTypeIndex) {
+  void* lastp = NULL;  // FIX_VARARGS: vainfo->valist;
 
 //    if(vainfo->next == -1) {
 //      CCURED_FAIL(FAIL_VA_NOSTART);
@@ -2915,7 +2930,7 @@ void *__ccured_va_arg(CCURED_VAINFO *vainfo,
 //        CCURED_FAIL(FAIL_VA_BADTYPE);
 //      }
 //    }
-  // FIX_VARARGS: our_advance_va_arg(vainfo->nextp, thisTypeSize);
+  // FIX_VARARGS: our_advance_va_arg(vainfo->valist, thisTypeSize);
 
 //    vainfo->next ++;
   return lastp;
@@ -4054,7 +4069,7 @@ int __ccured_vsnprintf_ssvs(char* buffer, int size, const char *format,
 			    CCURED_VAINFO *args)
 {
   CHECK_FORMATARGS(format);
-  return VSNPRINTF(buffer, size, format, args->nextp);
+  return VSNPRINTF(buffer, size, format, *(va_list *)args->valist);
 }
 
 // __ccured_vsnprintf for the all-wild solver.
@@ -4104,7 +4119,7 @@ int vfprintf_ssvs(FILE * stream, const char *format, CCURED_VAINFO *args)
   CHECK_NULL((char*)format);
 
   CHECK_FORMATARGS(format);
-  res = vfprintf(stream, format, args->nextp);
+  res = vfprintf(stream, format, *(va_list *)args->valist);
   return res;
 }
 
@@ -4115,7 +4130,7 @@ int vfprintf_sFvs(FILE * stream, fseqp_char format, CCURED_VAINFO *args)
   __verify_nul_F(format);
 
   CHECK_FORMATARGS(format._p);
-  res = vfprintf(stream, format._p, args->nextp);
+  res = vfprintf(stream, format._p, *(va_list *)args->valist);
   return res;
 }
 
@@ -4214,8 +4229,8 @@ int printf_ws(wildp_char format, ...)
 #ifdef __linux__
   extern void vsyslog_svs(int pri, char const *format, CCURED_VAINFO *args)
   {
-    CHECK_FORMATARGS(format);              // check
-    vsyslog(pri, format, args->nextp);     // pass
+    CHECK_FORMATARGS(format);                          // check
+    vsyslog(pri, format, *(va_list *)args->valist);    // pass
   }
 #endif // __linux__
 #endif
