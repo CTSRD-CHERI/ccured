@@ -317,8 +317,10 @@ sub CillyCommand {
     if($self->{VERBOSE}) {
         print "Running CCured ";
         my $fstname = ref $psrcs->[0] ? $psrcs->[0]->{filename} : $psrcs->[0];
+	my $lst = scalar(@{$psrcs});
+        my $lstname = ref $psrcs->[$lst] ? $psrcs->[$lst]->{filename} : $psrcs->[$lst];
         if(@{$psrcs} > 1) {
-            print "(in merge mode) on $fstname ... to produce $aftercil->{filename} ";
+            print "(in merge mode) on $fstname ... $lstname to produce $aftercil->{filename} ";
         } else {
             print "on $fstname to produce $aftercil->{filename} ";
         }
