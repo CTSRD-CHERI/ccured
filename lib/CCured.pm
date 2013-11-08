@@ -292,17 +292,17 @@ sub CillyCommand {
             }
         }
 
-	my $cured = $self->cilOutputFile($dest, 'cured.c');
-	push @cmd, '--curedout', $cured;
+        my $cured = $self->cilOutputFile($dest, 'cured.c');
+        push @cmd, '--curedout', $cured;
 
         if($self->{OPTIMIZE}) {
-	    $aftercil = $self->cilOutputFile($dest, 'optimcured.c');
+            $aftercil = $self->cilOutputFile($dest, 'optimcured.c');
             push @cmd, '--doOpt', '--optimout', $aftercil;
         } else {
-	    $aftercil = $cured;
+            $aftercil = $cured;
         }
     } else {
-	$aftercil = $self->cilOutputFile($dest, 'cured.c');
+        $aftercil = $self->cilOutputFile($dest, 'cured.c');
         push @cmd, '--cilout', $aftercil, '--nocure';
     }
     if($self->{CXXPP}) {
@@ -311,20 +311,20 @@ sub CillyCommand {
     if(defined $ENV{OCAMLDEBUG} || $self->{OCAMLDEBUG}) {
         my @idirs = ("src", "src/frontc",
                      "src/ccured", "src/ext", "obj/$::archos");
-	my @iflags = map { ('-I', "$::ccuredhome/$_") } @idirs;
+        my @iflags = map { ('-I', "$::ccuredhome/$_") } @idirs;
         unshift @cmd, 'ocamldebug', '-emacs', @iflags;
     }
     if($self->{VERBOSE}) {
         print "Running CCured ";
         my $fstname = ref $psrcs->[0] ? $psrcs->[0]->{filename} : $psrcs->[0];
-	my $lst = scalar(@{$psrcs});
+        my $lst = scalar(@{$psrcs});
         my $lstname = ref $psrcs->[$lst] ? $psrcs->[$lst]->{filename} : $psrcs->[$lst];
         if(@{$psrcs} > 1) {
             print "(in merge mode) on $fstname ... $lstname to produce $aftercil->{filename} ";
         } else {
             print "on $fstname to produce $aftercil->{filename} ";
         }
-	print "using cmd @cmd \n";
+        print "using cmd @cmd \n";
     }
     return ($aftercil, @cmd);
 }
