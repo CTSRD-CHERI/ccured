@@ -224,12 +224,13 @@ sub link_after_cil {
 
     # Regular linking. Add the library
     my @srcs = @{$psrcs};
+    my $ccuredlib =
+        "$::ccuredhome/obj/$::archos/ccured$::default_cc" .
+        ($self->{RELEASELIB} ? "_releaselib" : "_debug") .
+        ".$self->{LIBEXT}";
+
     if(! $self->{NOCURE} && ! $self->{NOLIB}) {
-        push @srcs,
-        "$::ccuredhome/obj/$::archos/ccured_" .
-            ($self->{MODENAME} eq "MSLINK" ? "MSVC" : $self->{MODENAME}) .
-            ($self->{RELEASELIB} ? "_releaselib" : "_debug") .
-                ".$self->{LIBEXT}";
+        push @srcs, $ccuredlib;
     }
     # !! Not all versions of gcc sypport rdynamic
     if(! $self->{RELEASELIB}) {

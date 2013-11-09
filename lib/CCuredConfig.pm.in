@@ -1,2 +1,3 @@
 $::ccuredhome = "@CCUREDHOME@";
 $::archos     = "@ARCHOS@";
+$::default_cc = "@DEFAULT_COMPILER@"
