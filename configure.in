@@ -156,7 +156,7 @@ fi
 # $target is typically processor-vendor-os
 case "$target" in
   # linux
-  *86*linux)
+  *86*linux*)
     AC_MSG_RESULT(configuring for linux/x86)
 
     ARCHOS=x86_LINUX

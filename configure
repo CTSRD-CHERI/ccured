@@ -4130,7 +4130,7 @@ fi
 # $target is typically processor-vendor-os
 case "$target" in
   # linux
-  *86*linux)
+  *86*linux*)
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: configuring for linux/x86" >&5
 $as_echo "configuring for linux/x86" >&6; }
 
