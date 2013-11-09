@@ -64,6 +64,7 @@ options:
   --verbose    Prints a lot of information about what is being done
   --mode=xxx   What tool to emulate:
                 GNUCC   - GNU CC
+                CLANG   - Clang
                 MSVC    - MS VC cl compiler
                 EDG     - EDG front end
 
@@ -212,11 +213,24 @@ sub findCompilerVersion {
             if($_ =~ m|^(\d+\S+)|  ||
                $_ =~ m|^(egcs-\d+\S+)|) {
                 $cversion = "gcc_$1";
-                close(VER) || die "Cannot start $cname\n";
+                close(VER) || die "Cannot stop $cname\n";
                 return;
             }
         }
         die "Cannot find the version for GCC\n";
+    }
+    if($option{mode} eq "CLANG") {
+        $cname = "Clang";
+        open(VER, "clang -dumpversion $ppargs|")
+            || die "Cannot start $cname";
+        while(<VER>) {
+            if($_ =~ m|^(\d+\S+)|) {
+                $cversion = "clang_$1";
+                close(VER) || die "Cannot stop $cname\n";
+                return;
+            }
+        }
+        die "Cannot find the version for Clang\n";
     }
     if($option{mode} eq "MSVC") {
         $cname = "Microsoft cl";
@@ -239,7 +253,7 @@ sub lineDirective {
     if($::iswin32) {
         $fileName =~ s|\\|/|g;
     }
-    if($option{mode} eq "GNUCC" || $option{mode} eq "MSVC") {
+    if($option{mode} eq "GNUCC" || $option{mode} eq "CLANG" || $option{mode} eq "MSVC") {
         return "#line $lineno \"$fileName\"\n";
     }
     if($option{mode} eq "EDG") {
@@ -261,7 +275,7 @@ sub patchOneFile {
     # Do not test for error while running the preprocessor because the
     # error might be due to an #error directive
     my $preproccmd = "";
-    if($option{mode} eq "GNUCC") {
+    if($option{mode} eq "GNUCC" || $option{mode} eq "CLANG") {
         $preproccmd = "$::cc -E $ppargs $preprocfile.c >$preprocfile.i";
         if ($^O ne 'MSWin32') {   # Windows has no /dev/null
                                   # ignore stderr (e.g. #error directives)
