@@ -131,6 +131,8 @@ ifdef DISABLE_HEAPIFY
   CCUREDLIBARG += $(DEF)DISABLE_HEAPIFY
 endif
 
+runtime: $(CCUREDLIB)
+
 # we build the library from source each time, so that we don't end up
 # with .o files built with Makefile arguments that have changed
 $(CCUREDLIB): lib/ccuredlib.c include/ccured.h include/ccuredannot.h \
@@ -140,10 +142,10 @@ $(CCUREDLIB): lib/ccuredlib.c include/ccured.h include/ccuredannot.h \
 	@true "CFLAGS is $(CFLAGS)"
 	$(CC) $(CFLAGS) $(INC)./include $(CONLY) $(CCUREDLIBARG) \
 		    $(OBJOUT)$(OBJDIR)/ccuredlib.$(OBJEXT) lib/ccuredlib.c
-ifdef _GNUCC
-	ar -rs $@            $(OBJDIR)/ccuredlib.$(OBJEXT)
-else
+ifdef _MSVC
 	$(AR) $(LIBOUT)$@ $(OBJDIR)/ccuredlib.$(OBJEXT)
+else
+	$(AR) -rsc $@ $(OBJDIR)/ccuredlib.$(OBJEXT)
 endif
 
 # we need to know what the patcher will think the compiler's version is
@@ -174,7 +176,7 @@ $(PATCHEDHEADERSDIR)/stamp: $(PATCHER_EXE) $(PATCHTEMPLATE)
 	touch $@
 
 ifneq ($(ARCHOS), ppc_DARWIN)
-libraries: $(CCUREDLIB) patched-headers
+libraries: runtime patched-headers
 else
 libraries:
 	@echo "CCured libraries do not currently bulid on powerpc-darwin systems."
@@ -235,8 +237,8 @@ endif
 # combine_node_alloc_[12].c files.. if I can find out what that was
 # supposed to delete, I'll add back in a more specific wildcard
 clean: cleancaml
+	rm -f $(OBJDIR)/ccured*
 	$(PATCHER) --dest=$(CCUREDHOME)/include --clean
-	rm -f $(OBJDIR)/ccured_*
 	-find test \( \
 		-name '*cil.c' -o \
 		-name '*cured.c' -o \

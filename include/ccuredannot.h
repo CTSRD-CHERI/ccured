@@ -10,7 +10,6 @@
 #ifndef CCUREDANNOT_H
 #define CCUREDANNOT_H
 
-
 #ifdef _MSVC
   #ifdef _GNUCC
     #error Exactly one of _MSCV and _GNUCC must be defined.
@@ -27,11 +26,12 @@
   #endif
   #pragma warning(disable: 4068) // Unrecognized pragma
 #else
-  #ifndef _GNUCC
-    #error Exactly one of _MSVC or _GNUCC must be defined.
+  #if (!defined(_GNUCC) && !defined(_CLANG)) || (defined(_GNUCC) && defined(_CLANG))
+    #error Exactly one of _MSVC/_GNUCC/_CLANG must be defined.
   #endif
-  #undef  _GNUCC
-  #define _GNUCC 1
+
+  /* Common to GCC/Clang */
+
   #define __NORETURN __attribute__((noreturn))
   #define __UNUSED __attribute__((unused))
   #if (defined CCURED_NO_INLINE)
@@ -40,6 +40,14 @@
     #define INLINE_STATIC_CHECK __inline __attribute__((always_inline)) static
   #else
     #define INLINE_STATIC_CHECK __inline static
+  #endif
+
+  #ifdef _CLANG
+    /* Clang specific */
+  #else
+    /* GCC specific */
+    #undef  _GNUCC
+    #define _GNUCC 1
   #endif
 #endif
 

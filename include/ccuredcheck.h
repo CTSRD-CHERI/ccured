@@ -1447,7 +1447,7 @@ void* __ptrof(void *x) {
                                     (((sizeof(last) +  3) >> 2) << 2))
  #define GCC_VARARGS_START()    0
 #else
- #if __GNUC__ >= 3
+ #if __GNUC__ >= 3 || _CLANG
  #define GCC_STDARG_START(last) ({ __builtin_va_start(__ccured_global_va_list, last);\
                                    (unsigned long)0; })
          /* CIL will get rid of the necessary machinery for

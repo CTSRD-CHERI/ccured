@@ -75,7 +75,7 @@
 #include <stdarg.h>      // various varargs-related
 #include <errno.h>
 
-#ifdef _GNUCC
+#if defined(_GNUCC) || defined(_CLANG)
   #include <unistd.h>    /* struct stat, fd_set */
   #include <fcntl.h>     /* open; pulled up here to avoid implicit decl */
   #include <signal.h>    // signal
