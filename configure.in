@@ -110,20 +110,20 @@ fi
 
 AC_MSG_CHECKING([for gcc version])
 AC_CHECK_TYPE(__builtin_va_list,
-	      HAVE_BUILTIN_VA_LIST=true,
-	      HAVE_BUILTIN_VA_LIST=false)
+              HAVE_BUILTIN_VA_LIST=true,
+              HAVE_BUILTIN_VA_LIST=false)
 AC_MSG_CHECKING([if __thread is a keyword])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([int main(int __thread) { return 0; }])],
-		  THREAD_IS_KEYWORD=false,
-		  THREAD_IS_KEYWORD=true)
+                  THREAD_IS_KEYWORD=false,
+                  THREAD_IS_KEYWORD=true)
 AC_MSG_RESULT($THREAD_IS_KEYWORD)
 
 # Does gcc add underscores to identifiers to make assembly labels?
 # (I think MSVC always does)
 AC_MSG_CHECKING([if gcc adds underscores to assembly labels.])
 AC_LINK_IFELSE([AC_LANG_SOURCE([int main() { __asm__("jmp _main"); }])],
-		  UNDERSCORE_NAME=true,
-		  UNDERSCORE_NAME=false)
+                  UNDERSCORE_NAME=true,
+                  UNDERSCORE_NAME=false)
 AC_MSG_RESULT($UNDERSCORE_NAME)
 
 
@@ -200,16 +200,16 @@ case "$target" in
     AC_MSG_ERROR([
       Unsupported platform $target -- sorry.
       ./configure supports these platforms:
-	 on x86:     Linux, Win32(with Cygwin), freeBSD, openBSD, and Mac OS X
-	 on PowerPC: Mac OS X
-	 on SPARC:   Solaris
+         on x86:     Linux, Win32(with Cygwin), freeBSD, openBSD, and Mac OS X
+         on PowerPC: Mac OS X
+         on SPARC:   Solaris
     ])
     ;;
 esac
 
 # Make the object directory if not already present
 AC_CHECK_FILE(obj/$ARCHOS,, AC_MSG_RESULT(creating obj/$ARCHOS);
-			    mkdir -p obj/$ARCHOS)
+                            mkdir -p obj/$ARCHOS)
 
 # We will use substitution variables whose definition contains newlines. The
 # problem is that when config.status runs, it wants to break the series of
