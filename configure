@@ -4130,12 +4130,22 @@ fi
 # $target is typically processor-vendor-os
 case "$target" in
   # linux
-  *86*linux*|*86*freebsd*|*86*openbsd*|*86*darwin*)
+  *86*linux)
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: configuring for linux/x86" >&5
 $as_echo "configuring for linux/x86" >&6; }
 
     ARCHOS=x86_LINUX
     ;;
+
+  # *bsd
+  *86*freebsd*|*86*openbsd*|*86*darwin*)
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: configuring for bsd/x86" >&5
+$as_echo "configuring for bsd/x86" >&6; }
+    # Hardcode CLANG for *BSD for now.
+    ARCHOS=x86_BSD
+    DEFAULT_COMPILER=_CLANG
+    ;;
+
 
   # Mac OS X
   *powerpc*darwin*)
@@ -5480,7 +5490,7 @@ cat <<EOF
 CCured configuration:
   arch/os                     ARCHOS             $ARCHOS
   source tree root:           CCUREDHOME         $CCUREDHOME
-  CCured version:             CCUREDVERSION      $CCUREDVERSION
+  CCured version:             CCURED_VERSION     $CCURED_VERSION
   default compiler            DEFAULT_COMPILER   $DEFAULT_COMPILER
   (optional) cl.exe found:    HAS_MSVC           $HAS_MSVC
 EOF
