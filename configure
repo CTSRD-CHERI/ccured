@@ -4179,9 +4179,9 @@ $as_echo "configuring for SPARC/Solaris" >&6; }
     as_fn_error $? "
       Unsupported platform $target -- sorry.
       ./configure supports these platforms:
-	 on x86:     Linux, Win32(with Cygwin), freeBSD, openBSD, and Mac OS X
-	 on PowerPC: Mac OS X
-	 on SPARC:   Solaris
+         on x86:     Linux, Win32(with Cygwin), freeBSD, openBSD, and Mac OS X
+         on PowerPC: Mac OS X
+         on SPARC:   Solaris
     " "$LINENO" 5
     ;;
 esac
@@ -4209,7 +4209,7 @@ if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: creating obj/$ARCHOS" >&5
 $as_echo "creating obj/$ARCHOS" >&6; };
-			    mkdir -p obj/$ARCHOS
+                            mkdir -p obj/$ARCHOS
 fi
 
 
