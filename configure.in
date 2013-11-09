@@ -272,7 +272,7 @@ cat <<EOF
 CCured configuration:
   arch/os                     ARCHOS             $ARCHOS
   source tree root:           CCUREDHOME         $CCUREDHOME
-  CCured version:             CCUREDVERSION      $CCUREDVERSION
+  CCured version:             CCURED_VERSION     $CCURED_VERSION
   default compiler            DEFAULT_COMPILER   $DEFAULT_COMPILER
   (optional) cl.exe found:    HAS_MSVC           $HAS_MSVC
 EOF
