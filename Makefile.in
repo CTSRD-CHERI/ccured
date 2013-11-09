@@ -11,15 +11,37 @@ ifndef CCUREDHOME
   CCUREDHOME=@CCUREDHOME@
 endif
 
+# Now include the compiler specific stuff
+ifdef _MSVC
+  include mk/Makefile.msvc
+else
+  ifdef _GNUCC
+    include mk/Makefile.gcc
+  else
+    ifdef _CLANG
+      include mk/Makefile.clang
+    endif
+  endif
+endif
+
+# Set the compiler
+ifndef _MSVC
+  ifndef _GNUCC
+    ifndef _CLANG
+       @DEFAULT_COMPILER@=1
+    endif
+  endif
+endif
+
 # Just a target to be used by default
 .PHONY: setup quickbuild all doc distrib ccured libraries
 
 setup:
-	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML=
+	$(MAKE) ccured libraries ${DEFAULT_COMPILER}=1 NATIVECAML=
 ifdef BUILD_RELEASEPG
-	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML=1 RELEASELIB=1 USE_PG=1
+	$(MAKE) ccured libraries ${DEFAULT_COMPILER}=1 NATIVECAML=1 RELEASELIB=1 USE_PG=1
 endif
-#	$(MAKE) ccured libraries  _GNUCC=1 NATIVECAML=1 RELEASELIB=1
+#	$(MAKE) ccured libraries  _${DEFAULT_COMPILER}=1 NATIVECAML=1 RELEASELIB=1
 ifeq ($(HAS_MSVC), yes)
 	$(MAKE) libraries _MSVC=1 NATIVECAML=
 	$(MAKE) libraries _MSVC=1 NATIVECAML=1 RELEASELIB=1
@@ -51,22 +73,6 @@ DEPENDDIR   := obj/.depend
 # GN. Let's try to get rid of this.
 # sm: but I like/need it!
 -include $(CCUREDHOME)/.ccuredrc
-
-# Set the compiler
-ifndef _MSVC
-  ifndef _GNUCC
-     @DEFAULT_COMPILER@=1
-  endif
-endif
-
-# Now include the compiler specific stuff
-ifdef _MSVC
-  include mk/Makefile.msvc
-else
-  ifdef _GNUCC
-    include mk/Makefile.gcc
-  endif
-endif
 
 # sm: separating release library from release tools
 ifdef RELEASELIB
