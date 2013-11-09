@@ -156,11 +156,20 @@ fi
 # $target is typically processor-vendor-os
 case "$target" in
   # linux
-  *86*linux*|*86*freebsd*|*86*openbsd*|*86*darwin*)
+  *86*linux)
     AC_MSG_RESULT(configuring for linux/x86)
 
     ARCHOS=x86_LINUX
     ;;
+
+  # *bsd
+  *86*freebsd*|*86*openbsd*|*86*darwin*)
+    AC_MSG_RESULT(configuring for bsd/x86)
+    # Hardcode CLANG for *BSD for now.
+    ARCHOS=x86_BSD
+    DEFAULT_COMPILER=_CLANG
+    ;;
+
 
   # Mac OS X
   *powerpc*darwin*)
