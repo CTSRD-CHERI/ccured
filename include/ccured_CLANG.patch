@@ -1,0 +1,822 @@
+// ccured_GNUCC.patch   -*- c++ -*-
+// set of patches to apply to gcc/libc headers
+
+
+// help us fix this __quad_t problem: if __GNUC__ is not defined here we
+// pull in this "struct" definition for quad_t, otherwise we use long long. 
+<<< file=sys/types.h, optional
+#ifndef	_SYS_TYPES_H
+===
+#ifndef __GNUC__
+#define __GNUC__ 2
+#endif
+#ifndef	_SYS_TYPES_H
+>>>
+<<< file=sys/cdefs.h, optional
+#ifndef	_SYS_CDEFS_H
+===
+#ifndef __GNUC__
+#define __GNUC__ 2
+#endif
+#ifndef	_SYS_CDEFS_H
+>>>
+
+<<< file=stdio.h, optional
+struct _IO_FILE_plus;
+===
+// gn: boxing does not like this incomplete definition
+struct _IO_FILE_plus { };
+>>>
+
+
+// Get rid of the direct use of the _ctype 
+<<< file=ctype.h, group=isalpha
+#define	isalpha(c)	((_ctype_+1)[(unsigned)(c)]&(_U|_L))
+#define	isupper(c)	((_ctype_+1)[(unsigned)(c)]&_U)
+#define	islower(c)	((_ctype_+1)[(unsigned)(c)]&_L)
+#define	isdigit(c)	((_ctype_+1)[(unsigned)(c)]&_N)
+#define	isxdigit(c)	((_ctype_+1)[(unsigned)(c)]&(_X|_N))
+#define	isspace(c)	((_ctype_+1)[(unsigned)(c)]&_S)
+#define ispunct(c)	((_ctype_+1)[(unsigned)(c)]&_P)
+#define isalnum(c)	((_ctype_+1)[(unsigned)(c)]&(_U|_L|_N))
+#define isprint(c)	((_ctype_+1)[(unsigned)(c)]&(_P|_U|_L|_N|_B))
+#define	isgraph(c)	((_ctype_+1)[(unsigned)(c)]&(_P|_U|_L|_N))
+#define iscntrl(c)	((_ctype_+1)[(unsigned)(c)]&_C)
+===
+#ifdef CCURED
+extern int _get_ctype_p1(unsigned int);
+#define	isalpha(c)	(_get_ctype_p1((unsigned)(c)) &(_U|_L))
+#define	isupper(c)	(_get_ctype_p1((unsigned)(c)) &_U)
+#define	islower(c)	(_get_ctype_p1((unsigned)(c)) &_L)
+#define	isdigit(c)	(_get_ctype_p1((unsigned)(c)) &_N)
+#define	isxdigit(c)	(_get_ctype_p1((unsigned)(c)) &(_X|_N))
+#define	isspace(c)	(_get_ctype_p1((unsigned)(c)) &_S)
+#define ispunct(c)	(_get_ctype_p1((unsigned)(c)) &_P)
+#define isalnum(c)	(_get_ctype_p1((unsigned)(c)) &(_U|_L|_N))
+#define isprint(c)	(_get_ctype_p1((unsigned)(c)) &(_P|_U|_L|_N|_B))
+#define	isgraph(c)	(_get_ctype_p1((unsigned)(c)) &(_P|_U|_L|_N))
+#define iscntrl(c)	(_get_ctype_p1((unsigned)(c)) &_C)
+#else
+@__pattern__@
+#endif
+>>>
+
+//for ctype.h with isblank:
+<<< file=ctype.h, group=isalpha
+#define	isalpha(c)	((_ctype_+1)[(unsigned)(c)]&(_U|_L))
+#define isblank(c)	((c) == ' ' || (c) == '\t')
+#define	isupper(c)	((_ctype_+1)[(unsigned)(c)]&_U)
+#define	islower(c)	((_ctype_+1)[(unsigned)(c)]&_L)
+#define	isdigit(c)	((_ctype_+1)[(unsigned)(c)]&_N)
+#define	isxdigit(c)	((_ctype_+1)[(unsigned)(c)]&(_X|_N))
+#define	isspace(c)	((_ctype_+1)[(unsigned)(c)]&_S)
+#define ispunct(c)	((_ctype_+1)[(unsigned)(c)]&_P)
+#define isalnum(c)	((_ctype_+1)[(unsigned)(c)]&(_U|_L|_N))
+#define isprint(c)	((_ctype_+1)[(unsigned)(c)]&(_P|_U|_L|_N|_B))
+#define	isgraph(c)	((_ctype_+1)[(unsigned)(c)]&(_P|_U|_L|_N))
+#define iscntrl(c)	((_ctype_+1)[(unsigned)(c)]&_C)
+===
+#ifdef CCURED
+extern int _get_ctype_p1(unsigned int);
+#define	isalpha(c)	(_get_ctype_p1((unsigned)(c)) &(_U|_L))
+#define isblank(c)	((c) == ' ' || (c) == '\t')
+#define	isupper(c)	(_get_ctype_p1((unsigned)(c)) &_U)
+#define	islower(c)	(_get_ctype_p1((unsigned)(c)) &_L)
+#define	isdigit(c)	(_get_ctype_p1((unsigned)(c)) &_N)
+#define	isxdigit(c)	(_get_ctype_p1((unsigned)(c)) &(_X|_N))
+#define	isspace(c)	(_get_ctype_p1((unsigned)(c)) &_S)
+#define ispunct(c)	(_get_ctype_p1((unsigned)(c)) &_P)
+#define isalnum(c)	(_get_ctype_p1((unsigned)(c)) &(_U|_L|_N))
+#define isprint(c)	(_get_ctype_p1((unsigned)(c)) &(_P|_U|_L|_N|_B))
+#define	isgraph(c)	(_get_ctype_p1((unsigned)(c)) &(_P|_U|_L|_N))
+#define iscntrl(c)	(_get_ctype_p1((unsigned)(c)) &_C)
+#else
+@__pattern__@
+#endif
+>>>
+
+<<< file=ctype.h, group=isalpha
+#define	__isctype(c, type) \
+  (__ctype_b[(int) (c)] & (unsigned short int) type)
+|||
+#define __isctype(c, type) \
+  ((*__ctype_b_loc ())[(int) (c)] & (unsigned short int) type)
+===
+#ifdef CCURED
+extern int _get__ctype_b(int);
+#define __isctype(c, type) \
+  (_get__ctype_b((int) (c)) & (unsigned short int) type)
+#else
+@__pattern__@
+#endif
+>>>
+
+
+
+<<< file=ctype.h , system=linux
+# ifdef __USE_EXTERN_INLINES
+__extern_inline int
+    __NTH (tolower (int __c))
+{
+  return __c >= -128 && __c < 256 ? (*__ctype_tolower_loc ())[__c] : __c;
+}
+
+__extern_inline int
+__NTH (toupper (int __c))
+{
+  return __c >= -128 && __c < 256 ? (*__ctype_toupper_loc ())[__c] : __c;
+}
+# endif
+
+# if __GNUC__ >= 2 && defined __OPTIMIZE__ && !defined __cplusplus
+#  define tolower(c)    __tobody (c, tolower, *__ctype_tolower_loc (), (c))
+#  define toupper(c)    __tobody (c, toupper, *__ctype_toupper_loc (), (c))
+# endif /* Optimizing gcc */
+===
+#ifndef CCURED
+@__pattern__@
+#endif
+>>>
+
+<<< file=ctype.h , system=linux, ateof
+===
+#ifdef CCURED
+#undef tolower
+#undef toupper
+#endif
+>>>
+
+
+//declare our stdin/out/err accessors here so that any inline functions later
+//in stdio.h will use them correctly.
+//
+// sm: moved the '#define stdin stdin' stuff to its own
+// (optional) pattern; also fixed a problem where the pattern
+// matched an unbalanced '#if ...' (!)
+//
+// note that 2nd pattern uses tabs whereas 3rd pattern uses spaces
+<<< file=stdio.h
+#define	stdin	(_impure_ptr->_stdin)
+#define	stdout	(_impure_ptr->_stdout)
+#define	stderr	(_impure_ptr->_stderr)
+|||
+extern FILE *stdin;		/* Standard input stream.  */
+extern FILE *stdout;		/* Standard output stream.  */
+extern FILE *stderr;		/* Standard error output stream.  */
+|||
+extern FILE *stdin;             /* Standard input stream.  */
+extern FILE *stdout;            /* Standard output stream.  */
+extern FILE *stderr;            /* Standard error output stream.  */
+|||
+extern struct _IO_FILE *stdin;		/* Standard input stream.  */
+extern struct _IO_FILE *stdout;		/* Standard output stream.  */
+extern struct _IO_FILE *stderr;		/* Standard error output stream.  */
+===
+#ifdef CCURED
+  // Declare our accessor functions
+  FILE *get_stdin(void);
+  #pragma ccuredpoly("get_stdin")
+  FILE *get_stdout(void);
+  #pragma ccuredpoly("get_stdout")
+  FILE *get_stderr(void);
+  #pragma ccuredpoly("get_stderr")
+  #ifdef stdin
+   #undef stdin
+   #undef stdout
+   #undef stderr
+  #endif
+  #define stdin (get_stdin()) 
+  #define stdout (get_stdout()) 
+  #define stderr (get_stderr())
+#else  //CCURED
+@__pattern__@
+#endif //CCURED
+
+>>>
+
+// sm: I separated these from the above transformations to improve
+// the robustness of the matching and to allow them to simply be
+// missing (as on glibc-2.1.2, my laptop)
+<<< file=stdio.h, optional
+#define stdin stdin
+#define stdout stdout
+#define stderr stderr
+===
+#ifndef CCURED
+@__pattern__@
+#endif // !CCURED
+>>>
+
+<<< file=inet.h, ateof
+===
+//wrappers for inet_ntop, etc. 
+#include <inet_wrappers.h>
+>>>
+
+//matth: this file is not in cygwin.  We should probably have a 
+//"system!=cygwin" flag, rather than making this optional
+<<< file=nl_types.h, ateof, optional
+===
+//wrappers for catgets, etc. 
+#include <nl_types_wrappers.h>
+>>>
+
+
+<<< file=stdio.h, ateof
+===
+
+//wrappers for sprintf, fgets, etc
+#include <stdio_wrappers.h>
+
+>>>
+
+
+<<< file=varargs.h
+#ifndef _VARARGS_H
+#define _VARARGS_H
+===
+@__pattern__@
+#define WE_ARE_IN_VARARGS
+>>>
+
+    // varargs start ****************
+    // dsw: This is duplicated in cure_cpp/edg.patch.
+
+// Remove this definition of __gnuc_va_list 
+// This appears in varargs.h AND stdarg.h
+<<<
+typedef void *__gnuc_va_list;
+|||
+typedef __builtin_va_list __gnuc_va_list;
+===
+#ifdef CCURED
+  typedef struct __ccured_va_list * __gnuc_va_list;
+#else
+  @__pattern__@
+#endif
+>>>
+
+
+// Now add our stuff at the end of stdarg.h and varargs.h
+<<<
+#endif /* not _STDARG_H */
+|||
+#ifdef _BSD_VA_LIST
+#undef _BSD_VA_LIST
+#endif
+===
+#if defined(CCURED)
+  // _STDARG_H is defined in stdarg.h when invoked from the user program
+  #if defined(_STDARG_H) || defined(WE_ARE_IN_VARARGS)
+     #if ! defined(CCURED_VA_LIST) 
+       #define CCURED_VA_LIST __ccured_va_list
+       typedef struct __ccured_va_list { int next; } * __ccured_va_list;
+       extern void __ccured_va_start(__ccured_va_list, unsigned long) ;
+       extern void *__ccured_va_arg(__ccured_va_list, unsigned int, int);
+       #pragma ccuredpoly("__ccured_va_arg")
+       extern void __ccured_va_end(__ccured_va_list);
+       extern __ccured_va_list __ccured_va_copy(__ccured_va_list);
+     #endif
+     #undef va_start
+     #undef va_list
+     #undef va_arg
+     #undef va_end
+     #undef va_copy
+     #define va_list               __ccured_va_list
+     #define _VA_LIST_DEFINED
+     #ifdef WE_ARE_IN_VARARGS
+        #define va_start(valst) __ccured_va_start(valst, GCC_VARARGS_START())
+     #else
+        #define va_start(valst, last) __ccured_va_start(valst, \
+                                                        GCC_STDARG_START())
+     #endif
+     #define va_arg(valst, typ) \
+                            (*(typ *)__ccured_va_arg(valst, sizeof(typ), -1))
+     #define va_end(valst) __ccured_va_end(valst) 
+     //__ccured_va_coppy allocates a new structure.
+     #define va_copy(dest, src) (dest) = __ccured_va_copy(src) 
+   #endif
+   #if defined(WE_ARE_IN_VARARGS) 
+      #undef WE_ARE_IN_VARARGS
+   #endif
+#endif
+@__pattern__@
+>>>
+
+    // varargs stop ****************
+
+<<< file=fcntl.h, ateof
+===
+struct open_arguments {
+    int a;
+};
+#pragma ccuredvararg("__open",sizeof(struct open_arguments))
+#pragma ccuredvararg("open",sizeof(struct open_arguments))
+
+struct fcntl_arguments {
+    long l;
+    struct flock *f;
+    int *p; 
+};
+#pragma ccuredvararg("__fcntl",sizeof(struct fcntl_arguments))
+#pragma ccuredvararg("fcntl",sizeof(struct fcntl_arguments))
+
+#include <io_wrappers.h>
+>>>
+
+    // dsw & sm: DON'T DO THIS.  io_wrappers.h needs fcntl.h to have
+    // been included already AND fcntl.h does include io_wrappers.h.
+    // Therefore, simply include fcntl.h in addition to where you
+    // would have included sys/io.h
+//  <<< file=sys/io.h, ateof
+//  ===
+//  #include <io_wrappers.h>
+//  >>>
+
+<<< 
+extern char *strstr __P ((__const char *__haystack, __const char *__needle));
+|||
+extern char *strstr (__const char *__haystack, __const char *__needle)
+     __THROW __attribute_pure__;
+|||
+char 	*_EXFUN(strstr,(const char *, const char *));
+|||
+extern char *strstr (__const char *__haystack, __const char *__needle)
+     __THROW __attribute_pure__ __nonnull ((1, 2));
+===
+#include "ccuredannot.h"     // __ROSTRING, __NULLTERM; this is in $cil/include
+
+extern char * __NULLTERM __ROSTRING strstr(__const char * __NULLTERM __ROSTRING __haystack, __const char * __NULLTERM __ROSTRING __needle);
+>>>
+
+
+<<< file=string.h, ateof
+===
+//strdup_wrapper needs a declaration of malloc:
+#include <malloc.h> 
+
+//wrappers for bzero, strcpy, strcat, etc.
+#include "string_wrappers.h"
+>>>
+
+
+
+//wrappers for fixing the hostent structure:
+<<< file=netdb.h, ateof
+===
+#include <netdb_wrappers.h>
+>>>
+
+
+
+// We turn off the optimizations from stdlib.h if we are using CCURED
+<<< file=stdlib.h, group=stdlib_optimize, system=linux
+#if defined __OPTIMIZE__ && !defined __OPTIMIZE_SIZE__ \
+    && defined __USE_EXTERN_INLINES
+/* Define inline functions which call the internal entry points.  */
+|||
+#ifdef __USE_EXTERN_INLINES
+===
+@__pattern__@
+#ifndef CCURED
+>>>
+
+<<< file=stdlib.h, group=stdlib_optimize, , system=linux
+#endif /* Optimizing and Inlining.  */
+===
+#endif
+@__pattern__@
+>>>
+
+
+//<<< file=stdlib.h, group=realloc
+//extern void *realloc (void *__ptr, size_t __size) __THROW __attribute_malloc__;
+//===
+//// Change the return type of realloc to ensure consistency with the declarations in ccured.h
+//extern unsigned long realloc (void *__ptr, size_t __size) __THROW __attribute_malloc__;
+//>>>
+
+<<< file = string.h, system=linux
+/* Get the machine-dependent optimizations (if any).  */
+#  include <bits/string.h>
+
+/* These are generic optimizations which do not add too much inline code.  */
+#  include <bits/string2.h>
+===
+#ifndef CCURED
+@__pattern__@
+#endif
+>>>
+
+// Insert our wrappers at the end of stdlib
+<<< file=stdlib.h, ateof
+===
+#include "stdlib_wrappers.h"
+
+//matth:  I think these wrappers belong only in fcntl.h
+//#include "io_wrappers.h"
+>>>
+
+<<< file=time.h, ateof
+===
+#include <time_wrappers.h>
+>>>
+
+<<< file=socket.h, ateof
+===
+#include <socket_wrappers.h>
+>>>
+
+<<< file=signal.h, ateof
+===
+#include "signal_wrappers.h"
+>>>
+
+<<< file=unistd.h, ateof
+===
+#include "unistd_wrappers.h"
+>>>
+
+<<< file=ioctl.h
+__END_DECLS
+===
+// stuff for test/small2/ioctl.c
+struct termio;
+struct winsize;
+struct ioctl_format {
+  int anInt;
+  int *anIntPtr;
+  char *aCharPtr;
+  unsigned long *aLongPtr;
+  struct termio *aTermio;
+  struct winsize *aWinsize;
+  void *voidPtr;
+};
+#pragma ccuredvararg("ioctl", sizeof(struct ioctl_format))
+
+@__pattern__@
+>>>
+
+// sm: moving the stat wrappers into proper context
+<<< file=stat.h, ateof
+===
+#include "stat_wrappers.h"
+>>>
+
+<<< file=uio.h, ateof
+===
+#include "uio_wrappers.h"
+>>>
+
+<<< file=glob.h, ateof
+===
+#include "glob_wrappers.h"
+>>>
+
+// We must give a name to the glob_t structure
+// Unfortunately, a big patch is needed to distinguish glob_t from glob64_t.
+<<< file=glob.h, system=linux, group=glob
+typedef struct
+  {
+    __size_t gl_pathc;		/* Count of paths matched by the pattern.  */
+    char **gl_pathv;		/* List of matched pathnames.  */
+    __size_t gl_offs;		/* Slots to reserve in `gl_pathv'.  */
+    int gl_flags;		/* Set to FLAGS, maybe | GLOB_MAGCHAR.  */
+
+    /* If the GLOB_ALTDIRFUNC flag is set, the following functions
+       are used instead of the normal file access functions.  */
+    void (*gl_closedir) __PMT ((void *));
+#ifdef _GNU_SOURCE
+    struct dirent *(*gl_readdir) __PMT ((void *));
+#else
+===
+typedef struct glob_s
+  {
+    __size_t gl_pathc;		/* Count of paths matched by the pattern.  */
+    char **gl_pathv;		/* List of matched pathnames.  */
+    __size_t gl_offs;		/* Slots to reserve in `gl_pathv'.  */
+    int gl_flags;		/* Set to FLAGS, maybe | GLOB_MAGCHAR.  */
+
+    /* If the GLOB_ALTDIRFUNC flag is set, the following functions
+       are used instead of the normal file access functions.  */
+    void (*gl_closedir) __PMT ((void *));
+#ifdef _GNU_SOURCE
+    struct dirent *(*gl_readdir) __PMT ((void *));
+#else
+>>>
+//version for glibc 2.3.5:
+<<< file=glob.h, system=linux, group=glob
+typedef struct
+  {
+    __size_t gl_pathc;		/* Count of paths matched by the pattern.  */
+    char **gl_pathv;		/* List of matched pathnames.  */
+    __size_t gl_offs;		/* Slots to reserve in `gl_pathv'.  */
+    int gl_flags;		/* Set to FLAGS, maybe | GLOB_MAGCHAR.  */
+
+    /* If the GLOB_ALTDIRFUNC flag is set, the following functions
+       are used instead of the normal file access functions.  */
+    void (*gl_closedir) (void *);
+#ifdef __USE_GNU
+    struct dirent *(*gl_readdir) (void *);
+#else
+===
+typedef struct glob_s
+  {
+    __size_t gl_pathc;		/* Count of paths matched by the pattern.  */
+    char **gl_pathv;		/* List of matched pathnames.  */
+    __size_t gl_offs;		/* Slots to reserve in `gl_pathv'.  */
+    int gl_flags;		/* Set to FLAGS, maybe | GLOB_MAGCHAR.  */
+
+    /* If the GLOB_ALTDIRFUNC flag is set, the following functions
+       are used instead of the normal file access functions.  */
+    void (*gl_closedir) (void *);
+#ifdef __USE_GNU
+    struct dirent *(*gl_readdir) (void *);
+#else
+>>>
+
+
+<<< file=glob.h, system=cygwin
+typedef struct {
+===
+typedef struct glob_s {
+>>>
+
+<<< file=pwd.h, ateof
+===
+#include "pwd_wrappers.h"
+>>>
+
+<<< file=grp.h, ateof
+===
+#include "grp_wrappers.h"
+>>>
+
+<<< file=crypt.h, ateof
+===
+#include "crypt_wrappers.h"
+>>>
+
+<<< file=inet.h, ateof
+===
+#if defined(CCURED) && !defined(INET_H_INCLUDED)
+  #define INET_H_INCLUDED
+  #pragma ccuredwrapper("inet_ntoa_wrapper", of("inet_ntoa"))
+  char* inet_ntoa_wrapper(struct in_addr __in)
+  {
+    return __mkptr_string( inet_ntoa(__in) );
+  }
+#endif
+>>>
+
+// gcc-2.96 (redhat's gcc) doesn't like seeing __attribute__(__malloc__) 
+// on (for example) realloc_ff after curing, so just remove the attribute.
+<<< optional
+extern __malloc_ptr_t realloc __MALLOC_P ((__malloc_ptr_t __ptr,
+					   size_t __size))
+       __attribute_malloc__;
+|||
+extern void *realloc (void *__ptr, size_t __size) __THROW __attribute_malloc__;
+===
+#ifdef CCURED 
+extern void *realloc (void *__ptr, size_t __size) ;
+#else
+@__pattern__@
+#endif
+>>>
+
+//matth: remove a union that is part of the FILE struct.  Because CCured
+// considers the pointers in this union to be wild, we were getting deep
+// mangling problems when using FILEs.
+// gn: I mark it optional because it does not match my cygwin installation
+<<< file=reent.h , system=cygwin, optional
+  union
+    {
+      struct
+        {
+===
+#ifdef CCURED
+  struct 
+    {
+      struct _new_reent
+        {
+#else
+@__pattern__@
+#endif // !CCURED
+>>>
+
+//A continuation of the patch above.  Make sure the new struct has the same
+//size as the old union used to.
+<<< file=reent.h , system=cygwin, optional
+  /* Two next two fields were once used by malloc.  They are no longer
+     used. They are used to preserve the space used before so as to
+     allow addition of new reent fields and keep binary compatibility.   */ 
+      struct
+        {
+#define _N_LISTS 30
+          unsigned char * _nextf[_N_LISTS];
+          unsigned int _nmalloc[_N_LISTS];
+        } _unused;
+===
+#ifdef CCURED
+# define _N_LISTS 30
+  char _unused[2 * sizeof(int) * _N_LISTS - sizeof(struct _new_reent)];
+#else
+@__pattern__@
+#endif // !CCURED
+>>>
+
+
+// matth:  the argument could be one of a number of structs.  The elements of
+// the structs are all scalars, so all that really matters is the size of the
+//  struct, which is controlled by the len argument.
+<<< file=socket.h, group=sockaddr
+# define __SOCKADDR_ARG		struct sockaddr *__restrict
+# define __CONST_SOCKADDR_ARG	__const struct sockaddr *
+|||
+# define __SOCKADDR_ARG		struct sockaddr *
+# define __CONST_SOCKADDR_ARG	__const struct sockaddr *
+===
+#ifdef CCURED
+# define __SOCKADDR_ARG		void *__restrict
+# define __CONST_SOCKADDR_ARG	__const void *
+#else
+@__pattern__@
+#endif // !CCURED
+>>> 
+//Second half of the GNU/Linux patch.
+<<< file=socket.h, group=sockaddr
+# define __SOCKADDR_ONETYPE(type) struct type *__restrict __##type##__;
+typedef union { __SOCKADDR_ALLTYPES
+	      } __SOCKADDR_ARG __attribute__ ((__transparent_union__));
+# undef __SOCKADDR_ONETYPE
+# define __SOCKADDR_ONETYPE(type) __const struct type *__restrict __##type##__;
+typedef union { __SOCKADDR_ALLTYPES
+	      } __CONST_SOCKADDR_ARG __attribute__ ((__transparent_union__));
+# undef __SOCKADDR_ONETYPE
+#endif
+===
+#ifdef CCURED
+# define __SOCKADDR_ARG		void *__restrict
+# define __CONST_SOCKADDR_ARG	__const void *
+#else
+@__pattern__@
+#endif // !CCURED
+>>> 
+//Cygwin versions.  The bottom pattern is from a slightly newer cygwin install
+<<< file=socket.h, group=sockaddr
+  int accept (int, struct sockaddr *__peer, int *);
+  int bind (int, const struct sockaddr *__my_addr, int __addrlen);
+  int connect (int, const struct sockaddr *, int);
+  int getpeername (int, struct sockaddr *__peer, int *);
+  int getsockname (int, struct sockaddr *__addr, int *);
+  int listen (int, int __n);
+  int recv (int, void *__buff, int __len, unsigned int __flags);
+  int recvfrom (int, char *__buff, int __len, int __flags,
+			 struct sockaddr *__from, int *__fromlen);
+  int recvmsg(int s, struct msghdr *msg, int flags);
+  int send (int, const void *__buff, int __len, unsigned int __flags);
+  int sendmsg(int s, const struct msghdr *msg, int flags);
+  int sendto (int, const void *, int, unsigned int, const struct sockaddr *, int);
+|||
+  int accept (int, struct sockaddr *__peer, int *);
+  int bind (int, const struct sockaddr *__my_addr, int __addrlen);
+  int connect (int, const struct sockaddr *, int);
+  int getpeername (int, struct sockaddr *__peer, int *);
+  int getsockname (int, struct sockaddr *__addr, int *);
+  int listen (int, int __n);
+  int recv (int, void *__buff, int __len, int __flags);
+  int recvfrom (int, void *__buff, int __len, int __flags,
+		struct sockaddr *__from, int *__fromlen);
+  int recvmsg(int s, struct msghdr *msg, int flags);
+  int send (int, const void *__buff, int __len, int __flags);
+  int sendmsg(int s, const struct msghdr *msg, int flags);
+  int sendto (int, const void *, int __len, int __flags,
+	      const struct sockaddr *__to, int __tolen);
+|||
+  int accept (int, struct sockaddr *__peer, socklen_t *);
+  int bind (int, const struct sockaddr *__my_addr, socklen_t __addrlen);
+  int connect (int, const struct sockaddr *, socklen_t);
+  int getpeername (int, struct sockaddr *__peer, socklen_t *);
+  int getsockname (int, struct sockaddr *__addr, socklen_t *);
+  int listen (int, int __n);
+  int recv (int, void *__buff, size_t __len, int __flags);
+  int recvfrom (int, void *__buff, size_t __len, int __flags,
+		struct sockaddr *__from, socklen_t *__fromlen);
+  int recvmsg(int s, struct msghdr *msg, int flags);
+  int send (int, const void *__buff, size_t __len, int __flags);
+  int sendmsg(int s, const struct msghdr *msg, int flags);
+  int sendto (int, const void *, size_t __len, int __flags,
+	      const struct sockaddr *__to, socklen_t __tolen);
+===
+#ifdef CCURED
+  int accept (int, void *__peer, int *);
+  int bind (int, const void *__my_addr, int __addrlen);
+  int connect (int, const void *, int);
+  int getpeername (int, void *__peer, int *);
+  int getsockname (int, void *__addr, int *);
+  int listen (int, int __n);
+  int recv (int, void *__buff, int __len, unsigned int __flags);
+  int recvfrom (int, char *__buff, int __len, int __flags,
+			 void *__from, int *__fromlen);
+  int recvmsg(int s, struct msghdr *msg, int flags);
+  int send (int, const void *__buff, int __len, unsigned int __flags);
+  int sendmsg(int s, const struct msghdr *msg, int flags);
+  int sendto (int, const void *, int, unsigned int, const void *, int);
+#else
+@__pattern__@
+#endif // !CCURED
+>>>
+
+
+//matth: struct sigaction contains an unsafe union, so fix it by blocking
+//access to the _sigaction field.  If you need both fields in the union,
+//write a wrapper.
+<<< file=sigaction.h, group=sigaction
+    /* Signal handler.  */
+#ifdef __USE_POSIX199309
+    union
+===
+    /* Signal handler.  */
+#if defined __USE_POSIX199309 && !defined CCURED
+    union
+>>> 
+//cygwin version, in sys/signal.h:
+<<< file=signal.h, system=cygwin, group=sigaction
+#if defined(_POSIX_REALTIME_SIGNALS)
+    void      (*_sigaction)( int, siginfo_t *, void * );
+#endif
+===
+#if defined(_POSIX_REALTIME_SIGNALS) && !defined CCURED
+    void      (*_sigaction)( int, siginfo_t *, void * );
+#endif
+>>> 
+
+
+<<< file=bits/select.h, system=linux
+#if defined __GNUC__ && __GNUC__ >= 2
+===
+#if 0 && defined __GNUC__ && __GNUC__ >= 2
+>>> 
+
+<<< file=malloc.h, ateof
+===
+#include "malloc_wrappers.h"
+>>> 
+
+<<< file=shm.h, ateof, system=linux
+===
+#ifdef CCURED
+#include "shm_wrappers.h"
+#endif
+>>> 
+
+
+<<< file=setjmp.h, ateof
+===
+#include "setjmp_wrappers.h"
+>>> 
+
+<<< file=libgen.h, ateof, system=linux
+===
+#include "libgen_wrappers.h"
+>>> 
+
+<<< file=shadow.h, system=linux
+    char *sp_namp;		/* Login name.  */
+    char *sp_pwdp;		/* Encrypted password.  */
+===
+    char * __MDSIZE_NULLTERM sp_namp;		/* Login name.  */
+    char * __MDSIZE_NULLTERM sp_pwdp;		/* Encrypted password.  */
+>>> 
+<<< file=shadow.h, ateof, system=linux
+===
+#include "shadow_wrappers.h"
+>>> 
+
+// weimer Sat Jan 25 14:55:36 PST 2003
+// bind uses this magic function 
+<<< file=sys/prctl.h, system=linux
+extern int prctl (int __option, ...) __THROW;
+===
+extern int prctl (int __option, ...) __THROW;
+struct prctl_arguments {
+  int   prtcl_int;
+  int * prctl_int_ptr; 
+} ;
+#pragma ccuredvararg("ptrcl",sizeof(struct prtcl_arguments))
+>>> 
+
+
+// Like gcc v3, CIL treats __thread as a keyword.  So rename this variable to something else for older versions of pthread.h
+<<< file=pthread.h, system=linux, optional
+extern int pthread_create (pthread_t *__restrict __thread,
+===
+extern int pthread_create (pthread_t *__restrict __pthread,
+>>> 
+<<< file=pthread.h, system=linux, optional
+extern int pthread_cancel (pthread_t __thread) __THROW;
+===
+extern int pthread_cancel (pthread_t __pthread) __THROW;
+>>> 
+
