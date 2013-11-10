@@ -4,8 +4,27 @@
 // - after CCured (with CCURED_POST) defined
 // - in the library
 
+#ifdef CCURED_POST
+
+// Since CCuring can modify standard definitions, we should not include
+// the standard headers again to avoid definition conflicts.
+
+/* Types for `void *' pointers.  */
+#ifdef __LP64__
+typedef long int                intptr_t;
+typedef unsigned long int       uintptr_t;
+#else
+typedef int                     intptr_t;
+typedef unsigned int            uintptr_t;
+#endif
+
+#else
+
+// For the compilation of the objects in the uncured runtime.
 #include <stdint.h>
 #include <sys/types.h>
+
+#endif
 
 // Grab the annotations. If we are after CCured this will define them away
 #include "ccuredannot.h"
@@ -32,7 +51,7 @@ extern void  freeInternal(void *);
 extern void  freeInternalMinus4(void *);
 
 // We declare this as unsigned int because allocators are made like that
-extern uintptr_t wrapperAlloc(unsigned int);
+extern unsigned long wrapperAlloc(unsigned int);
 extern void wrapperFree(void*);
 extern char* wrapperStrdup(char *);
 
@@ -149,7 +168,7 @@ void *   __scalar2pointer(unsigned long  l , int  fid , int  lid ) ;
 
 // libc prototypes (we avoid pulling in entire headers; sm: I no longer
 // remember why)
-extern size_t strlen(const char *);
+extern unsigned long strlen(const char *);
 
 // ---------------- check function return value --------------
 // CHECK_GETFRAME: return the frame pointer of the current function;
@@ -1460,8 +1479,7 @@ void* __ptrof(void *x) {
  #endif
 #endif
 #ifdef CCURED_POST
-#include <stdarg.h>
-extern va_list __ccured_global_va_list;
+extern __builtin_va_list __ccured_global_va_list;
 #endif
 /*
  *
