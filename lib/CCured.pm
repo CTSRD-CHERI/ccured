@@ -201,6 +201,9 @@ sub preprocess_before_cil {
         # Make the preprocessor read cil/include --dsw and matth.
         unshift @args, $self->{INCARG} . $::ccuredhome . "/include";
     }
+    if($self->{VERBOSE}) {
+        print "Preprocessing before CIL $src -> $dest using @args\n";
+    }
     return $self->SUPER::preprocess_before_cil($src, $dest, \@args);
 }
 
@@ -209,6 +212,9 @@ sub preprocess_after_cil {
     my @args = @{$ppargs};
     push @args, "$self->{DEFARG}CCURED_NO_GC" if $self->{NOGC};
     push @args, "$self->{INCARG}$::ccuredhome/include";
+    if($self->{VERBOSE}) {
+        print "Preprocessing after CIL $src -> $dest using @args\n";
+    }
     return $self->SUPER::preprocess_after_cil($src, $dest, \@args);
 }
 
