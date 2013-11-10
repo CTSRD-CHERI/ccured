@@ -1,5 +1,5 @@
-// ccured_GNUCC.patch   -*- c++ -*-
-// set of patches to apply to gcc/libc headers
+// ccured_CLANG.patch   -*- c++ -*-
+// set of patches to apply to gcc/clang/libc headers
 
 
 // help us fix this __quad_t problem: if __GNUC__ is not defined here we
@@ -30,7 +30,7 @@ struct _IO_FILE_plus { };
 
 
 // Get rid of the direct use of the _ctype 
-<<< file=ctype.h, group=isalpha
+<<< file=ctype.h, system=linux, group=isalpha
 #define	isalpha(c)	((_ctype_+1)[(unsigned)(c)]&(_U|_L))
 #define	isupper(c)	((_ctype_+1)[(unsigned)(c)]&_U)
 #define	islower(c)	((_ctype_+1)[(unsigned)(c)]&_L)
@@ -62,7 +62,7 @@ extern int _get_ctype_p1(unsigned int);
 >>>
 
 //for ctype.h with isblank:
-<<< file=ctype.h, group=isalpha
+<<< file=ctype.h, system=linux, group=isalpha
 #define	isalpha(c)	((_ctype_+1)[(unsigned)(c)]&(_U|_L))
 #define isblank(c)	((c) == ' ' || (c) == '\t')
 #define	isupper(c)	((_ctype_+1)[(unsigned)(c)]&_U)
@@ -95,7 +95,7 @@ extern int _get_ctype_p1(unsigned int);
 #endif
 >>>
 
-<<< file=ctype.h, group=isalpha
+<<< file=ctype.h, system=linux, group=isalpha
 #define	__isctype(c, type) \
   (__ctype_b[(int) (c)] & (unsigned short int) type)
 |||
@@ -171,6 +171,10 @@ extern FILE *stderr;            /* Standard error output stream.  */
 extern struct _IO_FILE *stdin;		/* Standard input stream.  */
 extern struct _IO_FILE *stdout;		/* Standard output stream.  */
 extern struct _IO_FILE *stderr;		/* Standard error output stream.  */
+|||
+#define	stdin	__stdinp
+#define	stdout	__stdoutp
+#define	stderr	__stderrp
 ===
 #ifdef CCURED
   // Declare our accessor functions
@@ -231,23 +235,13 @@ extern struct _IO_FILE *stderr;		/* Standard error output stream.  */
 >>>
 
 
-<<< file=varargs.h
-#ifndef _VARARGS_H
-#define _VARARGS_H
-===
-@__pattern__@
-#define WE_ARE_IN_VARARGS
->>>
-
-    // varargs start ****************
-    // dsw: This is duplicated in cure_cpp/edg.patch.
-
 // Remove this definition of __gnuc_va_list 
-// This appears in varargs.h AND stdarg.h
-<<<
+<<< file=x86/_types.h
 typedef void *__gnuc_va_list;
 |||
 typedef __builtin_va_list __gnuc_va_list;
+|||
+typedef __va_list		__gnuc_va_list;	/* compatibility w/GNU headers*/
 ===
 #ifdef CCURED
   typedef struct __ccured_va_list * __gnuc_va_list;
@@ -258,13 +252,10 @@ typedef __builtin_va_list __gnuc_va_list;
 
 
 // Now add our stuff at the end of stdarg.h and varargs.h
-<<<
-#endif /* not _STDARG_H */
-|||
-#ifdef _BSD_VA_LIST
-#undef _BSD_VA_LIST
-#endif
+<<< file=stdarg.h, ateof
 ===
+#ifndef CCURED_STDARG_H
+#define CCURED_STDARG_H
 #if defined(CCURED)
   // _STDARG_H is defined in stdarg.h when invoked from the user program
   #if defined(_STDARG_H) || defined(WE_ARE_IN_VARARGS)
@@ -300,10 +291,10 @@ typedef __builtin_va_list __gnuc_va_list;
       #undef WE_ARE_IN_VARARGS
    #endif
 #endif
-@__pattern__@
+#endif
 >>>
 
-    // varargs stop ****************
+
 
 <<< file=fcntl.h, ateof
 ===
@@ -333,7 +324,7 @@ struct fcntl_arguments {
 //  #include <io_wrappers.h>
 //  >>>
 
-<<< 
+<<< file=string.h
 extern char *strstr __P ((__const char *__haystack, __const char *__needle));
 |||
 extern char *strstr (__const char *__haystack, __const char *__needle)
@@ -343,6 +334,8 @@ char 	*_EXFUN(strstr,(const char *, const char *));
 |||
 extern char *strstr (__const char *__haystack, __const char *__needle)
      __THROW __attribute_pure__ __nonnull ((1, 2));
+|||
+char	*strstr(const char *, const char *) __pure;
 ===
 #include "ccuredannot.h"     // __ROSTRING, __NULLTERM; this is in $cil/include
 
@@ -438,7 +431,7 @@ extern char * __NULLTERM __ROSTRING strstr(__const char * __NULLTERM __ROSTRING 
 >>>
 
 <<< file=ioctl.h
-__END_DECLS
+#endif /* !_SYS_IOCTL_H_ */
 ===
 // stuff for test/small2/ioctl.c
 struct termio;
@@ -542,6 +535,12 @@ typedef struct {
 typedef struct glob_s {
 >>>
 
+<<< file=glob.h, system=freebsd
+typedef struct {
+===
+typedef struct glob_s {
+>>>
+
 <<< file=pwd.h, ateof
 ===
 #include "pwd_wrappers.h"
@@ -552,7 +551,7 @@ typedef struct glob_s {
 #include "grp_wrappers.h"
 >>>
 
-<<< file=crypt.h, ateof
+<<< file=crypt.h, system=linux, ateof
 ===
 #include "crypt_wrappers.h"
 >>>
@@ -630,7 +629,7 @@ extern void *realloc (void *__ptr, size_t __size) ;
 // matth:  the argument could be one of a number of structs.  The elements of
 // the structs are all scalars, so all that really matters is the size of the
 //  struct, which is controlled by the len argument.
-<<< file=socket.h, group=sockaddr
+<<< file=socket.h, system=linux, group=sockaddr
 # define __SOCKADDR_ARG		struct sockaddr *__restrict
 # define __CONST_SOCKADDR_ARG	__const struct sockaddr *
 |||
@@ -645,7 +644,7 @@ extern void *realloc (void *__ptr, size_t __size) ;
 #endif // !CCURED
 >>> 
 //Second half of the GNU/Linux patch.
-<<< file=socket.h, group=sockaddr
+<<< file=socket.h, system=linux, group=sockaddr
 # define __SOCKADDR_ONETYPE(type) struct type *__restrict __##type##__;
 typedef union { __SOCKADDR_ALLTYPES
 	      } __SOCKADDR_ARG __attribute__ ((__transparent_union__));
@@ -664,7 +663,7 @@ typedef union { __SOCKADDR_ALLTYPES
 #endif // !CCURED
 >>> 
 //Cygwin versions.  The bottom pattern is from a slightly newer cygwin install
-<<< file=socket.h, group=sockaddr
+<<< file=socket.h, group=sockaddr, system=cygwin
   int accept (int, struct sockaddr *__peer, int *);
   int bind (int, const struct sockaddr *__my_addr, int __addrlen);
   int connect (int, const struct sockaddr *, int);
@@ -732,7 +731,7 @@ typedef union { __SOCKADDR_ALLTYPES
 //matth: struct sigaction contains an unsafe union, so fix it by blocking
 //access to the _sigaction field.  If you need both fields in the union,
 //write a wrapper.
-<<< file=sigaction.h, group=sigaction
+<<< file=sigaction.h, group=sigaction, system=linux
     /* Signal handler.  */
 #ifdef __USE_POSIX199309
     union
