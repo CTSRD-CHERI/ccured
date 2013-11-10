@@ -185,9 +185,25 @@ EOF
    $self->runShell(@cmd);
 }
 
+# Cribbed from the patcher.
+sub clangIncludeDir {
+    my $cname = "clang";
+    my $ret = "";
+    open(VER, "$::cc -dumpversion|") || die "Cannot start $cname";
+    while(<VER>) {
+        if($_ =~ m|^(\d+\S+)|) {
+            $ret = "clang_$1";
+            close(VER) || die "Cannot stop $cname\n";
+            return $ret;
+        }
+    }
+    die "Cannot find the version for $cname\n";
+}
+
 sub preprocess_before_cil {
     my($self, $src, $dest, $ppargs) = @_;
     my @args = @{$ppargs};
+    my $incdir = "";
     if(! $self->{NOCURE}) {
         if($self->{ALLWILD}) {
             push @args, $self->{DEFARG} . "CCURED_ALLWILD";
@@ -200,6 +216,10 @@ sub preprocess_before_cil {
         #unshift @args, $self->{INCARG} . $dir . "/lib";
         # Make the preprocessor read cil/include --dsw and matth.
         unshift @args, $self->{INCARG} . $::ccuredhome . "/include";
+        if ($::default_cc eq "_CLANG") {
+            $incdir = clangIncludeDir();
+            unshift @args, $self->{INCARG} . $::ccuredhome . "/include/$incdir";
+        }
     }
     if($self->{VERBOSE}) {
         print "Preprocessing before CIL $src -> $dest using @args\n";
