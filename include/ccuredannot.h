@@ -42,13 +42,11 @@
     #define INLINE_STATIC_CHECK __inline static
   #endif
 
-  #ifdef _CLANG
-    /* Clang specific */
-  #else
-    /* GCC specific */
-    #undef  _GNUCC
-    #define _GNUCC 1
-  #endif
+  /* We define this since the CIL compiler driver currently treats
+     Clang like GCC and passes -D_GNUCC (and hides _CLANG) anyway.
+  */
+  #undef  _GNUCC
+  #define _GNUCC 1
 #endif
 
 /* If we are in the library, then we must compile conservatively */
