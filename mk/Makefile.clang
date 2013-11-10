@@ -50,7 +50,7 @@ LIBOUT := -rs
 PATCH_SYSINCLUDES := ctype.h fcntl.h glob.h grp.h malloc.h netdb.h \
 		     pthread.h pwd.h signal.h stdarg.h stdio.h stdlib.h \
 		     string.h time.h unistd.h varargs.h arpa/inet.h \
-		     sys/cdefs.h x86/_types.h sys/fcntl.h sys/ioctl.h sys/socket.h \
+		     sys/cdefs.h sys/_types.h x86/_types.h sys/fcntl.h sys/ioctl.h sys/socket.h \
 		     sys/stat.h sys/types.h sys/uio.h malloc.h setjmp.h
 
 ifneq ($(ARCHOS), x86_WIN32)

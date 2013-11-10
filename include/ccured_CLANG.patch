@@ -4,7 +4,7 @@
 
 // help us fix this __quad_t problem: if __GNUC__ is not defined here we
 // pull in this "struct" definition for quad_t, otherwise we use long long. 
-<<< file=sys/types.h, optional
+<<< file=sys/types.h, system=linux, optional
 #ifndef	_SYS_TYPES_H
 ===
 #ifndef __GNUC__
@@ -12,7 +12,7 @@
 #endif
 #ifndef	_SYS_TYPES_H
 >>>
-<<< file=sys/cdefs.h, optional
+<<< file=sys/cdefs.h, system=linux, optional
 #ifndef	_SYS_CDEFS_H
 ===
 #ifndef __GNUC__
@@ -235,16 +235,18 @@ extern struct _IO_FILE *stderr;		/* Standard error output stream.  */
 >>>
 
 
-// Remove this definition of __gnuc_va_list 
+// Remove this definition of __va_list 
 <<< file=x86/_types.h
-typedef void *__gnuc_va_list;
-|||
-typedef __builtin_va_list __gnuc_va_list;
+typedef	__builtin_va_list	__va_list;	/* internally known to gcc */
 |||
 typedef __va_list		__gnuc_va_list;	/* compatibility w/GNU headers*/
 ===
 #ifdef CCURED
-  typedef struct __ccured_va_list * __gnuc_va_list;
+  #ifndef CCURED_VA_DEFINED
+  #define CCURED_VA_DEFINED
+    typedef struct __ccured_va_list * __gnuc_va_list;
+    typedef struct __ccured_va_list * __va_list;
+  #endif
 #else
   @__pattern__@
 #endif
@@ -257,9 +259,10 @@ typedef __va_list		__gnuc_va_list;	/* compatibility w/GNU headers*/
 #ifndef CCURED_STDARG_H
 #define CCURED_STDARG_H
 #if defined(CCURED)
-  // _STDARG_H is defined in stdarg.h when invoked from the user program
-  #if defined(_STDARG_H) || defined(WE_ARE_IN_VARARGS)
-     #if ! defined(CCURED_VA_LIST) 
+   // _STDARG_H is defined in stdarg.h when invoked from the user program
+   // On Clang/FreeBSD/x86, it goes via x86/stdarg.h
+   #if defined(_STDARG_H) || defined(_MACHINE_STDARG_H_) || defined(WE_ARE_IN_VARARGS)
+     #if !defined(CCURED_VA_LIST) 
        #define CCURED_VA_LIST __ccured_va_list
        typedef struct __ccured_va_list { int next; } * __ccured_va_list;
        extern void __ccured_va_start(__ccured_va_list, unsigned long) ;
@@ -527,7 +530,6 @@ typedef struct glob_s
     struct dirent *(*gl_readdir) (void *);
 #else
 >>>
-
 
 <<< file=glob.h, system=cygwin
 typedef struct {
