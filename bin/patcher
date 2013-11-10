@@ -245,7 +245,7 @@ sub findCompilerVersion {
         }
         die "Cannot find the version for Microsoft CL\n";
     }
-    die "You must specify a --mode (either GNUCC or MSVC)";
+    die "You must specify a --mode (one of GNUCC or CLANG or MSVC)";
 }
 
 sub lineDirective {
