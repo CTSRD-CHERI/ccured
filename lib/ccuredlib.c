@@ -642,7 +642,9 @@ struct handler {
 static int handlersInitialized = 0; // If this was initialized
 static struct handler * errorHandlers[NUM_FAIL_CODES];
 
+#if !defined(__FreeBSD__)
 __inline
+#endif
 enum handlerKind checkHandler(int code,
 			      char const *file, int line, char const *function)
 {
@@ -916,7 +918,7 @@ void ccured_fail_str(char const *str  CCURED_FAIL_EXTRA_PARAMS)  {
       // on windows a debug trap is desired in debug mode
       _asm { int 3 }
 #else
-#if ! defined(__CYGWIN__) && defined(_DEBUG)
+#if defined(_DEBUG) && !(defined(__CYGWIN__) || defined(__FreeBSD__))
       { // Try to print a backtrace. At the moment, not very useful
 	#define SIZE_BACKTRACE 128
 	void * backtrace_buffer[SIZE_BACKTRACE];
