@@ -2796,10 +2796,15 @@ seqp_char optarg_q;
 // sm: I already defined this myself, calling it ALIGNBYTES
 //#define OUR_ROUND(size) ((size + sizeof(int) - 1) & ~(sizeof(int) - 1))
 
+// pm: the value returned by getPNextArg is not used anymore.
 #ifdef _GNUCC
+#ifdef __clang__
+  #define getPNextArg(lastarg) (NULL)
+#else
   /* On GCC we do not take the address of the last local because if we do that
    * gcc will give us the address of a copy of the local. */
   #define getPNextArg(lastarg) __builtin_next_arg(lastarg)
+#endif
 #else
   #define getPNextArg(lastarg) ((char*)(&(lastarg)) + ALIGNBYTES(sizeof(lastarg)))
 #endif
