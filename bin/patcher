@@ -39,6 +39,7 @@ use File::Basename;
 use File::Copy;
 use Getopt::Long;           # Command-line option processing
 use Data::Dumper;
+use Text::ParseWords;
 use FindBin;
 use lib "$FindBin::RealBin";
 # Read the configuration script
@@ -98,9 +99,9 @@ my %option;
      "--verbose|v",       # Display information about programs invoked
      "--mode=s",          # The mode (GNUCC, MSVC)
      "--dest=s",          # The destination directory
-     "--patch=s@",         # Patch files
-     "--ufile=s@",         # User include files
-     "--sfile=s@",         # System include files
+     "--patch=s@",        # Patch files
+     "--ufile=s@",        # User include files
+     "--sfile=s@",        # System include files
      "--stdoutpp",        # pp to stdout
      "--skipmissing",
      "--dumpversion",
@@ -115,8 +116,9 @@ if($option{help}) {
 # print Dumper({"option" => \%option, "ARGV" => \@ARGV});
 
 my $cversion; # Compiler version
-my $cname; # Compiler name
-my @patches; # A list of the patches to apply
+my $cname;    # Compiler name
+my @compiler;
+my @patches;  # A list of the patches to apply
 
 my $ppargs = join(' ', @ARGV);
 
@@ -203,9 +205,11 @@ exit $hadError;
 sub findCompilerVersion {
     $cname = "";
     $cversion = 0;
+
     if($option{mode} eq "GNUCC") {
         $cname = "GNU CC";
-        open(VER, "$::cc -dumpversion $ppargs|")
+        my @compiler = Text::ParseWords::shellwords($ENV{CILLY_NATIVE_CC} || $::cc);
+        open(VER, "@compiler -dumpversion $ppargs|")
             || die "Cannot start $cname";
         while(<VER>) {
             # sm: had to modify this to match "egcs-2.91.66", which is
@@ -220,13 +224,14 @@ sub findCompilerVersion {
         die "Cannot find the version for GCC\n";
     }
     if($option{mode} eq "CLANG") {
-        $cname = "Clang";
-        open(VER, "clang -dumpversion $ppargs|")
+        my @compiler = Text::ParseWords::shellwords($ENV{CILLY_NATIVE_CC} || "clang");
+        print "versioning @compiler\n";
+        open(VER, "@compiler -dumpversion $ppargs|")
             || die "Cannot start $cname";
         while(<VER>) {
             if($_ =~ m|^(\d+\S+)|) {
                 $cversion = "clang_$1";
-                close(VER) || die "Cannot stop $cname\n";
+                close(VER) || die "Cannot stop @compiler\n";
                 return;
             }
         }

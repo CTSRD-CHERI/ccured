@@ -133,6 +133,14 @@ endif
 
 runtime: $(CCUREDLIB)
 
+# CCURED_CC contains the CC that ccured will use, overridable using
+# CILLY_NATIVE_CC.  This is useful in the case of crosscompiling.
+CILLY_NATIVE_CC ?= $(CC)
+ifdef _CLANG
+  # pm: always use -integrated-as for now, since it eases cross-compilation
+  CFLAGS += -integrated-as
+endif
+
 # we build the library from source each time, so that we don't end up
 # with .o files built with Makefile arguments that have changed
 $(CCUREDLIB): lib/ccuredlib.c include/ccured.h include/ccuredannot.h \
@@ -140,7 +148,7 @@ $(CCUREDLIB): lib/ccuredlib.c include/ccured.h include/ccuredannot.h \
 	@echo "Trying to build $(CCUREDLIB)"
 	@true "CCUREDLIBARG is $(CCUREDLIBARG)"
 	@true "CFLAGS is $(CFLAGS)"
-	$(CC) $(CFLAGS) $(INC)./include $(CONLY) $(CCUREDLIBARG) \
+	$(CILLY_NATIVE_CC) $(CFLAGS) $(INC)./include $(CONLY) $(CCUREDLIBARG) \
 		    $(OBJOUT)$(OBJDIR)/ccuredlib.$(OBJEXT) lib/ccuredlib.c
 ifdef _MSVC
 	$(AR) $(LIBOUT)$@ $(OBJDIR)/ccuredlib.$(OBJEXT)
@@ -152,7 +160,7 @@ endif
 
 PATCHER_EXE := $(CCUREDHOME)/bin/patcher
 PATCHER := LANG=C perl $(PATCHER_EXE) --mode=$(COMPILERNAME)
-COMPILERVERSION := $(shell $(PATCHER) --dumpversion)
+COMPILERVERSION := $(shell CC=$(CILLY_NATIVE_CC) $(PATCHER) --dumpversion)
 
 # names all of the patched include files, so we can have a proper dependency
 # The PATCH_SYSINCLUDES is in Makefile.gcc
@@ -168,9 +176,9 @@ patched-headers: $(PATCHEDHEADERS)
 $(PATCHEDHEADERS): $(PATCHEDHEADERSDIR)/stamp
 $(PATCHEDHEADERSDIR)/stamp: $(PATCHER_EXE) $(PATCHTEMPLATE)
 #       throw away all the existing patched includes
-	$(PATCHER) --dest=$(CCUREDHOME)/include --clean
+	CC=$(CILLY_NATIVE_CC) $(PATCHER) --dest=$(CCUREDHOME)/include --clean
 #       now re-regenerate them
-	$(PATCHER) --patch=$(PATCHTEMPLATE) \
+	CC=$(CILLY_NATIVE_CC) $(PATCHER) --patch=$(PATCHTEMPLATE) \
 		   --dest=$(CCUREDHOME)/include \
 		   $(foreach file,$(PATCH_SYSINCLUDES), --sfile=$(file))
 	touch $@

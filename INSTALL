@@ -67,3 +67,20 @@ Make sure it can see the ocaml you just installed as the system compiler:
 After that, you can follow the above steps, from Step 2.
 
 
+Cross-compilation:
+------------------
+
+When CCured output is to be cross-compiled, then the runtime needs to
+be compiled with the same cross-compiler that the ccured script will
+use (via CIL).  You can override the compiler called by CIL (and hence
+the ccured script) using the CILLY_NATIVE_CC environment variable.
+
+In this case, you should
+
+- define CILLY_NATIVE_CC in your environment
+
+- generate the cross-compiled runtime using
+
+   $ CILLY_NATIVE_CC=$CILLY_NATIVE_CC gmake runtime
+
+- call bin/ccured as usual with CILLY_NATIVE_CC in its environment
