@@ -349,7 +349,7 @@ extern char * __NULLTERM __ROSTRING strstr(__const char * __NULLTERM __ROSTRING 
 <<< file=string.h, ateof
 ===
 //strdup_wrapper needs a declaration of malloc:
-#include <malloc.h> 
+#include <stdlib.h> 
 
 //wrappers for bzero, strcpy, strcat, etc.
 #include "string_wrappers.h"
