@@ -32,7 +32,7 @@ DEF := -D
 ASMONLY := -S -o
 WARNALL := -Wall
 # sm: shuffled around a couple things so I could use CPPSTART for patch2
-CPPSTART := clang -E -x c -Dx86_LINUX -D_GNUCC  -I/usr/include/sys
+CPPSTART := clang -E -x c -D_GNUCC  -I/usr/include/sys
 CPPOUT := -o %o
 CPP := $(CPPSTART) -include fixup.h %i $(CPPOUT)
 INC := -I
@@ -50,7 +50,7 @@ LIBOUT := -rs
 PATCH_SYSINCLUDES := ctype.h fcntl.h glob.h grp.h malloc.h netdb.h \
 		     pthread.h pwd.h signal.h stdarg.h stdio.h stdlib.h \
 		     string.h time.h unistd.h varargs.h arpa/inet.h \
-		     sys/cdefs.h sys/_types.h x86/_types.h sys/fcntl.h sys/ioctl.h sys/socket.h \
+		     sys/cdefs.h sys/_types.h sys/fcntl.h sys/ioctl.h sys/socket.h \
 		     sys/stat.h sys/types.h sys/uio.h malloc.h setjmp.h
 
 ifneq ($(ARCHOS), x86_WIN32)
