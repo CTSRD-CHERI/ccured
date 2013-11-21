@@ -148,7 +148,7 @@ $(CCUREDLIB): lib/ccuredlib.c include/ccured.h include/ccuredannot.h \
 	@echo "Trying to build $(CCUREDLIB)"
 	@true "CCUREDLIBARG is $(CCUREDLIBARG)"
 	@true "CFLAGS is $(CFLAGS)"
-	$(CILLY_NATIVE_CC) $(CFLAGS) $(INC)./include $(CONLY) $(CCUREDLIBARG) \
+	$(CILLY_NATIVE_CC) -DCCURED_NO_GC $(CFLAGS) $(INC)./include $(CONLY) $(CCUREDLIBARG) \
 		    $(OBJOUT)$(OBJDIR)/ccuredlib.$(OBJEXT) lib/ccuredlib.c
 ifdef _MSVC
 	$(AR) $(LIBOUT)$@ $(OBJDIR)/ccuredlib.$(OBJEXT)
