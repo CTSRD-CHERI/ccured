@@ -208,7 +208,7 @@ sub findCompilerVersion {
 
     if($option{mode} eq "GNUCC") {
         $cname = "GNU CC";
-        my @compiler = Text::ParseWords::shellwords($ENV{CILLY_NATIVE_CC} || $::cc);
+        @compiler = Text::ParseWords::shellwords($ENV{CILLY_NATIVE_CC} || $::cc);
         open(VER, "@compiler -dumpversion $ppargs|")
             || die "Cannot start $cname";
         while(<VER>) {
@@ -224,8 +224,7 @@ sub findCompilerVersion {
         die "Cannot find the version for GCC\n";
     }
     if($option{mode} eq "CLANG") {
-        my @compiler = Text::ParseWords::shellwords($ENV{CILLY_NATIVE_CC} || "clang");
-        print "versioning @compiler\n";
+        @compiler = Text::ParseWords::shellwords($ENV{CILLY_NATIVE_CC} || "clang");
         open(VER, "@compiler -dumpversion $ppargs|")
             || die "Cannot start $cname";
         while(<VER>) {
@@ -239,8 +238,9 @@ sub findCompilerVersion {
     }
     if($option{mode} eq "MSVC") {
         $cname = "Microsoft cl";
+        @compiler = "cl";
         $ppargs =~ s|/nologo||g;
-        open(VER, "cl $ppargs 2>&1|") || die "Cannot start $cname: cl $ppargs\n";
+        open(VER, "@compiler $ppargs 2>&1|") || die "Cannot start $cname: @compiler $ppargs\n";
         while(<VER>) {
             if($_ =~ m|Compiler Version (\S+) |) {
                 $cversion = "cl_$1";
@@ -281,7 +281,7 @@ sub patchOneFile {
     # error might be due to an #error directive
     my $preproccmd = "";
     if($option{mode} eq "GNUCC" || $option{mode} eq "CLANG") {
-        $preproccmd = "$::cc -E $ppargs $preprocfile.c >$preprocfile.i";
+        $preproccmd = "@compiler -E $ppargs $preprocfile.c >$preprocfile.i";
         if ($^O ne 'MSWin32') {   # Windows has no /dev/null
                                   # ignore stderr (e.g. #error directives)
             $preproccmd .= " 2>/dev/null";
