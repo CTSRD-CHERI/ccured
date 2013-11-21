@@ -12,7 +12,7 @@
 /* Types for `void *' pointers.  */
 #ifdef __LP64__
 typedef long int                intptr_t;
-typedef unsigned long int       uintptr_t;
+typedef unsigned long           uintptr_t;
 #else
 typedef int                     intptr_t;
 typedef unsigned int            uintptr_t;
@@ -46,12 +46,12 @@ typedef unsigned int            uintptr_t;
 #endif
 
 // Define some prototypes for functions used by boxing
-extern void* allocInternal(unsigned int);
+extern void* allocInternal(unsigned long);
 extern void  freeInternal(void *);
 extern void  freeInternalMinus4(void *);
 
 // We declare this as unsigned int because allocators are made like that
-extern unsigned long wrapperAlloc(unsigned int);
+extern unsigned long wrapperAlloc(unsigned long);
 extern void wrapperFree(void*);
 extern char* wrapperStrdup(char *);
 
@@ -137,7 +137,7 @@ void *   __scalar2pointer(unsigned long  l , int  fid , int  lid ) ;
 // a lot of CCured's implementation was dependent on the assumption
 // that pointers are represented in 32 bits.  We leave these defines
 // here for now.
-#define I32 int
+#define I32 long
 #define U32 unsigned I32
 
 #ifndef MIN
@@ -273,7 +273,7 @@ void __CHECK_STOREPTR(void **where,
 
   if (p) {
     char* bpVal;
-    int   delta;
+    long  delta;
     bpVal = (char*)pTopOfFrame;
     delta = (bpVal - (char*)p);
 
@@ -390,8 +390,8 @@ void lbound_or_ubound_fail_terse(void *base, void *p);
       CCURED_CHECK(__CHECK_FSEQ2SAFE(bend,p,srcl,plen,foraccess,noint  FILE_AND_LINE))
 INLINE_STATIC_CHECK
 void __CHECK_FSEQ2SAFE(void *bend, void *p,
-                       unsigned int src_element_len,
-                       unsigned int destlen,
+                       unsigned long src_element_len,
+                       unsigned long destlen,
                        int foraccess,
                        int nonnull __UNUSED
                        CCURED_FAIL_EXTRA_PARAMS)
@@ -433,10 +433,10 @@ void __CHECK_FSEQ2SAFE(void *bend, void *p,
 #endif
 
 INLINE_STATIC_CHECK
-void __CHECK_FSEQALIGN(unsigned int sz,
+void __CHECK_FSEQALIGN(unsigned long sz,
                        void* p, void *bend
                        CCURED_FAIL_EXTRA_PARAMS) {
-  long diff = (long)bend - (long)p;
+  intptr_t diff = (intptr_t)bend - (intptr_t)p;
   if(bend && (diff / sz) * sz != diff) {
     CCURED_FAIL(FAIL_SEQUENCE_ALIGN CCURED_FAIL_EXTRA_ARGS);
   }
@@ -459,11 +459,11 @@ void __CHECK_FSEQALIGN(unsigned int sz,
       CCURED_CHECK(__CHECK_SEQALIGN(sz,p,base,bend FILE_AND_LINE))
 
 INLINE_STATIC_CHECK
-void __CHECK_SEQALIGN(unsigned int sz,
+void __CHECK_SEQALIGN(unsigned long sz,
                       void* p, void *base, void *bend CCURED_FAIL_EXTRA_PARAMS) {
   // Take a look at the SEQ2SAFE check to see that we only need that
   // end - p is a multiple of sz
-  long diff = (long)bend - (long)p;
+  intptr_t diff = (intptr_t)bend - (intptr_t)p;
   if(bend && (diff / sz) * sz != diff) {
     CCURED_FAIL(FAIL_SEQUENCE_ALIGN CCURED_FAIL_EXTRA_ARGS);
   }
@@ -484,8 +484,8 @@ void __CHECK_SEQALIGN(unsigned int sz,
 INLINE_STATIC_CHECK
 void __CHECK_SEQ2SAFE(void *base, void *bend,
                       void *p,
-                      unsigned int src_element_len,
-                      unsigned int destlen,
+                      unsigned long src_element_len,
+                      unsigned long destlen,
                       int foraccess,
                       int noint
                       CCURED_FAIL_EXTRA_PARAMS) {
@@ -502,7 +502,7 @@ void __CHECK_SEQ2SAFE(void *base, void *bend,
     if(!foraccess && !p) { // If foraccess=1 this conditional goes away !
       return; // Allow the 0 to go through, if not in a memory access
     } else {
-      NON_POINTER_FAIL((unsigned long)p  CCURED_FAIL_EXTRA_ARGS);
+        NON_POINTER_FAIL((unsigned long)p  CCURED_FAIL_EXTRA_ARGS);
     }
   }
 #endif
@@ -527,7 +527,7 @@ void __CHECK_SEQ2SAFE(void *base, void *bend,
     CCURED_FAIL(FAIL_UBOUND CCURED_FAIL_EXTRA_ARGS);
   }
   // ensure p - base <= bend - base - destlen
-  if(pmb > (unsigned int)(emb - destlen)) {
+  if(pmb > (emb - destlen)) {
     // This could be either a lbound or a ubound failure
     // We define a separate function because otherwise gcc will not inline this
     LBOUND_OR_UBOUND_FAIL(base, p CCURED_FAIL_EXTRA_ARGS);
@@ -538,7 +538,7 @@ void __CHECK_SEQ2SAFE(void *base, void *bend,
 /* //Read a string:  Allow access to the terminating NULL */
 /* //(also require dest_len=src_len, so we don't have to reason about casts) */
 /* #define CHECK_SEQN_READ(base,bend,p,len,noint) \ */
-/*       CCURED_CHECK(__CHECK_SEQ2SAFE(base,((unsigned long)bend)+(len),p,len,len,1,noint  FILE_AND_LINE)) */
+/*       CCURED_CHECK(__CHECK_SEQ2SAFE(base,(unsigned long bend)+(len),p,len,len,1,noint  FILE_AND_LINE)) */
 
 /* #define CHECK_FSEQN_READ(bend,p,len,noint) \ */
 /*       CCURED_CHECK(__CHECK_FSEQ2SAFE(((unsigned long)bend)+(len),p,len,len,1,noint  FILE_AND_LINE)) */
@@ -551,7 +551,7 @@ void __CHECK_SEQ2SAFE(void *base, void *bend,
 INLINE_STATIC_CHECK
 void __CHECK_SEQN_WRITE(void *base, void *bend,
                         void *p,
-                        unsigned int len,
+                        unsigned long len,
                         int noint,
                         int isnul  // true only iff we are writing a 0.
                       CCURED_FAIL_EXTRA_PARAMS)
@@ -574,7 +574,7 @@ void __CHECK_SEQN_WRITE(void *base, void *bend,
 INLINE_STATIC_CHECK
 void __CHECK_FSEQN_WRITE(void *bend,
                          void *p,
-                         unsigned int len,
+                         unsigned long len,
                          int noint,
                          int isnul
                       CCURED_FAIL_EXTRA_PARAMS)
@@ -603,7 +603,7 @@ void __CHECK_STRING_WRITE(void *p,
                           CCURED_FAIL_EXTRA_PARAMS)
 {
   if (!p) {
-    NON_POINTER_FAIL((unsigned long)p  CCURED_FAIL_EXTRA_ARGS);
+      NON_POINTER_FAIL((unsigned long)p  CCURED_FAIL_EXTRA_ARGS);
   }
   if(!isnul
      && (*((char*)p) == 0)) {
@@ -622,8 +622,8 @@ INLINE_STATIC_CHECK
 void __CHECK_BOUNDS_LEN(void *base,
                         unsigned int bwords,
                         void *p,
-                        unsigned int src_element_len,
-                        unsigned int plen  CCURED_FAIL_EXTRA_PARAMS)
+                        unsigned long src_element_len,
+                        unsigned long plen  CCURED_FAIL_EXTRA_PARAMS)
 {
   __CHECK_SEQ2SAFE(base, (char*)base + (bwords << CC_LOG_BYTES_PER_WORD),      // compute end
                    p, src_element_len,
@@ -638,7 +638,7 @@ void __CHECK_BOUNDS_LEN(void *base,
 #define CHECK_FETCHLENGTH(p,b,noint) \
       __CHECK_FETCHLENGTH(p,b,noint  FILE_AND_LINE)
 INLINE_STATIC_CHECK
-unsigned int __CHECK_FETCHLENGTH(void *p, void *b,
+unsigned long __CHECK_FETCHLENGTH(void *p, void *b,
                                  int noint CCURED_FAIL_EXTRA_PARAMS)
 {
   // if the 'b' field is null, we fail
@@ -648,7 +648,7 @@ unsigned int __CHECK_FETCHLENGTH(void *p, void *b,
   }
 
   // length is stored just before the first word of user-accessible area
-  return (unsigned int)(* (((U32*)b) - 1));
+  return (* (((U32*)b) - 1));
 }
 
 // given a b,p fat pointer, return a pointer to the word just beyond the
@@ -659,7 +659,7 @@ INLINE_STATIC_CHECK
 void * __CHECK_FETCH_WILD_END(void *p, void *b,
                               int noint CCURED_FAIL_EXTRA_PARAMS)
 {
-  unsigned int len = __CHECK_FETCHLENGTH(p, b, noint  CCURED_FAIL_EXTRA_ARGS);
+  unsigned long len = __CHECK_FETCHLENGTH(p, b, noint  CCURED_FAIL_EXTRA_ARGS);
   return (void*)((char*)b + (len << CC_LOG_BYTES_PER_WORD));
 }
 
@@ -669,7 +669,7 @@ INLINE_STATIC_CHECK
 void * __CHECK_FETCH_INDEX_END(void *p, void *b,
                                int noint CCURED_FAIL_EXTRA_PARAMS)
 {
-  unsigned int len = __CHECK_FETCHLENGTH(p, b, noint  CCURED_FAIL_EXTRA_ARGS);
+  unsigned long len = __CHECK_FETCHLENGTH(p, b, noint  CCURED_FAIL_EXTRA_ARGS);
   return (void*)((char*)b + (len << CC_LOG_BYTES_PER_WORD));
 }
 
@@ -682,10 +682,10 @@ void * __CHECK_FETCH_INDEX_END(void *p, void *b,
 #endif
 
 INLINE_STATIC_CHECK
-void __CHECK_INDEXALIGN(unsigned int sz,
+void __CHECK_INDEXALIGN(unsigned long sz,
                         void* p, void *base CCURED_FAIL_EXTRA_PARAMS) {
   if(base) {
-    unsigned int nrWords =
+    unsigned long nrWords =
       __CHECK_FETCHLENGTH(p, base, 1  CCURED_FAIL_EXTRA_ARGS);
     long diff = (long)base + (nrWords << CC_LOG_BYTES_PER_WORD) - (long)p;
     if((diff / sz) * sz != diff) {
@@ -738,7 +738,7 @@ void __CHECK_POSITIVE(int x  CCURED_FAIL_EXTRA_PARAMS)
       CCURED_CHECK(__CHECK_FSEQARITH(p, plen, p_x, bend, checkAlign FILE_AND_LINE))
 INLINE_STATIC_CHECK
 void __CHECK_FSEQARITH(void *p,
-                       unsigned int plen,  //element size
+                       unsigned long plen,  //element size
                        void *p_x,
                        void *bend,
                        int checkAlign
@@ -761,8 +761,8 @@ void __CHECK_FSEQARITH(void *p,
 INLINE_STATIC_CHECK
 void __CHECK_FSEQARITH2SAFE(void *p, void *bend,
                             void *ppi, /* p + i */
-                            unsigned int src_element_len,
-                            unsigned int plen,
+                            unsigned long src_element_len,
+                            unsigned long plen,
                             int foraccess,
                             int noint,
                             int checkAlign
@@ -823,7 +823,7 @@ void __LOG_SCALAR(unsigned long p, int id)
 #define CHECK_FETCHNULLTERMEND1(p) __CHECK_FETCHNULLTERMEND1(p  FILE_AND_LINE)
 INLINE_STATIC_CHECK void * __CHECK_FETCHNULLTERMEND1(char *p CCURED_FAIL_EXTRA_PARAMS)
 {
-  unsigned int len;
+  unsigned long len;
   if (!p) {
     CCURED_FAIL(FAIL_NULLSTRING  CCURED_FAIL_EXTRA_ARGS);
     return NULL; // If we do not stop
@@ -953,8 +953,8 @@ void __CHECK_RTTICAST(struct RTTI_ELEMENT *srtti,
 INLINE_STATIC_CHECK
 unsigned int __CHECK_STRINGMAX(void *p, void* b  CCURED_FAIL_EXTRA_PARAMS)
 {
-  int nrWords;
-  int max;
+  long nrWords;
+  long max;
   //  U32 *addr = (U32*)p;
   if(! b) {
     NON_POINTER_FAIL((unsigned long)p  CCURED_FAIL_EXTRA_ARGS);
@@ -988,7 +988,7 @@ void __CHECK_UNIONTAG(int tag CCURED_FAIL_EXTRA_PARAMS) {
    If this field is currently selected, do nothing.
    Otherwise, zero the whole union before setting the new tag or data values.*/
 INLINE_STATIC_CHECK
-void CHECK_INITUNIONFIELD(int selected, void* p, unsigned int size) {
+void CHECK_INITUNIONFIELD(int selected, void* p, unsigned long size) {
   if (!selected) {
     __builtin_memset(p, 0, size);
   }

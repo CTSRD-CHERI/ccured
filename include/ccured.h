@@ -16,7 +16,7 @@
 
 /* Use a special allocator (synonym for malloc) to ensure that we
    have its prototype without having to guess the prototype for malloc */
-extern void* wrapperAlloc(unsigned int);
+extern unsigned long wrapperAlloc(unsigned long);
 #pragma cilnoremove("wrapperAlloc")
 #pragma ccuredalloc("wrapperAlloc", sizein(1), nozero)
 

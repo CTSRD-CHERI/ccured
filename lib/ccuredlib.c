@@ -367,7 +367,7 @@ void* __ccuredStackBottom = 0;
 #endif
 
 // round a byte count up to the next word boundary
-#define ALIGNBYTES(n) (((n) + sizeof(int) - 1) & ~(sizeof(int) - 1))
+#define ALIGNBYTES(n) (((n) + sizeof(long) - 1) & ~(sizeof(long) - 1))
 
 // round a byte count up to the next word boundary, and return
 // the count in *words*
@@ -553,7 +553,7 @@ void noticedContiguousUnreachable(void *block, size_t size, size_t arraySize)
   #define I32 int
 #endif
 #ifdef _GNUCC
-  #define I32 int
+  #define I32 long
 #endif
 #define U32 unsigned I32
 
@@ -1062,7 +1062,7 @@ __inline static void wildp_copy_tags(wildp_char dest, wildp_char src, int n)
 
 // verify the memory is writable, and then clear the tags
 // Also does a bounds check (via wildp_verify_at_least)
-__inline static void wildp_write_atleast(wildp_char ptr, int n)
+__inline static void wildp_write_atleast(wildp_char ptr, long n)
 {
   wildp_verify_atleast(ptr, n);
   wildp_clear_tags(ptr, n);
@@ -2794,7 +2794,7 @@ seqp_char optarg_q;
 // Define our version of va_start
 
 // sm: I already defined this myself, calling it ALIGNBYTES
-//#define OUR_ROUND(size) ((size + sizeof(int) - 1) & ~(sizeof(int) - 1))
+//#define OUR_ROUND(size) ((size + sizeof(long) - 1) & ~(sizeof(long) - 1))
 
 // pm: the value returned by getPNextArg is not used anymore.
 #ifdef _GNUCC
@@ -4704,7 +4704,7 @@ int true_writev(int fd, const struct iovec* vec, int count)
 #endif
 
 #if defined _GNUCC //&& ! defined __CYGWIN__
-void check_glob_size(int pglob_size)
+void check_glob_size(long pglob_size)
 {
   if (sizeof(glob_t) != pglob_size) {
     // see include/functions/glob.h
@@ -4763,8 +4763,8 @@ void CHECK_FORMATARGS_f(fseqp_char format) {
 }
 
 #ifndef CCURED_NO_MALLOC
-uintptr_t wrapperAlloc(unsigned int sz) {
-  return (uintptr_t)malloc(sz);
+unsigned long wrapperAlloc(unsigned long sz) {
+  return (unsigned long)malloc(sz);
 }
 void  wrapperFree(void* x) { free(x); }
 char* wrapperStrdup(char *str) {
