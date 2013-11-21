@@ -234,20 +234,16 @@ extern struct _IO_FILE *stderr;		/* Standard error output stream.  */
 
 >>>
 
-
-// Remove this definition of __va_list 
-<<< file=stdarg.h
-typedef	__builtin_va_list	__va_list;	/* internally known to gcc */
+// Remove another definition of __va_list
+<<< file=machine/_types.h
+typedef __builtin_va_list	__va_list;	/* internally known to gcc */
 |||
-typedef __va_list		__gnuc_va_list;	/* compatibility w/GNU headers*/
-|||
-typedef __builtin_va_list va_list;
-|||
-typedef __builtin_va_list __gnuc_va_list;
+typedef	char *			__va_list;
 ===
 #ifdef CCURED
   #ifndef CCURED_VA_DEFINED
   #define CCURED_VA_DEFINED
+    struct __ccured_va_lis;
     typedef struct __ccured_va_list * __gnuc_va_list;
     typedef struct __ccured_va_list * __va_list;
   #endif
@@ -256,6 +252,91 @@ typedef __builtin_va_list __gnuc_va_list;
 #endif
 >>>
 
+<<< file=machine/_types.h
+#define	__GNUC_VA_LIST
+typedef __va_list		__gnuc_va_list;	/* compatibility w/GNU headers*/
+===
+#ifdef CCURED
+  #ifndef CCURED_VA_DEFINED_TYPES
+  #define CCURED_VA_DEFINED_TYPES
+    struct __ccured_va_list;
+    typedef struct __ccured_va_list * __gnuc_va_list;
+    typedef struct __ccured_va_list * __va_list;
+    #ifndef __GNUC_VA_LIST
+    #define __GNUC_VA_LIST
+    #endif
+  #endif
+#else
+  @__pattern__@
+#endif
+>>>
+
+// Now add our stuff at the end of stdarg.h and varargs.h
+<<< file=machine/_types.h, ateof
+===
+#if !defined(CCURED_VA_LIST) 
+  #define CCURED_VA_LIST __ccured_va_list
+  typedef struct __ccured_va_list { int next; } * __ccured_va_list;
+  extern void __ccured_va_start(__ccured_va_list, unsigned long) ;
+  extern void *__ccured_va_arg(__ccured_va_list, unsigned int, int);
+  #pragma ccuredpoly("__ccured_va_arg")
+  extern void __ccured_va_end(__ccured_va_list);
+  extern __ccured_va_list __ccured_va_copy(__ccured_va_list);
+#endif
+>>>
+
+<<< file=stdarg.h
+#define __GNUC_VA_LIST 1
+typedef __builtin_va_list __gnuc_va_list;
+===
+#ifdef CCURED
+  #ifndef CCURED_VA_DEFINED
+  #define CCURED_VA_DEFINED
+    #ifndef __GNUC_VA_LIST
+    #define __GNUC_VA_LIST 1
+    #endif
+    struct __ccured_va_list;
+    typedef struct __ccured_va_list * __gnuc_va_list;
+    typedef struct __ccured_va_list * __va_list;
+  #endif
+#else
+  @__pattern__@
+#endif
+>>>
+// Remove this definition of __va_list 
+<<< file=stdarg.h
+typedef	__builtin_va_list	__va_list;	/* internally known to gcc */
+|||
+typedef __va_list		__gnuc_va_list;	/* compatibility w/GNU headers*/
+|||
+typedef __builtin_va_list va_list;
+===
+#ifdef CCURED
+  #ifndef CCURED_VA_DEFINED
+  #define CCURED_VA_DEFINED
+    struct __ccured_va_list;
+    typedef struct __ccured_va_list * __gnuc_va_list;
+    typedef struct __ccured_va_list * __va_list;
+  #endif
+#else
+  @__pattern__@
+#endif
+>>>
+<<< file=stdarg.h
+#define va_start(ap, param) __builtin_va_start(ap, param)
+#define va_end(ap)          __builtin_va_end(ap)
+#define va_arg(ap, type)    __builtin_va_arg(ap, type)
+
+/* GCC always defines __va_copy, but does not define va_copy unless in c99 mode
+ * or -ansi is not specified, since it was not part of C90.
+ */
+#define __va_copy(d,s) __builtin_va_copy(d,s)
+
+#if __STDC_VERSION__ >= 199900L || __cplusplus >= 201103L || !defined(__STRICT_ANSI__)
+#define va_copy(dest, src)  __builtin_va_copy(dest, src)
+#endif
+===
+>>>
 
 // Now add our stuff at the end of stdarg.h and varargs.h
 <<< file=stdarg.h, ateof
@@ -265,7 +346,7 @@ typedef __builtin_va_list __gnuc_va_list;
 #if defined(CCURED)
    // _STDARG_H is defined in stdarg.h when invoked from the user program
    // On Clang/FreeBSD/x86, it goes via x86/stdarg.h
-   #if defined(_STDARG_H) || defined(_MACHINE_STDARG_H_) || defined(WE_ARE_IN_VARARGS)
+   #if defined(_STDARG_H) || defined(_MACHINE_STDARG_H_) || defined(WE_ARE_IN_VARARGS) || defined(_MACHINE__TYPES_H_) || defined(__STDARG_H)
      #if !defined(CCURED_VA_LIST) 
        #define CCURED_VA_LIST __ccured_va_list
        typedef struct __ccured_va_list { int next; } * __ccured_va_list;
