@@ -83,4 +83,7 @@ In this case, you should
 
    $ CILLY_NATIVE_CC=$CILLY_NATIVE_CC gmake runtime
 
+  To remove the dependence on a cross-built Boehm-GC, add
+  -DCCURED_NO_GC to the runtime build.
+
 - call bin/ccured as usual with CILLY_NATIVE_CC in its environment
