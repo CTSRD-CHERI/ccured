@@ -84,7 +84,7 @@ long atol_wrapper(char* str)
   // update: I see, I was trying to compile code which was preprocessed for
   // CIL's consumption, not gcc's; reverting back to qsort..
   extern void qsort(void *, size_t, size_t,
-                    int (*)(void *__SAFE left, void *__SAFE right));
+                    int (*)(const void *__SAFE left, const void *__SAFE right));
 #endif
 
 //see ccuredlib for descriptions:
@@ -153,7 +153,7 @@ extern void qsort_zero_tags(void* base, size_t nelts, size_t size);
       //This use of __CANPOINTTOSTACK is sound; __qsort_base might
       // point to a stack-allocated array, but it is only live during the
       // call to qsort.
-    static int (*__qsort_compare)(void*, void*);
+    static int (*__qsort_compare)(const void*, const void*);
 
     static inline
     int __qsort_thunk(void * __SAFE left, void * __SAFE right)
@@ -173,7 +173,7 @@ extern void qsort_zero_tags(void* base, size_t nelts, size_t size);
     static inline
     void qsort_wrapper(void* base, size_t nmemb,
 		       size_t size,
-		       int (*compare)(void *left, void *right))
+		       int (*compare)(const void *left, const void *right))
     {
       if(__LENGTH(base) < __ccured_mult_u32(nmemb, size))
 	CCURED_FAIL(FAIL_UBOUND FILE_AND_LINE);
@@ -184,7 +184,7 @@ extern void qsort_zero_tags(void* base, size_t nelts, size_t size);
       __qsort_compare = compare;
 
       qsort(__ptrof(base), nmemb, size,
-            (int (*)(void*,void*))__ptrof((int (*)(void * __SAFE,
+            (int (*)(const void*,const void*))__ptrof((int (*)(void * __SAFE,
                                                    void * __SAFE))__qsort_thunk));
 
       __qsort_base = 0;
@@ -235,7 +235,7 @@ extern void qsort_zero_tags(void* base, size_t nelts, size_t size);
 						__ptrof(base), 
 						nmemb, 
 						size, 
-						(int (*)(void*,void*))__ptrof((int (*)(void * __SAFE,
+						(int (*)(const void*,const void*))__ptrof((int (*)(void * __SAFE,
 														void * __SAFE))__bsearch_thunk));
 
 		__bsearch_base = 0;
